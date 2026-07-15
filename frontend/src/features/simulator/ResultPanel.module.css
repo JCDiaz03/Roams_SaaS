@@ -1,0 +1,78 @@
+.panel {
+  position: sticky;
+  top: 84px;
+}
+
+.etiqueta {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--color-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+/* El precio como protagonista tipografico (diseno 2.1). */
+.total {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.periodo {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-2);
+}
+
+.impuestos {
+  font-size: 11.5px;
+  color: var(--color-text-2);
+  margin-top: 4px;
+}
+
+.referencia {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border-radius: var(--radius-field);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+}
+
+.referenciaEtiqueta {
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--color-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.facturado {
+  font-size: 14px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  margin-top: 2px;
+}
+
+.sellada {
+  margin-top: 12px;
+}
+
+.acciones {
+  margin-top: 16px;
+}
+
+.aviso {
+  margin-top: 12px;
+}
+
+@media (max-width: 900px) {
+  .panel {
+    position: static;
+  }
+  .total {
+    font-size: 34px;
+  }
+}

@@ -6,7 +6,7 @@ type Props = {
   width?: string | number
   height?: string | number
   radius?: string
-  className?: string
+  className?: string | undefined
 }
 
 /**
@@ -29,7 +29,7 @@ export function Skeleton({ width = '100%', height = 14, radius, className }: Pro
 }
 
 /** Varias barras apiladas: el caso comun (unas cuantas lineas de texto). */
-export function SkeletonStack({ lines = 3, className }: { lines?: number; className?: string }) {
+export function SkeletonStack({ lines = 3, className }: { lines?: number; className?: string | undefined }) {
   return (
     <div className={[styles.stack, className ?? ''].filter(Boolean).join(' ')}>
       {Array.from({ length: lines }, (_, i) => (

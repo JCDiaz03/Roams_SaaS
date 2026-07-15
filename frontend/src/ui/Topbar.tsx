@@ -1,1 +1,138 @@
 // Wordmark, buscador compacto, divisa, tema, menu de usuario. Diseno: 3
+
+import { useEffect, useRef, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useSession } from '../lib/session'
+import { useRatesContext } from '../lib/rates-context'
+import { Chip } from './Chip'
+import { CurrencySelect } from './CurrencySelect'
+import { ThemeToggle } from './ThemeToggle'
+import styles from './Topbar.module.css'
+import { IconLogo, IconLogout, IconSearch, IconSettings, IconWarning } from './icons'
+
+const fecha = (iso: string) =>
+  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
+
+export function Topbar() {
+  const { session, hasRole, logout, setCurrency, toggleTheme } = useSession()
+  const rates = useRatesContext()
+  const navegar = useNavigate()
+
+  const [menuAbierto, setMenuAbierto] = useState(false)
+  const [termino, setTermino] = useState('')
+  const menuRef = useRef<HTMLDivElement>(null)
+
+  // Un menu que solo se cierra con su propio boton es un menu que se queda abierto: se
+  // cierra al pulsar fuera y con Escape, que es lo que cualquiera espera.
+  useEffect(() => {
+    if (!menuAbierto) return
+
+    const fuera = (e: MouseEvent) => {
+      if (menuRef.current !== null && !menuRef.current.contains(e.target as Node)) {
+        setMenuAbierto(false)
+      }
+    }
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setMenuAbierto(false)
+    }
+
+    document.addEventListener('mousedown', fuera)
+    document.addEventListener('keydown', escape)
+    return () => {
+      document.removeEventListener('mousedown', fuera)
+      document.removeEventListener('keydown', escape)
+    }
+  }, [menuAbierto])
+
+  if (session === null) return null
+
+  const buscar = (e: React.FormEvent) => {
+    e.preventDefault()
+    navegar(`/?q=${encodeURIComponent(termino)}`)
+  }
+
+  return (
+    <header className={styles.bar}>
+      <button type="button" className={styles.marca} onClick={() => navegar('/')}>
+        <span className={styles.logo}>
+          <IconLogo />
+        </span>
+        <span className={styles.wordmark}>
+          SaaS<em>-O-</em>Matic
+        </span>
+      </button>
+
+      <form className={styles.buscador} onSubmit={buscar} role="search">
+        <span className={styles.lupa}>
+          <IconSearch />
+        </span>
+        <input
+          className={styles.input}
+          value={termino}
+          onChange={(e) => setTermino(e.target.value)}
+          placeholder="Busca por empresa o identificador fiscal…"
+          aria-label="Buscar cliente"
+          // El mismo tope que el esquema del backend: el 400 existe, pero que el input lo
+          // provoque seria un error de cliente mal programado.
+          maxLength={100}
+        />
+      </form>
+
+      <div className={styles.hueco} />
+
+      {/* Badge de tipos desactualizados. Persistente mientras lo esten: un dashboard que
+          ensena un numero viejo EN SILENCIO es peor que uno que dice que no sabe. */}
+      {rates.estado === 'listo' && rates.rates.stale && (
+        <Chip tone="warning" icon={<IconWarning size={14} />}>
+          Tipos del {fecha(rates.rates.as_of)}
+        </Chip>
+      )}
+
+      <CurrencySelect
+        value={session.currency}
+        onChange={setCurrency}
+        disabled={rates.estado !== 'listo'}
+      />
+
+      <ThemeToggle theme={session.theme} onToggle={toggleTheme} />
+
+      <div className={styles.usuario} ref={menuRef}>
+        <button
+          type="button"
+          className={styles.botonUsuario}
+          onClick={() => setMenuAbierto((v) => !v)}
+          aria-expanded={menuAbierto}
+          aria-haspopup="menu"
+        >
+          <span>Hola, {session.nombre}</span>
+          <span className={styles.avatar} aria-hidden="true">
+            {session.nombre.charAt(0).toUpperCase()}
+          </span>
+        </button>
+
+        {menuAbierto && (
+          <div className={styles.menu} role="menu">
+            {/* hasRole('admin'), no una comparacion de strings. El literal "ADMIN" vive en
+                un solo sitio del frontend (lib/session.tsx). */}
+            {hasRole('admin') && (
+              <button type="button" className={styles.itemMenu} role="menuitem" onClick={() => navegar('/planes')}>
+                <IconSettings />
+                Administración
+              </button>
+            )}
+            <div className={styles.separador} />
+            <button
+              type="button"
+              className={`${styles.itemMenu} ${styles.itemPeligro}`}
+              role="menuitem"
+              onClick={logout}
+            >
+              <IconLogout />
+              Cerrar sesión
+            </button>
+          </div>
+        )}
+      </div>
+    </header>
+  )
+}

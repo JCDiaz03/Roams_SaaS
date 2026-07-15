@@ -7,7 +7,7 @@ type Props = {
   children: ReactNode
   /** Padding interno estandar. Apagalo cuando la tarjeta gestione su propio relleno. */
   pad?: boolean
-  className?: string
+  className?: string | undefined
 }
 
 export function Card({ children, pad = true, className }: Props) {

@@ -10,7 +10,7 @@ type Props = {
   children: ReactNode
   tone?: Tone
   title?: string
-  className?: string
+  className?: string | undefined
 }
 
 const ICONO: Record<Tone, ReactNode> = {

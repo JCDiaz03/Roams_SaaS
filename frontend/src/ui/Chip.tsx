@@ -9,7 +9,7 @@ type Props = {
   children: ReactNode
   tone?: Tone
   icon?: ReactNode
-  className?: string
+  className?: string | undefined
 }
 
 /**

@@ -3,6 +3,7 @@
 > **Mantenimiento — capa DISEÑO FRONTEND.**
 >
 > * Qué es: brief de diseño de las pantallas del dashboard, dirigido a Claude Design. Describe QUÉ ventanas hay, qué contiene cada una y con qué lenguaje visual. NO es documentación de implementación ni registro de cambios.
+> * **Estado: el diseño ya existe** (`SaaS-O-Matic.dc.html`, importado vía el MCP de Claude Design) y las 5 ventanas de Fase 1 están implementadas. Este brief se conserva como el *encargo*; lo que se construyó y sus desviaciones están abajo, en §7.
 > * Presente, sin fechas: nada de "(2026-..)", "antes era X / ahora Y". El historial está en git.
 > * Estado, no fecha: lo incompleto se marca —`(pendiente de diseño)`, `(solo tema claro)`—, nunca con una fecha.
 > * Una sola casa por dato: los porqués de negocio (divisas, tramos, roles) viven en `idea-referencia.md`; aquí solo se resume en 1-2 líneas lo imprescindible para diseñar y se enlaza (`→ referencia §X`). Fases y estado → `roams-roadmap.md`.
@@ -147,3 +148,20 @@ Estos cinco patrones son la identidad estructural de Roams y se reutilizan tal c
 3. La hoja de **tokens** (variables CSS de ambos temas) como entregable propio, para trasladarla tal cual al código.
 
 **No negociables al diseñar**: el desglose del cálculo siempre visible o a un clic; el importe convertido siempre etiquetado como referencia con el facturado real al lado; las métricas no facturadas se muestran atenuadas, no se ocultan; nada de jerga técnica (versión, snapshot, tramo puede decirse "escalón de precio" en tooltips); contraste AA en los dos temas.
+
+---
+
+## 7. Qué se implementó, y en qué se desvía del prototipo
+
+El prototipo entregado (`SaaS-O-Matic.dc.html`) es la fuente del lenguaje visual, y se portó **el aspecto, no la lógica**: traía su propio motor de tramos, un `roundHalfUp(x) = Math.floor(x + 0.5)` en float, un validador fiscal completo y los tipos impositivos como `tax: 0.21`. Es lo correcto en un mockup y es exactamente lo que las directrices §5 rechazan en producción: en la app, el cálculo lo hace `@saas/pricing` y la validación el registro del backend.
+
+Cuatro desviaciones deliberadas:
+
+| Desviación | Por qué |
+|---|---|
+| **8 pares de color ajustados** (5-8 % hacia negro), más `--color-primary-strong` y `--color-on-primary` | El AA es requisito duro (§2.3) y el prototipo lo fallaba en ocho pares — el peor, texto blanco sobre el primario en oscuro, **3,44**, que es el botón principal. La causa es estructural: el magenta de marca sobre blanco da **4,50 exacto**, así que sobre cualquier tinte cae. Hay un test (`ui/tokens.test.ts`, 32 pares) que falla el CI |
+| **Poppins auto-alojada**, subset latino | El prototipo la carga de `fonts.googleapis.com`: es un tercero, choca con la CSP estricta (referencia §14.2), y una herramienta interna no debería depender de que Google responda. Sin el subset latino se empaquetaba devanagari: 512 KB → 80 KB |
+| **Sin banderas** en el selector de divisa | El prototipo usa emoji de bandera. Una bandera junto a una divisa es una imprecisión (el euro no es de un país, el dólar es de veinte) y además no la lee un lector de pantalla. El símbolo lo deriva `Intl` del código ISO |
+| **El alta es una pantalla**, no un modal | En el prototipo es un overlay. Como pantalla tiene URL propia, se puede enlazar desde el estado vacío del buscador ("Dar de alta a «X»") y el navegador la trata como lo que es: un formulario con su sitio |
+
+**Estado**: las 5 ventanas de Fase 1 (login, dashboard, detalle, simulador, alta) están implementadas y verificadas conduciendo la app real. Las **ventanas 6 y 7 (administración de planes) son Fase 2** y necesitan `POST/PUT/DELETE /plans`, que aún no existen.

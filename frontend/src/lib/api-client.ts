@@ -1,1 +1,187 @@
 // Cliente HTTP contra el backend (mismo origen via proxy de Vite). Ref: 14.1
+
+import type { CurrencyCode, MetricBreakdown, Tier } from '@saas/pricing'
+
+// Rutas RELATIVAS: el navegador solo habla con su propio origen. En desarrollo lo
+// mantiene literal el proxy de Vite hacia :3000 (referencia 14.1). Nadie debe "arreglar"
+// el cruce de puertos poniendo aqui una URL absoluta y abriendo CORS.
+const BASE = '/api'
+
+// --- Tipos del contrato (contrato-api.md) -------------------------------------------
+
+export type Country = {
+  code: string
+  name: string
+  display_currency: CurrencyCode
+  fiscal_id: { validated: boolean; hint: string }
+}
+
+export type Plan = {
+  id: number
+  name: string
+  version: number
+  description: string | null
+  currency: CurrencyCode
+  pricing_model: string
+  active: boolean
+  tiers: Tier[]
+}
+
+export type CustomerListItem = {
+  id: number
+  company_name: string
+  fiscal_id: string
+  fiscal_id_type: string
+  country: string
+  plan: { id: number; name: string; version: number }
+  simulation_count: number
+}
+
+export type CustomerDetail = {
+  id: number
+  company_name: string
+  fiscal_id: string
+  fiscal_id_type: string
+  email: string
+  country: { code: string; name: string; display_currency: CurrencyCode }
+  tax_rate_bp: number
+  plan: Plan
+  created_at: string
+}
+
+export type Simulation = {
+  id: number
+  customer_id: number
+  plan_id: number
+  inputs: { active_users: number; storage_gb: number; api_calls: number }
+  currency: CurrencyCode
+  base_minor: number
+  tax_rate_bp: number
+  tax_minor: number
+  total_minor: number
+  breakdown: MetricBreakdown[]
+  created_at: string
+}
+
+export type Rates = {
+  base: 'EUR'
+  rates: Record<string, number>
+  as_of: string
+  next_update: string
+  stale: boolean
+}
+
+// --- Errores --------------------------------------------------------------------------
+
+/**
+ * Un error que el backend explico. Lleva `code` para decidir y `field` para pintar.
+ *
+ * La UI decide con `code`, NUNCA parseando `message`: el mensaje es texto de producto y
+ * puede cambiar sin avisar (contrato-api.md 1.2).
+ */
+export class ApiError extends Error {
+  constructor(
+    readonly status: number,
+    readonly code: string,
+    override readonly message: string,
+    readonly field?: string,
+    readonly extra?: Record<string, unknown>,
+  ) {
+    super(message)
+    this.name = 'ApiError'
+  }
+
+  /** true = el usuario ha escrito algo que no vale. Es flujo normal, no una anomalia. */
+  get esDeValidacion(): boolean {
+    return this.status === 422 || this.status === 409
+  }
+}
+
+/** La red se cayo, o el servidor no respondio nada entendible. Otra pantalla distinta. */
+export class NetworkError extends Error {
+  constructor() {
+    super('No hemos podido conectar. Comprueba tu conexión e inténtalo de nuevo.')
+    this.name = 'NetworkError'
+  }
+}
+
+async function pedir<T>(path: string, init?: RequestInit): Promise<T> {
+  let respuesta: Response
+  try {
+    respuesta = await fetch(`${BASE}${path}`, {
+      ...init,
+      headers: { 'Content-Type': 'application/json', ...init?.headers },
+    })
+  } catch {
+    // fetch solo rechaza por red. Un 500 NO pasa por aqui: es una respuesta.
+    throw new NetworkError()
+  }
+
+  if (respuesta.status === 204) return undefined as T
+
+  let cuerpo: unknown
+  try {
+    cuerpo = await respuesta.json()
+  } catch {
+    throw new NetworkError()
+  }
+
+  if (!respuesta.ok) {
+    const e = (cuerpo as { error?: Record<string, unknown> }).error
+    if (e === undefined) throw new NetworkError()
+
+    const { code, message, field, ...extra } = e
+    throw new ApiError(
+      respuesta.status,
+      String(code),
+      String(message),
+      field === undefined ? undefined : String(field),
+      extra,
+    )
+  }
+
+  return cuerpo as T
+}
+
+// --- La API ---------------------------------------------------------------------------
+
+export const api = {
+  countries: () => pedir<{ countries: Country[] }>('/countries').then((r) => r.countries),
+
+  plans: (includeArchived = false) =>
+    pedir<{ plans: Plan[] }>(`/plans${includeArchived ? '?include_archived=true' : ''}`).then(
+      (r) => r.plans,
+    ),
+
+  searchCustomers: (search: string, signal?: AbortSignal) =>
+    pedir<{ customers: CustomerListItem[]; total: number }>(
+      `/customers?search=${encodeURIComponent(search)}`,
+      signal === undefined ? undefined : { signal },
+    ),
+
+  customer: (id: number) => pedir<CustomerDetail>(`/customers/${id}`),
+
+  history: (id: number) =>
+    pedir<{ simulations: Simulation[]; total: number }>(`/customers/${id}/simulations`).then(
+      (r) => r.simulations,
+    ),
+
+  createCustomer: (body: {
+    company_name: string
+    fiscal_id: string
+    email: string
+    country: string
+    plan_id: number
+  }) => pedir<{ id: number }>('/customers', { method: 'POST', body: JSON.stringify(body) }),
+
+  // SOLO ENTRADAS, jamas importes (invariante 1). El backend recalcula desde cero y su
+  // numero manda; si difiere del preview, la UI pinta el suyo (referencia 10).
+  createSimulation: (body: {
+    customer_id: number
+    active_users: number
+    storage_gb: number
+    api_calls: number
+  }) => pedir<Simulation>('/simulations', { method: 'POST', body: JSON.stringify(body) }),
+
+  rates: () => pedir<Rates>('/rates'),
+}

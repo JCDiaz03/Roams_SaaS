@@ -63,12 +63,13 @@
 
 - ✅ Configuración Vite con **proxy de dev hacia el backend** (mismo origen; nada de abrir CORS → referencia §14.1)
 - ✅ **Sistema de diseño importado** del prototipo de Claude Design (`SaaS-O-Matic.dc.html` → `01-specs/diseño-frontend.md` §6.3): `tokens.css` de ambos temas, primitivas (`Button`, `Card`, `Chip`, `Callout`, `Skeleton`, `Toast`, `ThemeToggle`, iconos), `lib/theme.ts` y `lib/currency-format.ts`. Del prototipo se porta el lenguaje visual; **su lógica no** (reimplementa motor, redondeo y validador fiscal → directrices §5). Poppins auto-alojada, subset latino. **Contraste AA como test que falla el CI** (`ui/tokens.test.ts`, 32 pares): 8 pares del prototipo fallaban AA y se corrigieron
-- ⏳ Login mock + sesión `{nombre, rol}` + `hasRole()` (→ referencia §8)
-- ⏳ Buscador con debounce (vacío ≠ error)
-- ⏳ Cards responsive: detalle de cliente + historial de simulaciones
-- ⏳ Alta de cliente: desplegable de países desde `GET /countries`, errores de validación junto al campo
-- ⏳ Simulador: sliders por métrica, preview local vía paquete `pricing` (tramos del detalle del cliente), desglose visible del cálculo, guardar → el número del backend manda
-- ⏳ Selector de divisa: preselección `auto`/`manual` (la elección manual manda → referencia §13), conversión solo visual, importe marcado como referencia, `Intl.NumberFormat`
+- ✅ Login mock + sesión `{nombre, rol}` + `hasRole()` (→ referencia §8). **El literal `"ADMIN"` aparece una sola vez en `frontend/src`, y hay un test que lo vigila** (`lib/session.test.ts`): es lo único que hace que el mock sea sustituible en un módulo, que es la única razón por la que un mock es aceptable
+- ✅ Buscador con debounce de 250 ms (vacío ≠ error), término en la URL, `AbortController` para que una respuesta lenta no pise a la rápida
+- ✅ Cards responsive: detalle de cliente + historial de simulaciones (grid 1-2-3)
+- ✅ Alta de cliente: desplegable de países desde `GET /countries` con el **hint fiscal ya resuelto** (cero `if (país)` en el cliente), errores de validación junto al campo, y enlace a la ficha existente si el `fiscal_id` está duplicado
+- ✅ Simulador: sliders + input numérico por métrica, **preview local vía `quote()` de `@saas/pricing`** con los tramos del detalle (0 ms, sin red), desglose visible con su pie explicativo, guardar → el número del backend manda y la simulación queda sellada
+- ✅ Selector de divisa: preselección `auto`/`manual` (la elección manual manda → referencia §13), conversión solo visual, importe marcado como referencia con el facturado al lado, `Intl.NumberFormat` con `narrowSymbol`
+- ✅ Verificado conduciendo la app real con Chrome (backend + frontend con `npm run dev`): login → buscador (`nébula` → 1 resultado) → ficha de Fjord con el aviso «Mantiene su tarifa contratada» → simulador con **su tarifa archivada (10×12 € + 5×7 € = 155 € + 19 % DE = 184,45 €)** → guardar → cambio a USD (210,62 $ marcado como referencia) → historial. **Cero errores de consola**
 
 ### 3.4 Robustez y entrega mínima — *Día 4*
 
@@ -76,7 +77,7 @@
 - 🔵 Seguridad §14: regla ESLint anti `dangerouslySetInnerHTML` ✅ · `npm audit` en CI ✅ · CSP estricta ⏳
 - ⏳ Test de paridad preview/persistencia (cinturón y tirantes)
 - ⏳ Responsive verificado en móvil/escritorio
-- ⏳ README v1: arranque en local en 2-3 comandos (clonar → instalar → seed+arrancar), decisiones documentadas (proxy, auth mock, preview híbrido), enlace a `/ai-workspace`
+- ✅ README v1: arranque en local en 3 comandos (clonar → instalar → arrancar), qué probar en dos minutos, decisiones documentadas con enlace a su ADR (proxy de divisas, auth mock, preview híbrido, dinero en enteros, versionado, sin Docker), enlace a `/ai-workspace`
 - ⏳ **Gate de fin de Fase 1**: clonado en limpio + arranque siguiendo solo el README + prueba manual del flujo completo (alta con CIF válido → simulación 15 usuarios = 140 € + IVA → cambio de divisa)
 
 ## 4. Fase 2 — Valor añadido (solo si el gate de Fase 1 está en verde) ⏳

@@ -47,6 +47,15 @@ export function formatMinor(minor: number, code: CurrencyCode): string {
   return formateador(code).format(minor / 10 ** minorUnitOf(code))
 }
 
+/** Solo el simbolo ("€", "¥", "CHF"), para el selector. Tambien lo deriva Intl. */
+export function simboloDe(code: CurrencyCode): string {
+  const parte = formateador(code)
+    .formatToParts(0)
+    .find((p) => p.type === 'currency')
+
+  return parte?.value ?? code
+}
+
 /**
  * Convierte un importe a la divisa de visualizacion. SOLO VISTA (invariante 3, 4.2 paso
  * 5): el resultado se pinta y se tira, nunca se persiste ni se envia.

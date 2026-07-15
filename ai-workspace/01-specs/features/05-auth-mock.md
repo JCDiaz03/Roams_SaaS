@@ -105,4 +105,6 @@ El grueso de esta feature es una decisión de diseño, no un algoritmo; los test
 - Contraseña ≠ `1111` → error; cualquier usuario con `1111` → entra.
 - Cerrar sesión limpia nombre, rol y divisa.
 - **Divisa**: `source: 'auto'` + abrir cliente `GB` → `GBP`. Elegir `USD` a mano → `source: 'manual'`; abrir cliente `GB` → **sigue en `USD`**. Es la regla que un refactor bienintencionado rompe.
-- **Test de guardia del literal**: `"ADMIN"` aparece **una sola vez** en `frontend/src/` (búsqueda estática sobre el árbol de fuentes). Es raro y es el que de verdad protege el diseño: los otros comprueban que el mock funciona; este comprueba que **sigue siendo sustituible en un módulo**, que es la única razón por la que el mock es aceptable.
+- **Test de guardia del literal**: `"ADMIN"` aparece **una sola vez** en `frontend/src/` (búsqueda estática sobre el árbol de fuentes). Es raro y es el que de verdad protege el diseño: los otros comprueban que el mock funciona; este comprueba que **sigue siendo sustituible en un módulo**, que es la única razón por la que el mock es aceptable. Un segundo test prohíbe además comparar `rol === 'admin'` fuera de la sesión: es la misma deuda con otro nombre.
+
+  **Gotcha al implementarlo**: el test tiene que **quitar los comentarios antes de buscar**. Si no, se caza a sí mismo — los comentarios que explican la regla contienen el literal, y un test que prohíbe documentar la regla que protege es un test que alguien acaba borrando.

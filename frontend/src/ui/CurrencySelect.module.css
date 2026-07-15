@@ -1,0 +1,38 @@
+.wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+}
+
+.wrap:has(select:disabled) {
+  opacity: 0.55;
+}
+
+.select {
+  border: none;
+  background: none;
+  color: var(--color-ink);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  appearance: none;
+  padding-right: 2px;
+}
+
+.select:disabled {
+  cursor: not-allowed;
+}
+
+.simbolo {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text-2);
+  min-width: 12px;
+  text-align: center;
+}
