@@ -20,9 +20,10 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 | Script (raíz) | Qué hace |
 |---|---|
 | `npm run dev` | Levanta backend (`:3000`) y frontend (`:5173`) a la vez |
-| `npm test` | Los 255 tests de los tres workspaces |
+| `npm test` | Los 297 tests de los tres workspaces |
 | `npm run seed` | Repuebla la base de datos (solo sobre una base vacía) |
 | `npm run lint` · `npm run typecheck` | Lo mismo que ejecuta el CI |
+| `npm run build -w frontend` + `npm run preview -w frontend` | Sirve el build en `:4173` **con la CSP estricta**. Es lo más parecido a producción que hay aquí (ver abajo) |
 
 ### Qué probar en dos minutos
 
@@ -64,3 +65,5 @@ ai-workspace/      El proceso: specs, arquitectura y desarrollo con IA
 **Un precio publicado es inmutable**: editar un plan crea una versión nueva y archiva la anterior; borrar archiva. Además, cada simulación guarda una foto de los tramos y el impuesto aplicados, así que un presupuesto ya enviado sigue explicando su número aunque el plan cambie. → [ADR 0006](./ai-workspace/02-arquitectura/decisiones.md).
 
 **Sin Docker**, y es una decisión: SQLite es un fichero, no un servicio. Exigir Docker para evaluar una app de Node puro añadiría fricción en vez de quitarla. → [ADR 0008](./ai-workspace/02-arquitectura/decisiones.md).
+
+**La CSP estricta es la del build, no la de `npm run dev`.** El modo dev de Vite inyecta el preámbulo de React Refresh como script en línea y el CSS por JS, así que exige `'unsafe-inline'` en `script-src` y `style-src`: **ahí la CSP no defiende de un XSS y no se pretende que lo haga** — se queda porque las demás directivas hacen de alarma si alguien añade un host externo. La de verdad se comprueba con `npm run preview`: el build corre bajo `style-src 'self'` con cero violaciones. Y es barata porque el resto del diseño la hizo barata — el proxy de divisas hace que baste `connect-src 'self'`, y auto-alojar la fuente hace que baste `font-src 'self'`.

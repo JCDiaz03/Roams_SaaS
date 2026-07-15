@@ -166,4 +166,16 @@ Cuatro desviaciones deliberadas:
 
 **Estado**: las **7 ventanas** están implementadas y verificadas conduciendo la app real.
 
+### 7.1 Responsive y accesibilidad: lo que salió de medirlo
+
+El responsive se comprobó **midiendo**, no mirando capturas: mirar no detecta 3 px de scroll lateral. Resultado: **cero desbordamiento horizontal** en las 3 pantallas críticas × 3 anchos (375 / 768 / 1280).
+
+Lo que sí apareció fueron **tres objetivos táctiles por debajo de los 24 px** que pide WCAG 2.5.8, y ninguno se veía:
+
+- **El slider.** El prototipo le da `height: 6px`, que es la ranura — y el área táctil de un `input[type=range]` **es su caja, no el pulgar que se ve**. Seis píxeles de alto son inagarrables en un móvil. Ahora la caja mide 28 px con fondo transparente y la ranura se pinta en el `::track`: visualmente idéntico.
+- **El selector de divisa.** El `select` medía su alto intrínseco (~18 px) dentro de una píldora de 38, así que el borde de la píldora no respondía al tocarlo.
+- **El botón de usuario, que en móvil salía VACÍO.** El CSS decía `.botonUsuario span { display: none }` para ocultar el nombre… y el avatar también es un `span`. Una píldora de 12 px sin nada dentro. Es el tipo de fallo que una captura disimula y una medición no.
+
+Las **migas de pan** se quedan por debajo de 24 px a propósito: WCAG 2.5.8 exime explícitamente los objetivos *inline* —los que están en una línea de texto y cuyo tamaño lo fija el `line-height`—, y agrandarlos rompería el texto.
+
 Una desviación más, en la ventana 7: **la vista previa en vivo usa `quote()` de `@saas/pricing`**, el mismo motor que el backend, y no una tercera implementación como en el prototipo. Muestra la tarifa **sin impuesto**, porque ahí se enseña el precio del plan y no un presupuesto a un cliente concreto — el impuesto depende del país de cada uno.

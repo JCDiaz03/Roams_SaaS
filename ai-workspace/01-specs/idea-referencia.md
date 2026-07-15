@@ -444,7 +444,11 @@ Herramienta interna sin datos de pago; el modelo de amenazas es acotado y **expl
 - **Inyección SQL (OWASP A03)**: `better-sqlite3` con sentencias preparadas en el 100 % de las consultas. Único cuidado no cubierto por la parametrización: escapar `%` y `_` del término de búsqueda en el `LIKE` del buscador.
 - **Validación de entrada**: esquema JSON declarado en **cada** ruta Fastify (email, `usuarios >= 0`, país ∈ `countries`, plan existente…). Una ruta sin esquema es visible en review.
 - **Topes anti-DoS**: `maxLength` en todos los campos de texto, regex ancladas sin backtracking catastrófico y límite de cuerpo de petición (→ §7.5).
-- **XSS**: React escapa por defecto; `dangerouslySetInnerHTML` prohibido por regla de ESLint. Remate: **CSP estricta sin `unsafe-inline`** — barata en un dashboard interno sin scripts de terceros.
+- **XSS**: React escapa por defecto; `dangerouslySetInnerHTML` prohibido por regla de ESLint. Remate: **CSP estricta sin `unsafe-inline`**, enviada como **cabecera** desde Vite (`server` y `preview`) — no como `<meta>`, porque `frame-ancestors` no funciona en meta y es lo que cierra el clickjacking.
+
+  **Es barata porque el resto del diseño la hizo barata**, y esa es la lección: el proxy de divisas (§9) hace que `connect-src 'self'` baste, y auto-alojar la fuente hace que `font-src 'self'` baste. Sin esas dos decisiones, la CSP necesitaría abrir hosts. Verificado recorriendo la app bajo `style-src 'self'`: cero violaciones.
+
+  **Lo que la CSP NO cubre, dicho sin adornos**: el modo dev de Vite exige `'unsafe-inline'` en `script-src` (inyecta el preámbulo de React Refresh en línea) y en `style-src` (inyecta el CSS por JS). Con eso, **la CSP de desarrollo no defiende de un XSS**, y llamarla estricta sería teatro. Se mantiene porque las demás directivas siguen enteras y hacen de **alarma de deriva**: el día que alguien añada una fuente de Google o un script de terceros, revienta en desarrollo. La CSP real es la del build, y se comprueba con `npm run preview`.
 - **Fuga de información (tu stack trace)**: gestor de errores de producción devuelve mensajes genéricos con código; el detalle va al log del servidor, nunca al cliente.
 
 ### 14.3 Riesgos aceptados y documentados

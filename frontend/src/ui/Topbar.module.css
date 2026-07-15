@@ -182,7 +182,13 @@
   .buscador {
     display: none;
   }
-  .botonUsuario span {
+  /* Se oculta el NOMBRE, no todo lo que haya dentro del boton. Un `.botonUsuario span`
+     alcanzaba tambien al avatar -que es otro span- y dejaba el boton VACIO: una pildora
+     de 12 px sin nada dentro. Lo cazo la medicion de objetivos tactiles, no la vista. */
+  .nombreUsuario {
     display: none;
+  }
+  .botonUsuario {
+    padding: 0 6px;
   }
 }

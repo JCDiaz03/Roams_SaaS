@@ -104,3 +104,17 @@ textarea {
 ::selection {
   background: var(--color-primary-soft);
 }
+
+/* Visible solo para lectores de pantalla. `display: none` no vale: eso lo saca tambien
+ * del arbol de accesibilidad, que es justo lo contrario de lo que se busca. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}

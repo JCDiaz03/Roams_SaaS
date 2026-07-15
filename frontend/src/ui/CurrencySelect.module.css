@@ -23,6 +23,11 @@
   outline: none;
   appearance: none;
   padding-right: 2px;
+
+  /* Rellena la pildora. Sin esto el select mide su alto intrinseco (~18 px) dentro de un
+   * contenedor de 38, y el borde de la pildora no responde al tocarlo: el objetivo tactil
+   * es mas pequeno de lo que parece (WCAG 2.5.8 pide 24). */
+  height: 100%;
 }
 
 .select:disabled {

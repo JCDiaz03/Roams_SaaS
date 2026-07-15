@@ -104,10 +104,13 @@ export function Topbar() {
           aria-expanded={menuAbierto}
           aria-haspopup="menu"
         >
-          <span>Hola, {session.nombre}</span>
+          <span className={styles.nombreUsuario}>Hola, {session.nombre}</span>
           <span className={styles.avatar} aria-hidden="true">
             {session.nombre.charAt(0).toUpperCase()}
           </span>
+          {/* En movil solo queda el avatar, que es aria-hidden: sin esto el boton se
+              queda sin nombre accesible y un lector de pantalla lee "botón" y ya. */}
+          <span className="sr-only">Menú de {session.nombre}</span>
         </button>
 
         {menuAbierto && (

@@ -74,9 +74,9 @@
 ### 3.4 Robustez y entrega mínima — *Día 4*
 
 - ⏳ Estados de carga/error en TODAS las llamadas (→ referencia §13.1) — criterio de evaluación explícito
-- 🔵 Seguridad §14: regla ESLint anti `dangerouslySetInnerHTML` ✅ · `npm audit` en CI ✅ · CSP estricta ⏳
-- ⏳ Test de paridad preview/persistencia (cinturón y tirantes)
-- ⏳ Responsive verificado en móvil/escritorio
+- ✅ Seguridad §14: regla ESLint anti `dangerouslySetInnerHTML` ✅ · `npm audit` en CI ✅ · **CSP estricta** ✅ — cabecera desde Vite (`server`/`preview`). El build corre bajo `style-src 'self'` **sin `unsafe-inline`** y con **cero violaciones**, verificado recorriendo la app: la fuente carga (auto-alojada), el CSS aplica y el `fetch` pasa. **El modo dev necesita `unsafe-inline` en `script-src` y `style-src`** (Vite inyecta el preámbulo de React Refresh y el CSS por JS): allí la CSP no defiende de un XSS y **no se pretende que lo haga** — se queda como alarma de deriva
+- ✅ Test de paridad preview/persistencia (cinturón y tirantes)
+- ✅ Responsive verificado **midiendo**, no mirando: cero desbordamiento horizontal en las 3 pantallas críticas × 3 anchos (375 / 768 / 1280). Corregidos tres objetivos táctiles por debajo de los 24 px de WCAG 2.5.8 — el slider (su caja eran los 6 px de la ranura), el selector de divisa, y **el botón de usuario, que en móvil salía vacío**
 - ✅ README v1: arranque en local en 3 comandos (clonar → instalar → arrancar), qué probar en dos minutos, decisiones documentadas con enlace a su ADR (proxy de divisas, auth mock, preview híbrido, dinero en enteros, versionado, sin Docker), enlace a `/ai-workspace`
 - ✅ **Gate de fin de Fase 1**: clonado en limpio + `npm install` (0 vulnerabilidades) + `npm run dev` siguiendo solo el README → el `.db` se crea y siembra solo, y **15 usuarios = 140 € + 21 % = 169,40 €**. En verde
 
