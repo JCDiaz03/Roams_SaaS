@@ -47,6 +47,8 @@ Tres detalles que no son obvios y que un `replace` mal escrito se salta:
 
 Solución: **normalizar a mayúsculas los dos lados** de la comparación (`upper(company_name) LIKE upper(:patron)`), sabiendo que `upper()` de SQLite tampoco toca los acentuados. La búsqueda por `nébula` funciona; por `nebula` (sin tilde) no. **Es un límite aceptado y declarado**: quitar tildes requiere una tabla de transliteración o la extensión ICU, y el buscador es sobre datos que el propio comercial ha tecleado. La respuesta correcta a escala es FTS5 con `unicode61 remove_diacritics`, que es la misma respuesta que al rendimiento (§2.4) — y por eso las dos esperan al mismo día.
 
+**El mismo problema aparece al ORDENAR, y ahí no se acepta.** La colación por defecto de SQLite es `BINARY`: ordena por bytes, así que `Plan Ágora` cae **después** de `Plan Bitácora` y `Plan Cúspide` (la `Á` es `0xC3`, la `B` es `0x42`). Un `ORDER BY name` en SQL da un orden que a un lector español le parece roto. Regla: **todo listado que se ordene por un texto visible se ordena en JS con `localeCompare(a, b, 'es')`**, no en SQL. Afecta a `GET /countries` y a `GET /plans`.
+
 ### 2.4 Rendimiento: la verdad sobre el índice
 
 **`LIKE '%term%'` no usa el índice.** Un comodín inicial impide el descenso por un B-tree; SQLite hará *table scan*. El índice de `company_name` existe igualmente (→ `../modelo-datos.md` §2.4) porque sirve al orden y a las búsquedas por prefijo, y porque a esta escala —miles de filas, herramienta interna— el scan es submilisegundo.

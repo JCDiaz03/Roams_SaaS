@@ -52,11 +52,12 @@
 
 ### 3.2 Backend — *Día 2*
 
-- ⏳ Esqueleto Fastify: esquemas JSON por ruta **con `maxLength` en todos los campos de texto** (→ referencia §7.5), gestor de errores de producción (sin stack traces al cliente), middleware de auth `(mock, costura desde el día 1)`, caché de arranque de `countries` **+ tipo vigente** con **chequeo de integridad doble** (esquema registrado y tipo vigente por país, fallo ruidoso → referencia §6.1), **seed automático si el `.db` no existe** (→ referencia §2.1)
-- ⏳ `POST /customers` (validación fiscal vía registro por país, `fiscal_id` UNIQUE normalizado) · `POST /simulations` (cálculo + snapshot + persistencia)
-- ⏳ `GET /countries` (desplegable + hint fiscal resuelto por el validador → referencia §7.2) · `GET /customers?search=` (LIKE con escape de `%`/`_`, índices) · `GET /customers/{id}` (**embebe plan con tramos + `tax_rate`**) · `GET /customers/{id}/simulations` · `GET /plans` (activos; `?include_archived=true` para admin)
-- ⏳ `GET /rates`: proxy con caché TTL = `time_next_update_unix`, filtrado de divisas, fallback marcado como desactualizado (→ referencia §9)
-- ⏳ Tests de integración de endpoints (casos de error incluidos: fiscal_id inválido, plan inexistente, API de divisas caída)
+- ✅ Esqueleto Fastify: esquemas JSON por ruta **con `maxLength` en todos los campos de texto** (→ referencia §7.5), gestor de errores de producción (sin stack traces al cliente), middleware de auth `(mock, costura desde el día 1)`, caché de arranque de `countries` **+ tipo vigente** con **chequeo de integridad triple** (esquema registrado, tipo vigente por país y divisas ∈ `Currency`; fallo ruidoso → referencia §6.1), **seed automático si el `.db` no existe** (→ referencia §2.1)
+- ✅ `POST /customers` (validación fiscal vía registro por país, `fiscal_id` UNIQUE normalizado, duplicado por captura del UNIQUE y no por `SELECT` previo) · `POST /simulations` (cálculo + snapshot + persistencia)
+- ✅ `GET /countries` (desplegable + hint fiscal resuelto por el validador → referencia §7.2) · `GET /customers?search=` (LIKE con escape de `%`/`_` y `ESCAPE` declarado) · `GET /customers/{id}` (**embebe plan con tramos + `tax_rate_bp`**, archivado incluido) · `GET /customers/{id}/simulations` (desglose desde el snapshot) · `GET /plans` (activos; `?include_archived=true` para admin)
+- ✅ `GET /rates`: proxy con caché TTL = `time_next_update_unix`, filtrado de divisas, fallback marcado, una sola petición en vuelo (→ referencia §9)
+- ✅ Tests de integración: **160 tests** de backend contra la app real (`app.inject`) y base en memoria con el esquema y el seed de producción. Incluye paridad preview/persistencia y los chequeos de arranque
+- ✅ Verificado con el servidor real: `.db` creado y sembrado solo · alta con `p-1234 567d` → `P1234567D` · **15 usuarios = 140 € + 21 % = 169,40 €** · cliente con plan archivado mantiene su tarifa (155 €) · `GET /rates` contra `open.er-api.com` filtrando de ~160 a 45 divisas · el arranque **se niega** ante una deriva dato↔código
 
 ### 3.3 Frontend core — *Día 3*
 

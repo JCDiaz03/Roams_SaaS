@@ -52,6 +52,8 @@ La línea es útil porque separa dos responsabilidades reales: un `400` signific
 ### 1.5 Reglas de esquema comunes a todas las rutas
 
 - **`additionalProperties: false` en todos los cuerpos.** Un campo que sobra es un `400`, no un campo que se ignora. Es lo que hace que "el frontend nunca envía importes" sea verificable.
+
+  **Gotcha de Fastify, y no es menor**: `additionalProperties: false` **por sí solo no da un `400`**. Fastify configura Ajv con `removeAdditional: true` por defecto, y con eso **elimina el campo sobrante en silencio** y sigue adelante — un `total_minor` en el cuerpo de `POST /simulations` se ignoraría calladamente y el invariante 1 dejaría de ser verificable. Hace falta `ajv.customOptions.removeAdditional = false` en la construcción del servidor. Hay un test que lo fija.
 - **`maxLength` en todos los campos de texto** (→ referencia §7.5). Los valores son los de `modelo-datos.md` §2.4 y se duplican a propósito en el `CHECK` de la tabla.
 - **Límite de cuerpo de petición en Fastify**: `bodyLimit` global. Ninguna ruta acepta cuerpos grandes; no hay subida de ficheros.
 - **`Content-Type: application/json`** en todo. No hay `multipart` ni formularios URL-encoded.
