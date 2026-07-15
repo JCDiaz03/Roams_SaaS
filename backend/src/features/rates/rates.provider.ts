@@ -19,6 +19,54 @@ export interface RatesProvider {
 const TIMEOUT_MS = 5_000
 const TTL_MAXIMO_MS = 48 * 60 * 60 * 1000
 
+/** El payload real ronda los 5 KB; 1 MB es doscientas veces eso. */
+const MAX_BODY_BYTES = 1_000_000
+
+/**
+ * Lee el cuerpo con un TOPE de bytes. `respuesta.json()` a secas lo almacena entero sin
+ * limite, y el payload de un tercero no es de fiar: un proveedor comprometido que
+ * respondiera gigas no debe poder presionar la memoria del proceso. El timeout acota el
+ * tiempo, pero no el volumen dentro de ese tiempo; esto acota el volumen.
+ *
+ * Se comprueba Content-Length primero (corta gratis el caso anunciado) y se cuenta al
+ * leer de todas formas (una respuesta chunked no lo anuncia).
+ */
+async function leerConTope(respuesta: Response): Promise<string> {
+  const anunciado = Number(respuesta.headers.get('content-length'))
+  if (Number.isFinite(anunciado) && anunciado > MAX_BODY_BYTES) {
+    throw new Error(`La API de tipos anuncia un cuerpo de ${anunciado} bytes.`)
+  }
+
+  if (respuesta.body === null) {
+    throw new Error('La API de tipos no devolvio cuerpo.')
+  }
+
+  const lector = respuesta.body.getReader()
+  const trozos: Uint8Array[] = []
+  let total = 0
+
+  for (;;) {
+    const { done, value } = await lector.read()
+    if (done) break
+
+    total += value.byteLength
+    if (total > MAX_BODY_BYTES) {
+      void lector.cancel()
+      throw new Error(`La API de tipos supero el tope de ${MAX_BODY_BYTES} bytes.`)
+    }
+    trozos.push(value)
+  }
+
+  const cuerpo = new Uint8Array(total)
+  let offset = 0
+  for (const trozo of trozos) {
+    cuerpo.set(trozo, offset)
+    offset += trozo.byteLength
+  }
+
+  return new TextDecoder().decode(cuerpo)
+}
+
 /**
  * Convierte un unix en segundos a ISO, o null si el valor no es utilizable.
  * El payload de un tercero se trata como NO CONFIABLE.
@@ -49,7 +97,7 @@ export class OpenErApiProvider implements RatesProvider {
       throw new Error(`La API de tipos respondio ${respuesta.status}.`)
     }
 
-    const cuerpo: unknown = await respuesta.json()
+    const cuerpo: unknown = JSON.parse(await leerConTope(respuesta))
     return this.parsear(cuerpo)
   }
 

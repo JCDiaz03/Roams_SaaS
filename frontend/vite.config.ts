@@ -61,6 +61,13 @@ const CSP_DEV = [
 
 const CSP_ESTRICTA = [...CSP_BASE, "style-src 'self'"].join('; ')
 
+// Acompañan a la CSP en dev y preview. nosniff cierra la reinterpretacion MIME;
+// no-referrer no filtra rutas internas si algun dia hay un enlace externo.
+const CABECERAS_COMUNES = {
+  'X-Content-Type-Options': 'nosniff',
+  'Referrer-Policy': 'no-referrer',
+}
+
 export default defineConfig({
   plugins: [react()],
 
@@ -74,7 +81,7 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-    headers: { 'Content-Security-Policy': CSP_DEV },
+    headers: { 'Content-Security-Policy': CSP_DEV, ...CABECERAS_COMUNES },
   },
 
   // `npm run preview` sirve el build: es lo mas parecido a produccion que hay aqui, y
@@ -88,6 +95,6 @@ export default defineConfig({
         changeOrigin: true,
       },
     },
-    headers: { 'Content-Security-Policy': CSP_ESTRICTA },
+    headers: { 'Content-Security-Policy': CSP_ESTRICTA, ...CABECERAS_COMUNES },
   },
 })

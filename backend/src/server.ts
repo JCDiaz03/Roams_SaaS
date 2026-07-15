@@ -47,6 +47,14 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
   registerErrorHandler(app)
   registerAuth(app)
 
+  // Cabeceras de endurecimiento en TODA respuesta de la API. nosniff impide que un
+  // navegador reinterprete un JSON como otra cosa; la Referrer-Policy es gratis en una
+  // API del mismo origen. La CSP no va aqui: es del documento HTML y la envia Vite.
+  app.addHook('onSend', async (_req, reply) => {
+    void reply.header('X-Content-Type-Options', 'nosniff')
+    void reply.header('Referrer-Policy', 'no-referrer')
+  })
+
   // TODA ruta cuelga de /api (directrices 5). Es lo que mantiene el proxy de dev de Vite
   // en una sola regla y garantiza que ningun endpoint choque con una pantalla del SPA
   // (referencia 14.1). El prefijo se pone UNA vez, aqui: si cada feature lo escribiera,

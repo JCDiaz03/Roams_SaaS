@@ -3,6 +3,10 @@ name: CI
 on:
   push:
   pull_request:
+  schedule:
+    # Semanal, para que el npm audit corra aunque nadie haga push: una vulnerabilidad
+    # se publica cuando se publica, no cuando hay commits (referencia 14.3).
+    - cron: '30 6 * * 1'
 
 jobs:
   check:

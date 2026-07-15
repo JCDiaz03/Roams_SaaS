@@ -1,0 +1,23 @@
+# Dependabot: vigila el lockfile contra la base de advisories de GitHub y abre un PR
+# cuando se publica una vulnerabilidad o una actualización — sin esperar a que alguien
+# haga push, que es el hueco que el `npm audit` del CI deja abierto (referencia 14.3).
+version: 2
+updates:
+  # Los npm workspaces se cubren desde la raíz: el lockfile es único.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    # Minor y patch agrupados en un solo PR: el ruido de un PR por dependencia es lo
+    # que hace que la gente acabe ignorando a Dependabot. Los major van sueltos.
+    groups:
+      minor-y-patch:
+        update-types:
+          - minor
+          - patch
+
+  # Las actions del CI también son dependencias.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

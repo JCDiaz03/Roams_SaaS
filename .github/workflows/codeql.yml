@@ -1,0 +1,30 @@
+# CodeQL: el SAST de GitHub. Complementa al npm audit del CI: aquel mira las
+# DEPENDENCIAS; esto analiza el flujo de datos de NUESTRO código buscando las clases
+# OWASP (inyección SQL, XSS, ReDoS, path traversal…). Gratuito en repos públicos.
+name: CodeQL
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    # Semanal, además de por push: una query nueva de CodeQL puede encontrar un defecto
+    # en código que no ha cambiado.
+    - cron: '30 6 * * 1'
+
+jobs:
+  analyze:
+    runs-on: ubuntu-latest
+    permissions:
+      # Para subir los resultados a la pestaña Security.
+      security-events: write
+      contents: read
+      actions: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v3
+        with:
+          # TypeScript entero (backend, frontend y pricing) sin paso de build.
+          languages: javascript-typescript
+      - uses: github/codeql-action/analyze@v3
