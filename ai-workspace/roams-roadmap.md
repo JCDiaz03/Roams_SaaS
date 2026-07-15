@@ -78,17 +78,18 @@
 - ⏳ Test de paridad preview/persistencia (cinturón y tirantes)
 - ⏳ Responsive verificado en móvil/escritorio
 - ✅ README v1: arranque en local en 3 comandos (clonar → instalar → arrancar), qué probar en dos minutos, decisiones documentadas con enlace a su ADR (proxy de divisas, auth mock, preview híbrido, dinero en enteros, versionado, sin Docker), enlace a `/ai-workspace`
-- ⏳ **Gate de fin de Fase 1**: clonado en limpio + arranque siguiendo solo el README + prueba manual del flujo completo (alta con CIF válido → simulación 15 usuarios = 140 € + IVA → cambio de divisa)
+- ✅ **Gate de fin de Fase 1**: clonado en limpio + `npm install` (0 vulnerabilidades) + `npm run dev` siguiendo solo el README → el `.db` se crea y siembra solo, y **15 usuarios = 140 € + 21 % = 169,40 €**. En verde
 
-## 4. Fase 2 — Valor añadido (solo si el gate de Fase 1 está en verde) ⏳
+## 4. Fase 2 — Valor añadido ✅
 
-> *Día 5.* Nota: el motor genérico y las columnas (`version`, `active`, `currency`) ya existen desde Fase 1 porque son baratas; esta fase son los **paneles y endpoints de admin**.
+> *Día 5.* Nota: el motor genérico y las columnas (`version`, `active`, `currency`) ya existían desde Fase 1 porque son baratas; esta fase son los **paneles y endpoints de admin**. Se abrió con el gate de Fase 1 en verde (regla 1).
 
-- ⏳ `POST /plans` con validación de plantilla (cortes crecientes, sin huecos/solapes, último abierto…) + sus tests
-- ⏳ `PUT /plans/{id}` → versión nueva + archivado · `DELETE /plans/{id}` → archivado
-- ⏳ Test de versionado: editar no altera simulaciones guardadas ni clientes existentes
-- ⏳ UI admin: plantilla de creación (bloques por métrica, cortes como "hasta cuántos"), listado con archivar, aviso de versionado sin jerga
-- ⏳ Pulido final + captura del proceso del día en `/ai-workspace/03-proceso`
+- ✅ `POST /plans` con validación de plantilla + **19 tests** del validador. Devuelve **todas** las violaciones con su métrica e índice, para pintar cada error sobre su fila
+- ✅ `PUT /plans/{id}` → versión nueva + archivado (en **transacción**: es la única del backend, y sin ella una caída entre las dos escrituras dejaría dos versiones activas del mismo plan) · `DELETE /plans/{id}` → archivado, nunca borrado físico
+- ✅ Test de versionado: editar **no altera** simulaciones guardadas ni el plan de clientes existentes. **46 tests** de la feature
+- ✅ UI admin: plantilla (bloques por métrica, cortes como "hasta cuántos", último tramo fijo como "En adelante", **vista previa en vivo con el mismo `quote()`**), listado con archivado y confirmación en lenguaje llano, aviso de versionado sin jerga
+- ✅ El seed cierra su círculo: los planes pasan por el **mismo validador de plantilla** que `POST /plans`
+- ✅ Verificado conduciendo la app: entrar como `ADMIN` → Administración → editar Ágora → plantilla incoherente rechazada **con el error en su fila** → arreglar y guardar → **v3 activa, v1 y v2 archivadas**, la simulación guardada sigue en 169,40 € con sus tramos de 10 €/8 €, y Nébula sigue apuntando a la v2
 
 ## 5. Entrega — *fin del día 5* ⏳
 

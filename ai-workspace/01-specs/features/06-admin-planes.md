@@ -73,7 +73,7 @@ Contrato → `../contrato-api.md` §4. Ni edición libre ni borrado físico: es 
 
 | Acción | Comportamiento real |
 |---|---|
-| **Crear** (`POST`) | Inserta plan, `version = 1`, `active = 1` |
+| **Crear** (`POST`) | Inserta plan, `active = 1`, y `version = 1`… **salvo que el nombre ya exista archivado** (→ §4.4) |
 | **Editar** (`PUT`) | **Crea versión nueva** (`version + 1`, activa) y archiva la anterior. Los clientes existentes **siguen apuntando al `plan_id` antiguo** |
 | **Borrar** (`DELETE`) | **Archiva** (`active = 0`). Nunca borrado físico |
 
@@ -90,6 +90,12 @@ Contrato → `../contrato-api.md` §4. Ni edición libre ni borrado físico: es 
 `UNIQUE (name, version)` (→ `../modelo-datos.md` §2.3): el "Plan A v2" es una **fila nueva con `id` nuevo**. De ahí que `PUT /plans/{id}` devuelva `201` con un `id` distinto del de la URL (→ `../contrato-api.md` §4.2) — y ese desajuste aparente **es** la semántica de la operación, no un descuido del contrato.
 
 Consecuencia: `PLAN_NAME_TAKEN` (`409`) se comprueba contra planes **activos**. Un nombre cuya única ocurrencia está archivada se puede reutilizar; si no, archivar un plan quemaría su nombre para siempre.
+
+### 4.4 Reutilizar un nombre archivado NO da la versión 1
+
+Se descubrió con un test, y merece estar escrito porque el enunciado del §4 («Crear → `version = 1`») induce al error: **fijar `version = 1` al crear choca contra el `UNIQUE (name, version)`** en cuanto ese nombre tuvo una v1, aunque esté archivada. Un `500` donde debería haber un `201`.
+
+La regla correcta: **crear usa la siguiente versión de ese nombre**, igual que versionar. Y es coherente, no un parche: si `UNIQUE (name, version)` significa que **el nombre es la identidad del linaje**, reutilizarlo es continuarlo. Las versiones viejas siguen en el histórico bajo el mismo nombre, que es exactamente lo que el admin espera ver. La versión 1 es, entonces, el caso particular de un nombre que nunca se ha usado.
 
 ### 4.3 No se versiona desde una versión archivada
 

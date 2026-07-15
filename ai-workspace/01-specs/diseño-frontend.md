@@ -164,4 +164,6 @@ Cuatro desviaciones deliberadas:
 | **Sin banderas** en el selector de divisa | El prototipo usa emoji de bandera. Una bandera junto a una divisa es una imprecisión (el euro no es de un país, el dólar es de veinte) y además no la lee un lector de pantalla. El símbolo lo deriva `Intl` del código ISO |
 | **El alta es una pantalla**, no un modal | En el prototipo es un overlay. Como pantalla tiene URL propia, se puede enlazar desde el estado vacío del buscador ("Dar de alta a «X»") y el navegador la trata como lo que es: un formulario con su sitio |
 
-**Estado**: las 5 ventanas de Fase 1 (login, dashboard, detalle, simulador, alta) están implementadas y verificadas conduciendo la app real. Las **ventanas 6 y 7 (administración de planes) son Fase 2** y necesitan `POST/PUT/DELETE /plans`, que aún no existen.
+**Estado**: las **7 ventanas** están implementadas y verificadas conduciendo la app real.
+
+Una desviación más, en la ventana 7: **la vista previa en vivo usa `quote()` de `@saas/pricing`**, el mismo motor que el backend, y no una tercera implementación como en el prototipo. Muestra la tarifa **sin impuesto**, porque ahí se enseña el precio del plan y no un presupuesto a un cliente concreto — el impuesto depende del país de cada uno.

@@ -1,6 +1,6 @@
 // Cliente HTTP contra el backend (mismo origen via proxy de Vite). Ref: 14.1
 
-import type { CurrencyCode, MetricBreakdown, Tier } from '@saas/pricing'
+import type { CurrencyCode, Metric, MetricBreakdown, Tier } from '@saas/pricing'
 
 // Rutas RELATIVAS: el navegador solo habla con su propio origen. En desarrollo lo
 // mantiene literal el proxy de Vite hacia :3000 (referencia 14.1). Nadie debe "arreglar"
@@ -184,4 +184,37 @@ export const api = {
   }) => pedir<Simulation>('/simulations', { method: 'POST', body: JSON.stringify(body) }),
 
   rates: () => pedir<Rates>('/rates'),
+
+  // --- Admin. SIN proteccion real: es un riesgo declarado (referencia 8.3). ------------
+
+  createPlan: (body: Plantilla) => pedir<Plan>('/plans', { method: 'POST', body: JSON.stringify(body) }),
+
+  /** "Editar" NO modifica: crea una version nueva y archiva la anterior (referencia 5.5). */
+  versionPlan: (id: number, body: Plantilla) =>
+    pedir<Plan>(`/plans/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
+
+  /** "Borrar" archiva. Nunca borra. */
+  archivePlan: (id: number) => pedir<Plan>(`/plans/${id}`, { method: 'DELETE' }),
+}
+
+export type PlantillaTier = {
+  metric: Metric
+  up_to: number | null
+  unit_price_minor: number
+}
+
+export type Plantilla = {
+  name: string
+  description?: string
+  currency: CurrencyCode
+  /** El sort_order NO se envia: lo deriva el servidor del orden de este array. */
+  tiers: PlantillaTier[]
+}
+
+/** Una violacion de la plantilla, con su fila, para pintarla donde toca. */
+export type Violacion = {
+  rule: string
+  metric?: Metric
+  index?: number
+  message: string
 }

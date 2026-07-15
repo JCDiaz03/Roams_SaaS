@@ -2,7 +2,7 @@
 
 Herramienta interna para el equipo comercial: registrar clientes corporativos, simular su consumo (usuarios, almacenamiento, llamadas API) y obtener presupuestos mensuales de suscripción, visualizables en varias divisas.
 
-> **Estado.** El core del reto está terminado y verificado de punta a punta: motor de tarificación, validación fiscal, API completa y las 5 pantallas. La **administración de planes** (crear, versionar, archivar) está diseñada y documentada, y es lo único pendiente — ver [`roams-roadmap.md`](./ai-workspace/roams-roadmap.md) §4.
+> **Estado: completo.** Motor de tarificación, validación fiscal, API, las 5 pantallas y la administración de planes. **297 tests**, verificado de punta a punta conduciendo la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
 
 ## Arranque en local
 
@@ -30,6 +30,7 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 2. **Precio inmutable**: abre `Fjord Systems AS`. Está en una versión **archivada** del Plan Ágora y su ficha lo dice sin jerga («Mantiene su tarifa contratada»). Simula 15 usuarios: cotiza a **su** tarifa (`10 × 12 € + 5 × 7 €`), no a la de hoy.
 3. **Divisa**: cambia el selector de la topbar a USD. El total se convierte, pero va **marcado como referencia** y con el importe de facturación real al lado. El número del negocio no cambia.
 4. **Validación fiscal**: en *Nuevo cliente*, prueba `B12345675` (control incorrecto) y luego `B12345674`. El error sale junto al campo.
+5. **Un precio publicado es inmutable**: entra como `ADMIN`, ve a *Administración*, edita el Plan Ágora y cámbiale un precio. Se crea una **versión nueva** y la anterior se archiva; las simulaciones que ya habías guardado siguen diciendo lo mismo, y Nébula sigue con su tarifa.
 
 ## Estructura
 

@@ -1,0 +1,128 @@
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 6px;
+}
+
+.titulo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0;
+}
+
+.hueco {
+  flex: 1;
+}
+
+.subtitulo {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
+.lista {
+  display: grid;
+  gap: 10px;
+}
+
+.fila {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.datos {
+  flex: 1;
+  min-width: 0;
+}
+
+.nombre {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  flex-wrap: wrap;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.acciones {
+  display: flex;
+  gap: 8px;
+  flex: none;
+}
+
+.archivados {
+  margin-top: 26px;
+}
+
+.resumenArchivados {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-2);
+  cursor: pointer;
+  padding: 8px 0;
+  list-style: none;
+}
+.resumenArchivados::-webkit-details-marker {
+  display: none;
+}
+.resumenArchivados::before {
+  content: '▸ ';
+}
+details[open] .resumenArchivados::before {
+  content: '▾ ';
+}
+
+.atenuada {
+  opacity: 0.7;
+}
+
+.modalFondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 15, 28, 0.45);
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  z-index: 50;
+}
+
+.modal {
+  max-width: 460px;
+  width: 100%;
+}
+
+.modalTitulo {
+  font-size: 17px;
+  font-weight: 700;
+  margin: 0 0 8px;
+}
+
+.modalTexto {
+  margin: 0 0 20px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-text-2);
+}
+
+.modalAcciones {
+  display: flex;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .fila {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

@@ -2,7 +2,8 @@
 
 import type { Metric } from '@saas/pricing'
 import type { Db } from '../../infra/db'
-import type { PlanWithTiers } from '../customers/customers.repo'
+import { findPlanWithTiers, type PlanWithTiers } from '../customers/customers.repo'
+import type { Plantilla } from './plan-template.validation'
 
 type FilaPlan = {
   id: number
@@ -75,4 +76,78 @@ export function listPlans(db: Db, includeArchived: boolean): PlanWithTiers[] {
       tiers: porPlan.get(p.id) ?? [],
     }))
     .sort((a, b) => a.name.localeCompare(b.name, 'es') || a.version - b.version)
+}
+
+/** Un plan concreto con sus tramos, activo o archivado. */
+export function findPlanById(db: Db, id: number): PlanWithTiers | undefined {
+  return findPlanWithTiers(db, id)
+}
+
+/**
+ * ¿Hay ya un plan ACTIVO con ese nombre?
+ *
+ * Solo entre los activos: si mirara tambien los archivados, archivar un plan quemaria su
+ * nombre para siempre.
+ */
+export function nombreActivoOcupado(db: Db, name: string): boolean {
+  const fila = db.prepare('SELECT 1 FROM plans WHERE name = ? AND active = 1').get(name)
+  return fila !== undefined
+}
+
+/** La siguiente version de un nombre. Cuenta TODAS, archivadas incluidas. */
+export function siguienteVersion(db: Db, name: string): number {
+  const { maxima } = db.prepare('SELECT MAX(version) AS maxima FROM plans WHERE name = ?').get(name) as {
+    maxima: number | null
+  }
+  return (maxima ?? 0) + 1
+}
+
+/**
+ * Inserta un plan con sus tramos.
+ *
+ * El `sort_order` NO viene de fuera: se deriva del orden del array, por metrica. Aceptarlo
+ * permitiria enviar un orden que contradice los cortes, y entonces habria dos fuentes de
+ * verdad para "cual es el primer tramo" (contrato-api.md 4.1).
+ */
+export function insertPlan(db: Db, plantilla: Plantilla, version: number, active: boolean): PlanWithTiers {
+  const insertar = db.transaction(() => {
+    const { lastInsertRowid } = db
+      .prepare(
+        `INSERT INTO plans (name, version, description, pricing_model, currency, active, created_at)
+         VALUES (?, ?, ?, 'graduated', ?, ?, ?)`,
+      )
+      .run(
+        plantilla.name,
+        version,
+        plantilla.description ?? null,
+        plantilla.currency,
+        active ? 1 : 0,
+        new Date().toISOString(),
+      )
+
+    const planId = Number(lastInsertRowid)
+    const insertTier = db.prepare(
+      `INSERT INTO plan_tiers (plan_id, metric, up_to, unit_price_minor, sort_order)
+       VALUES (?, ?, ?, ?, ?)`,
+    )
+
+    const siguienteOrden = new Map<Metric, number>()
+    for (const t of plantilla.tiers) {
+      const sortOrder = siguienteOrden.get(t.metric) ?? 0
+      siguienteOrden.set(t.metric, sortOrder + 1)
+      insertTier.run(planId, t.metric, t.up_to, t.unit_price_minor, sortOrder)
+    }
+
+    return planId
+  })
+
+  const id = insertar()
+  const creado = findPlanWithTiers(db, id)
+  if (creado === undefined) throw new Error('El plan recien insertado no se encuentra.')
+  return creado
+}
+
+/** Archiva. NUNCA borra: es una regla uniforme y cero problemas de integridad. */
+export function archivarPlan(db: Db, id: number): void {
+  db.prepare('UPDATE plans SET active = 0 WHERE id = ?').run(id)
 }

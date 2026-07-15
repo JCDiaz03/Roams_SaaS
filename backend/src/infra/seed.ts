@@ -11,6 +11,7 @@ import type { Metric } from '@saas/pricing'
 import { config } from '../config'
 import { normalizeFiscalId } from '../domain/tax-id/normalize'
 import { validatorFor } from '../domain/tax-id/registry'
+import { validarPlantilla } from '../features/plans/plan-template.validation'
 import { openDb, type Db } from './db'
 import { migrate } from './migrate'
 
@@ -265,14 +266,12 @@ const CUSTOMERS: readonly SeedCustomer[] = [
  * servidor con paises sin tipo y revienta el chequeo de integridad con un error que no
  * explica la causa real.
  *
- * El seed es un CAMINO DE ESCRITURA y pasa por el mismo validador fiscal que
- * POST /customers: normaliza, resuelve el validador por el esquema del pais y le pregunta
- * el tipo. Un seed que introduce datos que el sistema rechazaria es una bomba de
- * relojeria, y ademas nadie tiene que recalcular a mano un digito de control nunca mas.
- *
- * PENDIENTE (Fase 2): falta pasar los planes por el validador de plantilla, que aun no
- * existe. Importa porque el motor confia en que los tramos son coherentes sin
- * comprobarlo (01-motor-tramos-y-simulaciones.md 4).
+ * El seed es un CAMINO DE ESCRITURA y pasa por los MISMOS validadores que los endpoints:
+ * el registro fiscal para cada fiscal_id (como POST /customers) y el validador de
+ * plantilla para cada plan (como POST /plans). Un seed que introduce datos que el sistema
+ * rechazaria es una bomba de relojeria -y el motor confia en que los tramos son coherentes
+ * sin comprobarlo (01-motor-tramos-y-simulaciones.md 4)-. De paso, nadie tiene que
+ * recalcular a mano un digito de control nunca mas.
  */
 export function seed(db: Db): void {
   const ahora = new Date().toISOString()
@@ -310,6 +309,25 @@ export function seed(db: Db): void {
     // mundo a la ultima insertada, que es justo el bug que el versionado evita.
     const planIds = new Map<string, number>()
     for (const p of PLANS) {
+      // El mismo validador que POST /plans. Si un seed futuro escribe cortes decrecientes
+      // o un ultimo tramo cerrado, revienta el arranque en vez de sembrar un plan que el
+      // motor calculara mal en silencio.
+      const violaciones = validarPlantilla({
+        name: p.name,
+        currency: p.currency,
+        tiers: p.tiers.map((t) => ({
+          metric: t.metric,
+          up_to: t.upTo,
+          unit_price_minor: t.unitPriceMinor,
+        })),
+      })
+      if (violaciones.length > 0) {
+        throw new Error(
+          `Seed incoherente: la plantilla de "${p.name}" v${p.version} no pasa el validador ` +
+            `que usa POST /plans:\n  - ${violaciones.map((v) => v.message).join('\n  - ')}`,
+        )
+      }
+
       const planId = Number(
         insertPlan.run(p.name, p.version, p.description, p.currency, p.active ? 1 : 0, ahora)
           .lastInsertRowid,

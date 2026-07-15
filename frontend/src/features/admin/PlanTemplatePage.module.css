@@ -1,0 +1,167 @@
+.titulo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.subtitulo {
+  margin: 0 0 20px;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
+.rejilla {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 18px;
+}
+@media (min-width: 980px) {
+  .rejilla {
+    grid-template-columns: 1fr 320px;
+    align-items: start;
+  }
+}
+
+.aviso {
+  margin-bottom: 16px;
+}
+
+.campo {
+  margin-bottom: 16px;
+}
+
+.dos {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 14px;
+}
+@media (max-width: 560px) {
+  .dos {
+    grid-template-columns: 1fr;
+  }
+}
+
+.label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-2);
+  margin-bottom: 6px;
+}
+
+.input,
+.select {
+  width: 100%;
+  height: 46px;
+  padding: 0 14px;
+  border-radius: var(--radius-field);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+  font-size: 14px;
+}
+.input:focus,
+.select:focus {
+  border-color: var(--color-primary);
+}
+.input:disabled {
+  color: var(--color-text-2);
+}
+
+.inputError {
+  border-color: var(--color-danger);
+}
+
+.error {
+  margin: 7px 0 0;
+  font-size: 12px;
+  color: var(--color-danger);
+}
+
+.seccion {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 22px 0 10px;
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Vista previa en vivo */
+.previa {
+  position: sticky;
+  top: 84px;
+}
+
+.previaTitulo {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-2);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0 0 12px;
+}
+
+.ejemplo {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.ejemploFila {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12.5px;
+}
+.ejemploFila span {
+  flex: 1;
+  color: var(--color-text-2);
+}
+.ejemploFila input {
+  width: 90px;
+  height: 32px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-2);
+  color: var(--color-ink);
+  font-size: 12.5px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.previaTotal {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border-2);
+}
+
+.previaImporte {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.previaNota {
+  font-size: 11px;
+  color: var(--color-text-3);
+  margin-top: 4px;
+  line-height: 1.5;
+}
+
+.previaInvalida {
+  font-size: 12.5px;
+  color: var(--color-text-2);
+  line-height: 1.5;
+}
+
+@media (max-width: 980px) {
+  .previa {
+    position: static;
+  }
+}

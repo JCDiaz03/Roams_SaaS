@@ -1,10 +1,8 @@
 // Las 7 ventanas; admin condicionado por hasRole(admin). Diseno: 3
-//
-// Estado: (parcial). Las 5 pantallas de Fase 1. Las dos de administracion (listado y
-// plantilla de planes) son Fase 2 (roadmap 4) y necesitan POST/PUT/DELETE /plans, que aun
-// no existen.
 
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { PlanTemplatePage } from './features/admin/PlanTemplatePage'
+import { PlansAdminPage } from './features/admin/PlansAdminPage'
 import { CustomerDetailPage } from './features/customer/CustomerDetailPage'
 import { NewCustomerPage } from './features/customer/NewCustomerPage'
 import { LoginPage } from './features/login/LoginPage'
@@ -22,9 +20,11 @@ import styles from './routes.module.css'
  * defender nada.
  */
 export function AppRoutes() {
-  const { session } = useSession()
+  const { session, hasRole } = useSession()
 
   if (session === null) return <LoginPage />
+
+  const esAdmin = hasRole('admin')
 
   return (
     <>
@@ -35,6 +35,14 @@ export function AppRoutes() {
           <Route path="/clientes/nuevo" element={<NewCustomerPage />} />
           <Route path="/clientes/:id" element={<CustomerDetailPage />} />
           <Route path="/clientes/:id/simular" element={<SimulatorPage />} />
+
+          {/* Administracion. El gating es UX -que la app tenga sentido-, NO seguridad: la
+              API no esta protegida y un comercial que teclee la URL igualmente no rompe
+              nada que no pudiera romper con curl (referencia 8.3). */}
+          {esAdmin && <Route path="/planes" element={<PlansAdminPage />} />}
+          {esAdmin && <Route path="/planes/nuevo" element={<PlanTemplatePage />} />}
+          {esAdmin && <Route path="/planes/:id" element={<PlanTemplatePage />} />}
+
           {/* Cualquier otra cosa al buscador: una SPA no debe dejar a nadie en blanco. */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
