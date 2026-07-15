@@ -36,7 +36,7 @@
 - ✅ Redactados los esqueletos: directrices-ia (incluye estructura del proyecto), decisiones.md (8 ADRs en un fichero), plantillas.md, recortes-conscientes.md y las 6 specs de feature
 - ✅ Contrato de API completo: esquemas de petición/respuesta y códigos de error por endpoint (→ referencia §12) en `01-specs/contrato-api.md`
 - ✅ Modelo de datos y seed documentados en `01-specs/modelo-datos.md`
-- ⏳ Esquema SQL + script de seed (Plan A **literal del enunciado**: 10/8/5 con cortes 10 y 50; Plan B; `countries` con ~10 países — ES con esquema `ES_NIF`, resto sin esquema — y sus `tax_rates`, ES 21 %)
+- ✅ Esquema SQL + script de seed (Plan A **literal del enunciado**: 10/8/5 con cortes 10 y 50; Plan B; `countries` con 10 países — ES con esquema `ES_NIF`, resto sin esquema — y sus `tax_rates`, ES 21 %). Incluye `ensureDatabase()`: seed automático si el `.db` no existe (→ referencia §2.1). Pendiente de cerrar el círculo: el seed debe pasar sus datos por el registro de validadores (Fase 1) y por el validador de plantilla (Fase 2) — marcado en `seed.ts`
 
 ## 3. Fase 1 — Core del enunciado (innegociable) ⏳
 
