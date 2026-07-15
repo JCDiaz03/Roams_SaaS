@@ -31,7 +31,7 @@
 - ✅ Decisión preview del slider: híbrido con módulo compartido (→ referencia §10)
 - ✅ Decisión países/validación fiscal: tabla `countries` agregadora + registro de estrategias `TaxIdValidator` con fallbacks explícitos (→ referencia §6.1, §7)
 - ✅ Monorepo con **npm workspaces** (`/backend`, `/frontend`, `/packages/pricing`, `/ai-workspace`) + scripts raíz (`npm run dev` con `concurrently`, `test`, `seed`) + `engines`/`.nvmrc` (→ referencia §2.1). Incluye el andamiaje del árbol de código `(solo cabeceras, sin implementación)`, el proxy de dev de Vite, la regla ESLint anti `dangerouslySetInnerHTML` y CI con lint + typecheck + test + `npm audit`
-- ⏳ Crear repo público (git se configura más adelante)
+- ✅ Repo público creado y publicado: [JCDiaz03/Roams_SaaS](https://github.com/JCDiaz03/Roams_SaaS) — CI en verde desde el primer commit
 - ✅ Estructura de `/ai-workspace` creada: specs movidas a `/01-specs`, `/02-arquitectura` (directrices + ADRs) y `/03-proceso` (plantillas)
 - ✅ Redactados los esqueletos: directrices-ia (incluye estructura del proyecto), decisiones.md (8 ADRs en un fichero), plantillas.md, recortes-conscientes.md y las 6 specs de feature
 - ✅ Contrato de API completo: esquemas de petición/respuesta y códigos de error por endpoint (→ referencia §12) en `01-specs/contrato-api.md`
