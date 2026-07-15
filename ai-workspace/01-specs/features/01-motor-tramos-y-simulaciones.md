@@ -47,22 +47,26 @@ type MetricBreakdown = {
   tiers: TierApplication[];    // vacío si billed = false
 };
 
-type PriceResult = {
+type QuoteInput = {
+  tiers: readonly Tier[];
+  quantities: Quantities;
+  tax_rate_bp: number;
+  currency: CurrencyCode;      // ISO 4217: la divisa de FACTURACIÓN del plan
+};
+
+type QuoteResult = {
   base_minor: number;
   tax_rate_bp: number;
   tax_minor: number;
   total_minor: number;
-  currency: string;            // ISO 4217: la divisa de FACTURACIÓN del plan
+  currency: CurrencyCode;
   breakdown: MetricBreakdown[];
 };
 
-function price(input: {
-  tiers: Tier[];
-  quantities: Quantities;
-  tax_rate_bp: number;
-  currency: string;
-}): PriceResult;
+function quote(input: QuoteInput): QuoteResult;
 ```
+
+**Reparto interno**: `engine.ts` recorre los tramos (`computeBreakdown`, `baseMinorOf`) y `quote.ts` aplica el orden canónico completo (base → impuesto → total). El corte existe porque el recorrido de tramos y la política de redondeo se testean por separado y fallan por motivos distintos.
 
 **Todo lo que necesita entra por argumento.** El motor no lee de la base de datos, no llama al `TaxProvider`, no conoce el reloj y no conoce el `plan_id`. Es lo que permite que el navegador lo ejecute con los tramos que trae `GET /customers/{id}` y el servidor con los que lee de SQLite, y que el resultado sea el mismo número por construcción, no por disciplina.
 
@@ -157,7 +161,7 @@ Contrato completo → `../contrato-api.md` §2.2. Aquí, solo lo que el contrato
 2. **El `plan_id` sale del cliente**, nunca del cuerpo. Es lo que garantiza que se cotiza con la tarifa contratada.
 3. **Cargar el plan con sus tramos, esté activo o archivado.** Un plan archivado **no es un error aquí** (→ referencia §5.5): un cliente antiguo cotiza con su versión, y ese es justo el caso que el versionado existe para proteger. Un `PLAN_ARCHIVED` copiado del alta rompería el diseño entero en silencio.
 4. **Resolver el tipo impositivo** del país del cliente vía `TaxProvider` (→ referencia §6.2), que lee de la caché de arranque. Sin IO, sin `if` por país.
-5. **Llamar a `price()`** con tramos, cantidades, `tax_rate_bp` y la divisa **del plan**.
+5. **Llamar a `quote()`** con tramos, cantidades, `tax_rate_bp` y la divisa **del plan**.
 6. **Construir el snapshot** (§3.2).
 7. **Persistir** simulación + snapshot y devolver `201` con el `breakdown` que devolvió el motor.
 
@@ -175,7 +179,7 @@ Forma exacta → `../modelo-datos.md` §2.5. Se construye con **los datos que se
 
 ### 3.3 Preview local: por qué no hay nada más que especificar
 
-El frontend tiene los tramos y el `tax_rate_bp` desde `GET /customers/{id}` (→ `../contrato-api.md` §3.3), e importa `price()` de `@saas/pricing`. Al arrastrar el slider: lookup en memoria + recorrido de tramos → 0 ms, sin red.
+El frontend tiene los tramos y el `tax_rate_bp` desde `GET /customers/{id}` (→ `../contrato-api.md` §3.3), e importa `quote()` de `@saas/pricing`. Al arrastrar el slider: lookup en memoria + recorrido de tramos → 0 ms, sin red.
 
 Al guardar, el backend **recalcula desde cero** e ignora cualquier cosa que el cliente pudiera creer. **Su número manda**: si difiere del preview, la UI pinta el del backend (→ referencia §10). Que hoy no pueda diferir —misma función, mismos datos— no hace la regla innecesaria: es lo que mantiene el invariante 1 cierto **por diseño** y no por coincidencia.
 
@@ -223,4 +227,4 @@ Los del motor y el redondeo se escriben **antes que cualquier endpoint** (→ `r
 - `customer_id` inexistente → `404`.
 
 **Paridad preview/persistencia** (cinturón y tirantes, → referencia §10, §15):
-- La **misma batería de casos** ejecutada por `price()` invocada desde el paquete y comparada con el `total_minor` que devuelve `POST /simulations`. Con módulo único no puede fallar; el test existe para que **siga sin poder** el día que alguien tenga la idea de optimizar uno de los dos lados.
+- La **misma batería de casos** ejecutada por `quote()` invocada desde el paquete y comparada con el `total_minor` que devuelve `POST /simulations`. Con módulo único no puede fallar; el test existe para que **siga sin poder** el día que alguien tenga la idea de optimizar uno de los dos lados.

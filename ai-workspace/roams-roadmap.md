@@ -44,8 +44,8 @@
 
 > Se implementan y testean ANTES de cualquier endpoint o UI: son el corazón de la nota de calidad.
 
-- ⏳ Paquete `pricing`: motor de tramos graduated multi-métrica (función pura) + redondeo **half-up** en `minor_unit`
-- ⏳ Tests del motor: bordes 0/10/50/51, multi-métrica, métrica no facturada = 0, half-up con `.5` exacto (→ referencia §15)
+- ✅ Paquete `pricing`: motor de tramos graduated multi-métrica (función pura) + redondeo **half-up** con `bigint` + enum `Currency` con `minor_unit`
+- ✅ Tests del motor: **61 tests**, bordes 0/10/50/51, multi-métrica, métrica no facturada = 0, half-up con `.5` exacto (→ referencia §15). Validados por mutación: cuatro mutantes (half-up→hacia cero, off-by-one del corte, graduated→volume, métrica no facturada) mueren todos
 - ⏳ Validación fiscal: normalización (→ referencia §7.4) + registro `TaxIdValidator` con `ES_NIF` y `PassThroughValidator` (→ referencia §7.2-7.3) + chequeo de integridad dato↔registro en el arranque
 - ⏳ Tests fiscales: batería de válidos/inválidos por tipo (CIF la más amplia), normalización, fallbacks del registro
 

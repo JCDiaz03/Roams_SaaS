@@ -5,8 +5,22 @@
 // negocian (directrices-ia.md 3.1):
 //   * No importa NADA de backend/ ni de frontend/.
 //   * No toca IO. Si algo necesita leer de la base de datos, se le pasa por argumento.
-//
-// Estado: (parcial). Motor, redondeo y enum Currency entran en Fase 1.
+
+export { quote } from './quote'
+export { computeBreakdown, baseMinorOf } from './engine'
+export { roundHalfUpDiv } from './rounding'
+
+export { CURRENCIES, CURRENCY_CODES, isCurrencyCode, minorUnitOf } from './currency'
+export type { CurrencyCode, MinorUnit } from './currency'
 
 export { METRICS } from './types'
-export type { Metric, PricingModel } from './types'
+export type {
+  Metric,
+  MetricBreakdown,
+  PricingModel,
+  Quantities,
+  QuoteInput,
+  QuoteResult,
+  Tier,
+  TierApplication,
+} from './types'
