@@ -4,6 +4,7 @@
 >
 > * Qué es: el formato que siguen los ficheros de `sesiones/` y `auditorias/`. Nada más — el contenido de cada sesión vive en su fichero.
 > * **Se alimenta por sesión, desde el día 1** (→ `../roams-roadmap.md` regla 2). No se reconstruye al final: un `/ai-workspace` escrito la última tarde no es falsificable con credibilidad, y es el 60 % de la nota.
+> * **Aquí no se cumplió, y conviene decirlo donde está la regla**: `sesiones/` y `auditorias/` se transcribieron al final del proceso. Lo que hay es real y trazable a commits, pero no es lo mismo. → [nota de procedencia](./sesiones/00-como-se-registro-esto.md).
 > * Las directrices que se le dan al modelo → `../02-arquitectura/directrices-ia.md`.
 
 ---

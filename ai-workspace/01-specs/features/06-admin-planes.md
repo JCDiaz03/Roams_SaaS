@@ -2,7 +2,7 @@
 
 > **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §5.4, §5.5. El contrato HTTP → `../contrato-api.md` §4. Las tablas → `../modelo-datos.md` §2.3. Las pantallas → `../diseño-frontend.md` ventanas 6 y 7.
 >
-> **Fase 2**: solo se abre si el gate de Fase 1 está en verde (→ `roams-roadmap.md` regla 1). Si no hay tiempo, esta spec **es** el entregable: el diseño queda documentado y el recorte declarado.
+> **Implementado.** Se abrió con el gate de Fase 1 en verde, como exige la regla 1 del roadmap.
 
 ---
 

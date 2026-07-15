@@ -10,7 +10,7 @@ Este directorio es el registro del proceso de ingeniería: qué se especificó a
 | `roams-roadmap.md` | Hoja de ruta y estado del proyecto. Es el índice de por dónde va todo. |
 | `01-specs/` | Lo que se decidió antes de escribir código: diseño del sistema, diseño de pantallas, contrato de API, modelo de datos y una spec por feature. |
 | `02-arquitectura/` | Las directrices que se le dieron a la IA y las decisiones de arquitectura (ADR), cada una con su porqué y sus alternativas descartadas. |
-| `03-proceso/` | El vibe coding: sesiones, auditorías del código generado (qué se aceptó, qué se rechazó y por qué), capturas y recortes conscientes. |
+| `03-proceso/` | El vibe coding: **9 sesiones** (una por commit, con el prompt literal y qué se rechazó), **3 auditorías** de los defectos silenciosos que traía el código generado, y los recortes conscientes. |
 
 ## Por dónde empezar a leer
 

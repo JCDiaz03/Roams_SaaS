@@ -1,6 +1,6 @@
 # Roams SaaS — directrices para la IA
 
-> Este fichero es la versión operativa de `ai-workspace/02-arquitectura/directrices-ia.md` `(pendiente de redactar)`. Cuando ese documento se cierre, aquí queda el resumen ejecutable y allí el porqué.
+> Este fichero es la versión **ejecutable** de [`ai-workspace/02-arquitectura/directrices-ia.md`](ai-workspace/02-arquitectura/directrices-ia.md): aquí el resumen que cabe en cada sesión, allí el porqué de cada regla. **Si los dos se contradicen, manda este** y el otro tiene un bug.
 
 ## Antes de escribir código
 

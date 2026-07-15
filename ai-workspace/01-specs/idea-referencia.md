@@ -73,7 +73,7 @@ backend/src/
   server.ts        (registro de features, error handler, middleware de auth)
 ```
 
-Cada feature agrupa su ruta, su esquema y su acceso a datos: código navegable y sin "archivos masivos". **Los puertos existen solo donde el cambio es seguro** — `TaxProvider` (§6.2), registro de validadores (§7.2), auth (§8), motor en `pricing` — y no en cada frontera: la hexagonal completa (DTOs con mappers, capas estrictas) en una app de 8 endpoints es sobre-arquitectura, y el recorte es una decisión consciente documentada en `/ai-workspace/02-arquitectura`.
+Cada feature agrupa su ruta, su esquema y su acceso a datos: código navegable y sin "archivos masivos". **Los puertos existen solo donde el cambio es seguro** — `TaxProvider` (§6.2), registro de validadores (§7.2), auth (§8), motor en `pricing` — y no en cada frontera: la hexagonal completa (DTOs con mappers, capas estrictas) en una app de once endpoints es sobre-arquitectura, y el recorte es una decisión consciente documentada en `/ai-workspace/02-arquitectura`.
 
 El frontend es espejo: `features/` (login, search, customer, simulator, admin) + `ui/` (componentes del sistema de tokens, → `diseño-frontend.md`) + `lib/` (cliente API, sesión, formato de divisa).
 
@@ -118,17 +118,21 @@ Dos conceptos distintos que **no se derivan uno del otro**:
 ### 4.2 Orden canónico de cálculo
 
 ```
-1. base      = tarificación del plan (tramos)     -> divisa del plan
-2. tax_rate  = tipo estándar del PAÍS DEL CLIENTE
-3. tax       = base * tax_rate                    -> divisa del plan
-4. total     = base + tax                         -> divisa del plan   <- REDONDEO AQUÍ, una sola vez
-5. mostrado  = total * tipo_de_cambio             -> solo VISTA, no se persiste
+1. base_minor  = tarificación del plan (tramos)              -> entero, divisa del plan
+2. tax_rate_bp = tipo estándar del PAÍS DEL CLIENTE          -> entero, puntos básicos
+3. tax_minor   = round_half_up(base_minor * rate_bp / 10000) -> entero, divisa del plan
+4. total_minor = base_minor + tax_minor                      -> divisa del plan
+5. mostrado    = total_minor * tipo_de_cambio                -> solo VISTA, no se persiste
 ```
+
+**El tipo impositivo va en puntos básicos enteros** (`2100` = 21 %), no en decimal. Un `REAL` para el tipo mete el float justo en `base × rate`, que es el cálculo que el invariante 5 protege: el tipo no es dinero, pero multiplica dinero. Cuatro dígitos dan hasta dos decimales de porcentaje, suficiente para cualquier tipo estándar real (Suiza está al 8,1 % = `810`).
 
 Por qué este orden:
 - El impuesto lo determina el **país del cliente**, nunca la divisa seleccionada. Cliente en UK → VAT 20 % siempre, se muestre en EUR, USD o GBP.
 - Conversión e IVA son conmutativos, **pero el redondeo no lo es**: convertir y redondear a céntimos antes del IVA arrastra error. → Redondear **una vez, al final, en la divisa de facturación**, con modo **half-up** (mitad hacia arriba), el estándar de facturación europea. El modo vive en una única función del paquete `pricing` y se testea con casos de `.5` exacto.
 - Pasos 1–4 = backend. Paso 5 = presentación.
+
+**Dónde cae el único redondeo, con precisión.** `base_minor` es `Σ (unidades × precio)`: producto y suma de enteros, exacto. La única fracción del sistema aparece en el impuesto, y por eso hay exactamente **un** redondeo. Parece que «redondear el impuesto» (paso 3) y «redondear el total» (paso 4) fueran dos lecturas distintas de este orden, y no lo son: como `base_minor` es entero, `round_half_up(base + tax_exacto) = base + round_half_up(tax_exacto)` — el mismo entero, siempre. Y la del paso 3 es la única implementable, porque `tax_minor` se persiste y una columna `INTEGER` no admite una fracción. Lo que este orden prohíbe es otra cosa: redondear **antes** de tener el total en la divisa de facturación, o redondear en la divisa de visualización.
 
 **Futuro (pasarela de pagos)**: un tipo cacheado sirve para *enseñar*, nunca para *cobrar*. Al cobrar se revalida, se fija (*lock*) el tipo en el instante de la transacción y se persiste con el cobro.
 
@@ -242,9 +246,9 @@ El país no es un string suelto: agrupa tres datos que otras piezas consumen —
 
 ### 6.2 Tipo impositivo
 
-- Tipo **estándar por país**. Tabla `tax_rates` (PK compuesta `(country, vigente_desde)`, `country` FK → `countries.code`, `rate`) — separada de `countries` para conservar el histórico de tipos. **Regla de vigencia declarada**: la fila vigente es la de mayor `vigente_desde` ≤ hoy.
+- Tipo **estándar por país**. Tabla `tax_rates` (PK compuesta `(country, vigente_desde)`, `country` FK → `countries.code`, `rate_bp` en **puntos básicos enteros**, → §4.2) — separada de `countries` para conservar el histórico de tipos. **Regla de vigencia declarada**: la fila vigente es la de mayor `vigente_desde` ≤ hoy. Una fila con fecha **futura** es legítima —un tipo anunciado y no aplicable aún— y **no debe aplicarse**: el `<= hoy` no es cosmético.
 - **Desacoplado obligatorio**: el cálculo pide el tipo a una interfaz (`TaxProvider`, en `domain/`), no a una constante ni a un `if`. La implementación actual, `StandardCountryRateProvider`, vive en `infra/` y lee de la caché de arranque (§6.1) — sin IO por petición; mañana un `VIESProvider` con *reverse charge* intracomunitario se enchufa sin tocar el motor.
-- **Se persiste el `tax_rate` aplicado**, no solo el importe: si el IVA español pasa del 21 % al 22 %, las simulaciones viejas deben seguir explicando su número.
+- **Se persiste el `tax_rate_bp` aplicado**, no solo el importe: si el IVA español pasa del 21 % al 22 %, las simulaciones viejas deben seguir explicando su número. Y se persiste **el valor**, no una FK a `tax_rates`: una FK seguiría apuntando a «el tipo de España» y la simulación vieja cambiaría de explicación. Es el mismo motivo que el snapshot (§11.2), aplicado al impuesto.
 
 ---
 
@@ -355,7 +359,7 @@ El slider debe reflejar la proyección "en tiempo real" (literal del enunciado, 
 
 **Decisión: híbrido con módulo único.**
 
-- El frontend obtiene vía `GET /customers/{id}` **el plan del cliente embebido con sus tramos** (aunque esté archivado, → §12) y el `tax_rate` de su país, y vía `GET /rates` los tipos de cambio. Mientras se arrastra el slider, el preview se calcula **en local**: lookup en memoria + recorrido de tramos → 0 ms.
+- El frontend obtiene vía `GET /customers/{id}` **el plan del cliente embebido con sus tramos** (aunque esté archivado, → §12) y el `tax_rate_bp` de su país, y vía `GET /rates` los tipos de cambio. Mientras se arrastra el slider, el preview se calcula **en local**: lookup en memoria + recorrido de tramos → 0 ms.
 - Al guardar, `POST /simulations` recibe **solo las entradas** (usuarios, GB, llamadas) — nunca importes — y el backend recalcula desde cero, redondea (§4.2) y persiste con snapshot. **Su número manda**; si difiere del preview, el front muestra el del backend.
 - **No hay dos implementaciones**: el recorrido de tramos es una función pura del paquete compartido `pricing`, importada por front y back. La divergencia es inexpresable, no mitigada. (Un test de paridad se mantiene como cinturón y tirantes → §15.)
 - Los **parámetros** (precios, cortes, tipos) tienen una sola fuente: la BD, servida por el backend. El front nunca los define.
@@ -372,8 +376,8 @@ Alternativas descartadas: preview solo-frontend (violaría el invariante #1: el 
 - **`customers`**: `id`, `company_name`, `fiscal_id` (**UNIQUE**, forma normalizada → §7.4), `fiscal_id_type` (resultado de la validación: DNI/NIE/CIF/`unvalidated`), `email`, `country` (FK → `countries.code`), `plan_id` (FK), `created_at`
 - **`plans`**: `id`, `name`, `version`, `description`, `pricing_model` (`graduated`), `currency` (ISO, ∈ `Currency`), `active`, `created_at`
 - **`plan_tiers`**: `id`, `plan_id` (FK), `metric` (`users`|`storage_gb`|`api_calls`|...), `up_to` (NULL = ∞), `unit_price_minor`, `sort_order`
-- **`tax_rates`**: PK `(country, vigente_desde)`, `country` (FK → `countries.code`), `rate` — vigente = mayor `vigente_desde` ≤ hoy (§6.2)
-- **`simulations`**: `id`, `customer_id` (FK), `active_users`, `storage_gb`, `api_calls`, `plan_id`, `pricing_snapshot` (JSON), `currency`, `base_minor`, `tax_rate`, `tax_minor`, `total_minor`, `created_at`
+- **`tax_rates`**: PK `(country, vigente_desde)`, `country` (FK → `countries.code`), `rate_bp` — vigente = mayor `vigente_desde` ≤ hoy (§6.2)
+- **`simulations`**: `id`, `customer_id` (FK), `active_users`, `storage_gb`, `api_calls`, `plan_id`, `pricing_snapshot` (JSON), `currency`, `base_minor`, `tax_rate_bp`, `tax_minor`, `total_minor`, `created_at`
 
 Plan A = 3 filas `metric='users'`; Plan B = 4 filas `metric='storage_gb'`; plan multi-métrica = filas de varias métricas, el motor las suma sin enterarse. Los importes usan sufijo **`_minor`** (unidades menores de *su* divisa), no `_cents`: "cents" asume 2 decimales y no es cierto para todas las divisas (§4.4).
 
@@ -394,7 +398,7 @@ Como los planes son datos editables (con panel admin, editables **en caliente**)
 **Necesarios para el frontend**
 - `GET /countries` — Países soportados: código, nombre, `display_currency` y **`fiscal_id: { validated, hint }` ya resuelto por el validador del país** (§7.2). El desplegable y el hint del alta se pintan de aquí, sin ningún `if (país)` en el cliente.
 - `GET /customers?search=...` — Buscador por nombre o fiscal_id.
-- `GET /customers/{id}` — Detalle. **Embebe el plan del cliente con sus tramos** (aunque esté archivado — un cliente puede apuntar a una versión antigua, §5.5) **y el `tax_rate` de su país**: todo lo que el preview local necesita en una sola petición (§10).
+- `GET /customers/{id}` — Detalle. **Embebe el plan del cliente con sus tramos** (aunque esté archivado — un cliente puede apuntar a una versión antigua, §5.5) **y el `tax_rate_bp` de su país**: todo lo que el preview local necesita en una sola petición (§10).
 - `GET /customers/{id}/simulations` — Historial (cards).
 - `GET /plans` — Planes **activos** con sus tramos: listados y alta de clientes. Acepta **`?include_archived=true`** para el panel de administración (Ventana 6) — parámetro y no endpoint aparte porque su único consumidor es el admin y el gating por rol es UX declarada, no seguridad (§8.3). El plan de un cliente concreto se obtiene por su detalle, no por aquí.
 - `GET /rates` — Proxy de divisas (§9).
