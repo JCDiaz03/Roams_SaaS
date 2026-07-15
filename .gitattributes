@@ -1,0 +1,13 @@
+# El repositorio almacena SIEMPRE LF, sin depender del core.autocrlf de cada
+# máquina. Coherente con .editorconfig (end_of_line = lf).
+* text=auto eol=lf
+
+# Binarios: ni normalización de saltos de línea ni intento de diff.
+# Las capturas de /ai-workspace/03-proceso/capturas entran por aquí.
+*.docx binary
+*.pdf  binary
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.webp binary

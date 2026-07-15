@@ -1,0 +1,26 @@
+{
+  "name": "backend",
+  "version": "0.1.0",
+  "private": true,
+  "description": "API REST Fastify + SQLite. Unica fuente de verdad del coste, el impuesto y la validacion fiscal (referencia 3).",
+  "type": "module",
+  "main": "src/index.ts",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "test": "vitest run --passWithNoTests",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "seed": "tsx src/infra/seed.ts"
+  },
+  "dependencies": {
+    "@saas/pricing": "*",
+    "better-sqlite3": "^12.2.0",
+    "fastify": "^5.2.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/node": "^24.0.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

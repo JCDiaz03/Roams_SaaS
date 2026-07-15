@@ -1,0 +1,40 @@
+# Dependencias y artefactos de build
+node_modules/
+dist/
+build/
+coverage/
+
+# Cachés de herramientas (TypeScript incremental, ESLint, Vite)
+*.tsbuildinfo
+.eslintcache
+.vite/
+vite.config.ts.timestamp-*
+
+# Base de datos local: se regenera sola en el primer arranque (referencia 2.1)
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Entorno. Un .env.example SI se versiona: documenta qué variables hacen falta.
+.env
+.env.local
+.env.*.local
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+
+# Editores
+.idea/
+*.iml
+.vscode/
+
+# Ajustes locales de Claude Code (permisos de la máquina de cada uno).
+# CLAUDE.md y /ai-workspace SI se versionan: son parte de la entrega.
+.claude/settings.local.json
+
+# NO se ignora package-lock.json: el lockfile se versiona (referencia 14.3,
+# cadena de suministro) y `npm ci` del CI no funciona sin él.
