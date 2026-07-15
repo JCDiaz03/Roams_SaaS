@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { METRICS, quote, type CurrencyCode, type Metric, type Tier } from '@saas/pricing'
+import { METRICS, minorUnitOf, quote, type CurrencyCode, type Metric, type Tier } from '@saas/pricing'
 import { ApiError, api, type Plantilla, type PlantillaTier, type Violacion } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
 import { Button } from '../../ui/Button'
@@ -31,16 +31,22 @@ const entero = (s: string): number | null => {
   return Number.isFinite(n) ? Math.trunc(n) : null
 }
 
-/** El precio se teclea en euros ("10,50") y viaja en unidades menores (1050). */
-const aMinor = (s: string): number | null => {
+/**
+ * El precio se teclea en unidades MAYORES ("10,50") y viaja en menores (1050).
+ *
+ * El factor es 10^minor_unit DE LA DIVISA DEL PLAN, nunca un 100 fijo: con JPY
+ * (minor_unit 0), "500" son 500 minor, y un x100 fijo guardaria un precio cien veces
+ * mayor. Es exactamente la rotura que la referencia 4.4 predice para el "x100" asumido.
+ */
+const aMinor = (s: string, currency: CurrencyCode): number | null => {
   const t = s.trim().replace(',', '.')
   if (t === '') return null
   const n = Number(t)
-  return Number.isFinite(n) ? Math.round(n * 100) : null
+  return Number.isFinite(n) ? Math.round(n * 10 ** minorUnitOf(currency)) : null
 }
 
 /** Los borradores -> los tramos del contrato. El sort_order lo deriva el servidor. */
-function aTiers(borradores: Borradores): PlantillaTier[] {
+function aTiers(borradores: Borradores, currency: CurrencyCode): PlantillaTier[] {
   return METRICS.flatMap((metric) => {
     const b = borradores[metric]
     if (!b.activo) return []
@@ -49,7 +55,7 @@ function aTiers(borradores: Borradores): PlantillaTier[] {
       metric,
       // El ultimo es SIEMPRE el abierto: es la forma del editor, no una eleccion.
       up_to: i === b.tramos.length - 1 ? null : entero(t.upTo),
-      unit_price_minor: aMinor(t.price) ?? 0,
+      unit_price_minor: aMinor(t.price, currency) ?? 0,
     }))
   })
 }
@@ -70,6 +76,8 @@ export function PlanTemplatePage() {
   const [enviando, setEnviando] = useState(false)
   const [violaciones, setViolaciones] = useState<Violacion[]>([])
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
+  /** El PLAN_NAME_TAKEN del backend: llega como ApiError con field 'name', no como violacion. */
+  const [errorNombre, setErrorNombre] = useState<string | null>(null)
 
   // Ejemplo de la vista previa: lo que costaria este consumo con los tramos escritos.
   const [ejemplo, setEjemplo] = useState<Record<Metric, number>>({
@@ -103,7 +111,8 @@ export function PlanTemplatePage() {
                 activo: true,
                 tramos: suyos.map((t) => ({
                   upTo: t.up_to === null ? '' : String(t.up_to),
-                  price: String(t.unit_price_minor / 100),
+                  // El inverso de aMinor, con el MISMO factor por divisa.
+                  price: String(t.unit_price_minor / 10 ** minorUnitOf(plan.currency)),
                 })),
               }
         }
@@ -124,7 +133,7 @@ export function PlanTemplatePage() {
    * enseña la tarifa, no un presupuesto a un cliente concreto.
    */
   const previa = useMemo(() => {
-    const tiers = aTiers(borradores)
+    const tiers = aTiers(borradores, currency)
     if (tiers.length === 0) return null
 
     // El motor confia en sus entradas: con tramos a medio escribir (un up_to vacio en
@@ -149,12 +158,13 @@ export function PlanTemplatePage() {
     setEnviando(true)
     setViolaciones([])
     setErrorGeneral(null)
+    setErrorNombre(null)
 
     const plantilla: Plantilla = {
       name: nombre,
       ...(descripcion.trim() === '' ? {} : { description: descripcion }),
       currency,
-      tiers: aTiers(borradores),
+      tiers: aTiers(borradores, currency),
     }
 
     try {
@@ -169,6 +179,9 @@ export function PlanTemplatePage() {
         // TODAS las violaciones, cada una a su fila. El admin que ha escrito cuatro
         // tramos mal no debe descubrirlos de uno en uno.
         setViolaciones((err.extra?.['violations'] as Violacion[] | undefined) ?? [])
+      } else if (err instanceof ApiError && err.field === 'name') {
+        // El nombre ocupado se pinta JUNTO al campo, como cualquier error de campo (13.1).
+        setErrorNombre(err.message)
       } else if (err instanceof ApiError) {
         setErrorGeneral(err.message)
       } else {
@@ -187,7 +200,6 @@ export function PlanTemplatePage() {
   }
 
   const violacionesDe = (m: Metric) => violaciones.filter((v) => v.metric === m)
-  const errorNombre = violaciones.find((v) => v.rule === 'PLAN_NAME_TAKEN')
 
   return (
     <>
@@ -217,17 +229,26 @@ export function PlanTemplatePage() {
                 </label>
                 <input
                   id="nombre"
-                  className={`${styles.input} ${errorNombre ? styles.inputError : ''}`}
+                  className={`${styles.input} ${errorNombre !== null ? styles.inputError : ''}`}
                   value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
+                  onChange={(e) => {
+                    setNombre(e.target.value)
+                    setErrorNombre(null)
+                  }}
                   placeholder="Plan Ágora"
                   maxLength={100}
                   required
+                  aria-invalid={errorNombre !== null}
                   // Editar no puede renombrar: v1 y v2 comparten nombre, o "la version
                   // anterior de este plan" deja de significar nada.
                   disabled={editando}
                   title={editando ? 'El nombre se hereda de la versión anterior' : undefined}
                 />
+                {errorNombre !== null && (
+                  <p className={styles.error} role="alert">
+                    {errorNombre}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -271,6 +292,7 @@ export function PlanTemplatePage() {
                 bloque={borradores[m]}
                 onChange={(b) => setBorradores((prev) => ({ ...prev, [m]: b }))}
                 violaciones={violacionesDe(m)}
+                currency={currency}
               />
             ))}
 

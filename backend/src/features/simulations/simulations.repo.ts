@@ -1,6 +1,6 @@
 // Persistencia con pricing_snapshot y tax_rate aplicado. Spec: 11.2
 
-import type { Metric, Tier } from '@saas/pricing'
+import type { Metric } from '@saas/pricing'
 import type { Db } from '../../infra/db'
 
 /**
@@ -81,9 +81,4 @@ export function listSimulationsByCustomer(db: Db, customerId: number, limit: num
         LIMIT ?`,
     )
     .all(customerId, limit) as SimulationRow[]
-}
-
-/** Los tramos de un snapshot, listos para volver a pasarlos por el motor. */
-export function tiersDeSnapshot(snapshot: PricingSnapshot): Tier[] {
-  return snapshot.tiers
 }

@@ -81,7 +81,7 @@ Más pequeños, y son donde se ve el criterio del día a día. Cada uno tiene su
 | **Refresco proactivo de tipos** | La primera petición tras caducar el TTL paga la latencia de la API externa | Un `setInterval` añade un temporizador que apagar, que falla en silencio si nadie lo mira, y que pide tipos a las 4 de la mañana cuando no hay nadie cotizando. *Cache-aside* pide cuando alguien pregunta | `../01-specs/features/04-tipos-de-cambio.md` §3.2 |
 | **Cruzada de divisas** (`USD→GBP`) | Nada hoy | Todos los planes son EUR y la API tiene base EUR. Es una división cuando haga falta | `../01-specs/features/04-tipos-de-cambio.md` §6 |
 | **`/api/v1`** | Nada hoy | No hay ningún consumidor externo al que romper: el único cliente se despliega con el servidor. `/api/v2` convive con `/api` el día que lo haya | `../01-specs/contrato-api.md` §1.1 |
-| **Validación de plantilla en `@saas/pricing`** | La vista previa de la Ventana 7 no puede validar en local | El paquete compartido es el motor y el redondeo; su valor es que lo importan **los dos** lados. La validación la usa hoy uno. Bajarla es cómo un paquete compartido se convierte en vertedero | `../01-specs/features/06-admin-planes.md` §3.4 |
+| **Validación de plantilla en `@saas/pricing`** | La vista previa de la Ventana 7 no puede validar en local: con cortes incoherentes (50 y luego 10) enseña un número sin sentido hasta que el backend rechaza al guardar, porque el motor confía en sus entradas | El paquete compartido es el motor y el redondeo; su valor es que lo importan **los dos** lados. La validación la usa hoy uno. Bajarla es cómo un paquete compartido se convierte en vertedero | `../01-specs/features/06-admin-planes.md` §3.4 |
 
 ---
 

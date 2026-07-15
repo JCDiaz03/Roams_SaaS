@@ -1,23 +1,21 @@
 // Layout + topbar + rutas. Diseno: 01-specs/diseño-frontend.md 3
 
 import { BrowserRouter } from 'react-router-dom'
-import { RatesProvider } from './lib/rates-context'
 import { SessionProvider } from './lib/session'
 import { AppRoutes } from './routes'
 import { ToastProvider } from './ui/Toast'
 
 export function App() {
   return (
-    // El orden importa: la sesion contiene la divisa y el tema, y los tipos de cambio se
-    // piden una sola vez para toda la app (topbar y simulador comparten estado).
+    // La sesion contiene la divisa y el tema. Los tipos de cambio (RatesProvider) NO
+    // estan aqui: viven en routes.tsx, por debajo del gate de sesion, para que GET /rates
+    // no se dispare en la pantalla de login, donde nadie los usa.
     <SessionProvider>
-      <RatesProvider>
-        <ToastProvider>
-          <BrowserRouter>
-            <AppRoutes />
-          </BrowserRouter>
-        </ToastProvider>
-      </RatesProvider>
+      <ToastProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </ToastProvider>
     </SessionProvider>
   )
 }

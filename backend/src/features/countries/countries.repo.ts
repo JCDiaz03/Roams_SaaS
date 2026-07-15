@@ -1,6 +1,6 @@
 // Lectura desde el Map en memoria. Spec: 6.1
 
-import { PASS_THROUGH, validatorFor } from '../../domain/tax-id/registry'
+import { validatorFor } from '../../domain/tax-id/registry'
 import type { CountriesCache } from '../../infra/countries.cache'
 
 export type CountryView = {
@@ -24,7 +24,8 @@ export type CountryView = {
 export function listCountries(countries: CountriesCache): CountryView[] {
   return [...countries.values()]
     .map((pais) => {
-      const validador = pais.scheme === null ? PASS_THROUGH : validatorFor(pais.scheme)
+      // validatorFor resuelve tambien el null (-> PassThrough): la misma llamada que el alta.
+      const validador = validatorFor(pais.scheme)
 
       return {
         code: pais.code,

@@ -8,6 +8,7 @@ import { NewCustomerPage } from './features/customer/NewCustomerPage'
 import { LoginPage } from './features/login/LoginPage'
 import { DashboardPage } from './features/search/DashboardPage'
 import { SimulatorPage } from './features/simulator/SimulatorPage'
+import { RatesProvider } from './lib/rates-context'
 import { useSession } from './lib/session'
 import { Topbar } from './ui/Topbar'
 import styles from './routes.module.css'
@@ -27,7 +28,10 @@ export function AppRoutes() {
   const esAdmin = hasRole('admin')
 
   return (
-    <>
+    // Los tipos se piden UNA vez para toda la app -topbar y simulador comparten estado-,
+    // y solo con sesion: en el login nadie los usa. Al montarse con cada login, ademas,
+    // cada sesion entra con los tipos recien pedidos.
+    <RatesProvider>
       <Topbar />
       <main className={styles.main}>
         <Routes>
@@ -47,6 +51,6 @@ export function AppRoutes() {
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
-    </>
+    </RatesProvider>
   )
 }

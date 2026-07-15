@@ -1,7 +1,8 @@
 // Editor de tramos: hasta cuantos + precio; ultimo tramo En adelante. Ref: 5.4
 
-import type { Metric } from '@saas/pricing'
+import type { CurrencyCode, Metric } from '@saas/pricing'
 import type { Violacion } from '../../lib/api-client'
+import { simboloDe } from '../../lib/currency-format'
 import { Button } from '../../ui/Button'
 import { IconPlus } from '../../ui/icons'
 import styles from './TierEditor.module.css'
@@ -48,9 +49,11 @@ type Props = {
   onChange: (b: BloqueBorrador) => void
   /** Las violaciones del backend para ESTA metrica, para pintarlas en su fila. */
   violaciones: Violacion[]
+  /** La divisa DEL PLAN: el precio se teclea en sus unidades mayores. */
+  currency: CurrencyCode
 }
 
-export function TierEditor({ metric, bloque, onChange, violaciones }: Props) {
+export function TierEditor({ metric, bloque, onChange, violaciones, currency }: Props) {
   const { activo, tramos } = bloque
 
   const parchear = (i: number, parche: Partial<TierBorrador>) =>
@@ -88,7 +91,9 @@ export function TierEditor({ metric, bloque, onChange, violaciones }: Props) {
                 acumulativo. Pedir cantidades le obligaria a hacer la suma mental que el
                 sistema ya sabe hacer. */}
             <span>Hasta cuántos {UNIDAD[metric]}</span>
-            <span>Precio por unidad (€)</span>
+            {/* El simbolo sigue a la divisa elegida: un "(€)" fijo mentiria en un plan
+                en USD o JPY. Lo deriva Intl, cero tablas propias (referencia 4.4). */}
+            <span>Precio por unidad ({simboloDe(currency)})</span>
             <span />
           </div>
 

@@ -6,8 +6,8 @@ import type { Plantilla } from './plan-template.validation'
 import { listPlans } from './plans.repo'
 import {
   createPlanSchema,
+  deletePlanSchema,
   listPlansSchema,
-  planIdSchema,
   updatePlanSchema,
 } from './plans.schemas'
 import { archivar, crearPlan, versionarPlan } from './plans.service'
@@ -48,7 +48,7 @@ export function plansRoutes({ db }: { db: Db }) {
     //
     // Devuelve 200 con el plan, no 204: la UI actualiza el badge de estado con lo
     // devuelto, sin una segunda peticion.
-    app.delete('/plans/:id', { schema: planIdSchema }, async (req) => {
+    app.delete('/plans/:id', { schema: deletePlanSchema }, async (req) => {
       const { id } = req.params as { id: number }
       return archivar(db, id)
     })

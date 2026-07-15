@@ -6,12 +6,44 @@
 // regex ancladas protegen de la forma, y el CHECK de la tabla protege de cualquier otro
 // camino de escritura.
 
+import { planResponseSchema } from '../plans/plans.schemas'
+
 /** Los topes de texto. Los mismos que los CHECK de la tabla (modelo-datos.md 2.4). */
 export const LIMITES = {
   companyName: 200,
   fiscalId: 20,
   email: 254,
   search: 100,
+} as const
+
+/**
+ * El cliente tal y como sale por la API (espejo de CustomerRow). Como en el resto de
+ * esquemas `response`: serializacion rapida y contrato de salida blindado, con todos los
+ * campos en `required` para que una regresion falle ruidosamente.
+ */
+const customerResponseSchema = {
+  type: 'object',
+  required: [
+    'id',
+    'company_name',
+    'fiscal_id',
+    'fiscal_id_type',
+    'email',
+    'country',
+    'plan_id',
+    'created_at',
+  ],
+  properties: {
+    id: { type: 'integer' },
+    company_name: { type: 'string' },
+    // El NORMALIZADO: el comercial ve lo que quedo guardado (referencia 7.4).
+    fiscal_id: { type: 'string' },
+    fiscal_id_type: { type: 'string' },
+    email: { type: 'string' },
+    country: { type: 'string' },
+    plan_id: { type: 'integer' },
+    created_at: { type: 'string' },
+  },
 } as const
 
 export const postCustomerSchema = {
@@ -33,6 +65,7 @@ export const postCustomerSchema = {
       plan_id: { type: 'integer', minimum: 1 },
     },
   },
+  response: { 201: customerResponseSchema },
 } as const
 
 export const searchCustomersSchema = {
@@ -47,6 +80,48 @@ export const searchCustomersSchema = {
       limit: { type: 'integer', minimum: 1, maximum: 50, default: 20 },
     },
   },
+  response: {
+    200: {
+      type: 'object',
+      required: ['customers', 'total'],
+      properties: {
+        customers: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: [
+              'id',
+              'company_name',
+              'fiscal_id',
+              'fiscal_id_type',
+              'country',
+              'plan',
+              'simulation_count',
+            ],
+            properties: {
+              id: { type: 'integer' },
+              company_name: { type: 'string' },
+              fiscal_id: { type: 'string' },
+              fiscal_id_type: { type: 'string' },
+              // String a secas en el listado; el detalle lo expande a objeto.
+              country: { type: 'string' },
+              plan: {
+                type: 'object',
+                required: ['id', 'name', 'version'],
+                properties: {
+                  id: { type: 'integer' },
+                  name: { type: 'string' },
+                  version: { type: 'integer' },
+                },
+              },
+              simulation_count: { type: 'integer' },
+            },
+          },
+        },
+        total: { type: 'integer' },
+      },
+    },
+  },
 } as const
 
 export const customerIdSchema = {
@@ -55,5 +130,42 @@ export const customerIdSchema = {
     required: ['id'],
     additionalProperties: false,
     properties: { id: { type: 'integer', minimum: 1 } },
+  },
+  response: {
+    200: {
+      type: 'object',
+      required: [
+        'id',
+        'company_name',
+        'fiscal_id',
+        'fiscal_id_type',
+        'email',
+        'country',
+        'tax_rate_bp',
+        'plan',
+        'created_at',
+      ],
+      properties: {
+        id: { type: 'integer' },
+        company_name: { type: 'string' },
+        fiscal_id: { type: 'string' },
+        fiscal_id_type: { type: 'string' },
+        email: { type: 'string' },
+        country: {
+          type: 'object',
+          required: ['code', 'name', 'display_currency'],
+          properties: {
+            code: { type: 'string' },
+            name: { type: 'string' },
+            display_currency: { type: 'string' },
+          },
+        },
+        tax_rate_bp: { type: 'integer' },
+        // Embebido CON SUS TRAMOS, activo o archivado: todo lo que el preview local
+        // necesita en una sola peticion (referencia 10).
+        plan: planResponseSchema,
+        created_at: { type: 'string' },
+      },
+    },
   },
 } as const

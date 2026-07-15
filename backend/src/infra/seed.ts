@@ -11,7 +11,8 @@ import type { Metric } from '@saas/pricing'
 import { config } from '../config'
 import { normalizeFiscalId } from '../domain/tax-id/normalize'
 import { validatorFor } from '../domain/tax-id/registry'
-import { validarPlantilla } from '../features/plans/plan-template.validation'
+import { validarPlantilla, type Plantilla } from '../features/plans/plan-template.validation'
+import { insertPlan } from '../features/plans/plans.repo'
 import { openDb, type Db } from './db'
 import { migrate } from './migrate'
 
@@ -283,14 +284,6 @@ export function seed(db: Db): void {
   const insertRate = db.prepare(
     'INSERT INTO tax_rates (country, vigente_desde, rate_bp) VALUES (?, ?, ?)',
   )
-  const insertPlan = db.prepare(
-    `INSERT INTO plans (name, version, description, pricing_model, currency, active, created_at)
-     VALUES (?, ?, ?, 'graduated', ?, ?, ?)`,
-  )
-  const insertTier = db.prepare(
-    `INSERT INTO plan_tiers (plan_id, metric, up_to, unit_price_minor, sort_order)
-     VALUES (?, ?, ?, ?, ?)`,
-  )
   const insertCustomer = db.prepare(
     `INSERT INTO customers (company_name, fiscal_id, fiscal_id_type, email, country, plan_id, created_at)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -309,18 +302,21 @@ export function seed(db: Db): void {
     // mundo a la ultima insertada, que es justo el bug que el versionado evita.
     const planIds = new Map<string, number>()
     for (const p of PLANS) {
-      // El mismo validador que POST /plans. Si un seed futuro escribe cortes decrecientes
-      // o un ultimo tramo cerrado, revienta el arranque en vez de sembrar un plan que el
-      // motor calculara mal en silencio.
-      const violaciones = validarPlantilla({
+      const plantilla: Plantilla = {
         name: p.name,
+        description: p.description,
         currency: p.currency,
         tiers: p.tiers.map((t) => ({
           metric: t.metric,
           up_to: t.upTo,
           unit_price_minor: t.unitPriceMinor,
         })),
-      })
+      }
+
+      // El mismo validador que POST /plans. Si un seed futuro escribe cortes decrecientes
+      // o un ultimo tramo cerrado, revienta el arranque en vez de sembrar un plan que el
+      // motor calculara mal en silencio.
+      const violaciones = validarPlantilla(plantilla)
       if (violaciones.length > 0) {
         throw new Error(
           `Seed incoherente: la plantilla de "${p.name}" v${p.version} no pasa el validador ` +
@@ -328,21 +324,10 @@ export function seed(db: Db): void {
         )
       }
 
-      const planId = Number(
-        insertPlan.run(p.name, p.version, p.description, p.currency, p.active ? 1 : 0, ahora)
-          .lastInsertRowid,
-      )
-      planIds.set(`${p.name}#${p.version}`, planId)
-
-      // El sort_order se deriva del orden del array, contando por metrica: declararlo a
-      // mano permitiria escribir un orden que contradice los cortes, y entonces habria
-      // dos fuentes de verdad para "cual es el primer tramo".
-      const siguienteOrden = new Map<Metric, number>()
-      for (const t of p.tiers) {
-        const sortOrder = siguienteOrden.get(t.metric) ?? 0
-        siguienteOrden.set(t.metric, sortOrder + 1)
-        insertTier.run(planId, t.metric, t.upTo, t.unitPriceMinor, sortOrder)
-      }
+      // La MISMA insercion que POST /plans (plans.repo), que ya deriva el sort_order del
+      // orden del array: el seed no mantiene una copia del INSERT que pueda divergir.
+      const creado = insertPlan(db, plantilla, p.version, p.active)
+      planIds.set(`${p.name}#${p.version}`, creado.id)
     }
 
     for (const c of CUSTOMERS) {

@@ -1,6 +1,6 @@
 // API caida -> ultimo tipo conocido marcado como desactualizado. Spec: 15
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { crearHarness, type Harness } from '../../test-harness'
 
 let h: Harness
@@ -8,6 +8,7 @@ beforeEach(() => {
   h = crearHarness()
 })
 afterEach(async () => {
+  vi.useRealTimers()
   await h.close()
 })
 
@@ -87,6 +88,43 @@ describe('GET /rates — fallback', () => {
     // El as_of dice DE CUANDO son. Sin el, el badge no podria decir la fecha y el numero
     // viejo se serviria en silencio, que es lo unico que no vale.
     expect(r.json().as_of).toBe(asOfViejo)
+  })
+
+  it('tras un fallo NO reintenta en cada peticion: sirve el fallback al instante', async () => {
+    h.rates.respuesta = { rates: { EUR: 1, USD: 1.11 }, asOf: haceUnaHora(), nextUpdate: haceUnaHora() }
+    await get()
+
+    h.rates.respuesta = new Error('ECONNREFUSED')
+    await get()
+    const r = await get()
+
+    // Sin el recuerdo de fallo, cada peticion con el proveedor caido pagaria el timeout
+    // entero antes de caer al dato viejo. La segunda ni lo intenta.
+    expect(h.rates.llamadas).toBe(2)
+    expect(r.statusCode).toBe(200)
+    expect(r.json().stale).toBe(true)
+  })
+
+  it('pasado el margen del recuerdo de fallo, SI vuelve a reintentar', async () => {
+    // Solo se congela Date: congelar tambien setImmediate/setTimeout dejaria a Fastify
+    // sin su event loop y el inject() no resolveria jamas.
+    vi.useFakeTimers({ now: Date.now(), toFake: ['Date'] })
+
+    h.rates.respuesta = { rates: { EUR: 1, USD: 1.11 }, asOf: haceUnaHora(), nextUpdate: haceUnaHora() }
+    await get()
+
+    h.rates.respuesta = new Error('ECONNREFUSED')
+    await get() // falla y memoriza el fallo (llamadas = 2)
+
+    vi.setSystemTime(Date.now() + 61_000)
+    h.rates.respuesta = { rates: { EUR: 1, USD: 1.22 }, asOf: haceUnaHora(), nextUpdate: enUnaHora() }
+    const r = await get()
+
+    // El recuerdo caduca: la caida del proveedor no puede dejar los tipos viejos para
+    // siempre. Al volver la API, el siguiente intento la encuentra.
+    expect(h.rates.llamadas).toBe(3)
+    expect(r.json().stale).toBe(false)
+    expect(r.json().rates.USD).toBe(1.22)
   })
 
   it('API caida y SIN cache -> 503, el unico caso sin salida', async () => {

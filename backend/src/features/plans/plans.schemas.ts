@@ -33,7 +33,47 @@ const plantillaBody = {
   },
 } as const
 
-export const createPlanSchema = { body: plantillaBody } as const
+/**
+ * El plan tal y como sale por la API (espejo de PlanWithTiers). Compartido por las cuatro
+ * rutas de planes y, via import, por el detalle de cliente que lo embebe.
+ *
+ * Los esquemas `response` cumplen dos funciones: Fastify serializa con
+ * fast-json-stringify (mas rapido que JSON.stringify) y, sobre todo, BLINDAN el contrato
+ * de salida: un campo no declarado aqui no sale, aunque una vista lo cuele por accidente.
+ * Todos los campos van en `required` a proposito: si el servicio deja de producir uno,
+ * la serializacion falla ruidosamente en vez de omitirlo en silencio.
+ */
+export const planResponseSchema = {
+  type: 'object',
+  required: ['id', 'name', 'version', 'description', 'currency', 'pricing_model', 'active', 'tiers'],
+  properties: {
+    id: { type: 'integer' },
+    name: { type: 'string' },
+    version: { type: 'integer' },
+    description: { type: ['string', 'null'] },
+    currency: { type: 'string' },
+    pricing_model: { type: 'string' },
+    active: { type: 'boolean' },
+    tiers: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['metric', 'up_to', 'unit_price_minor', 'sort_order'],
+        properties: {
+          metric: { type: 'string' },
+          up_to: { type: ['integer', 'null'] },
+          unit_price_minor: { type: 'integer' },
+          sort_order: { type: 'integer' },
+        },
+      },
+    },
+  },
+} as const
+
+export const createPlanSchema = {
+  body: plantillaBody,
+  response: { 201: planResponseSchema },
+} as const
 
 export const updatePlanSchema = {
   params: {
@@ -43,15 +83,19 @@ export const updatePlanSchema = {
     properties: { id: { type: 'integer', minimum: 1 } },
   },
   body: plantillaBody,
+  // 201 y no 200: "editar" crea una version nueva (contrato-api.md 4.2).
+  response: { 201: planResponseSchema },
 } as const
 
-export const planIdSchema = {
+export const deletePlanSchema = {
   params: {
     type: 'object',
     required: ['id'],
     additionalProperties: false,
     properties: { id: { type: 'integer', minimum: 1 } },
   },
+  // Devuelve el plan archivado: la UI actualiza el badge sin segunda peticion.
+  response: { 200: planResponseSchema },
 } as const
 
 export const listPlansSchema = {
@@ -63,6 +107,13 @@ export const listPlansSchema = {
       // (referencia 8.3). Por defecto false: el selector del alta no debe ofrecer un plan
       // archivado.
       include_archived: { type: 'boolean', default: false },
+    },
+  },
+  response: {
+    200: {
+      type: 'object',
+      required: ['plans'],
+      properties: { plans: { type: 'array', items: planResponseSchema } },
     },
   },
 } as const

@@ -12,6 +12,78 @@ export const TOPES = {
   apiCalls: 1_000_000_000,
 } as const
 
+/**
+ * La simulacion tal y como sale por la API (espejo de SimulationView). La misma para el
+ * POST y para cada elemento del historial, a proposito: la card recien guardada y la del
+ * historial son el mismo componente.
+ *
+ * Es el esquema `response` que mas trabaja: el `pricing_snapshot` es interno y NO esta
+ * declarado, asi que aunque una vista futura lo colara, no saldria. Todos los campos en
+ * `required`, como en el resto: una regresion falla ruidosamente, no omite en silencio.
+ */
+const simulationResponseSchema = {
+  type: 'object',
+  required: [
+    'id',
+    'customer_id',
+    'plan_id',
+    'inputs',
+    'currency',
+    'base_minor',
+    'tax_rate_bp',
+    'tax_minor',
+    'total_minor',
+    'breakdown',
+    'created_at',
+  ],
+  properties: {
+    id: { type: 'integer' },
+    customer_id: { type: 'integer' },
+    plan_id: { type: 'integer' },
+    inputs: {
+      type: 'object',
+      required: ['active_users', 'storage_gb', 'api_calls'],
+      properties: {
+        active_users: { type: 'integer' },
+        storage_gb: { type: 'integer' },
+        api_calls: { type: 'integer' },
+      },
+    },
+    currency: { type: 'string' },
+    base_minor: { type: 'integer' },
+    tax_rate_bp: { type: 'integer' },
+    tax_minor: { type: 'integer' },
+    total_minor: { type: 'integer' },
+    breakdown: {
+      type: 'array',
+      items: {
+        type: 'object',
+        required: ['metric', 'billed', 'quantity', 'subtotal_minor', 'tiers'],
+        properties: {
+          metric: { type: 'string' },
+          billed: { type: 'boolean' },
+          quantity: { type: 'integer' },
+          subtotal_minor: { type: 'integer' },
+          tiers: {
+            type: 'array',
+            items: {
+              type: 'object',
+              required: ['up_to', 'unit_price_minor', 'units', 'amount_minor'],
+              properties: {
+                up_to: { type: ['integer', 'null'] },
+                unit_price_minor: { type: 'integer' },
+                units: { type: 'integer' },
+                amount_minor: { type: 'integer' },
+              },
+            },
+          },
+        },
+      },
+    },
+    created_at: { type: 'string' },
+  },
+} as const
+
 export const postSimulationSchema = {
   body: {
     type: 'object',
@@ -31,6 +103,7 @@ export const postSimulationSchema = {
       api_calls: { type: 'integer', minimum: 0, maximum: TOPES.apiCalls },
     },
   },
+  response: { 201: simulationResponseSchema },
 } as const
 
 export const historySchema = {
@@ -44,5 +117,15 @@ export const historySchema = {
     type: 'object',
     additionalProperties: false,
     properties: { limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
+  },
+  response: {
+    200: {
+      type: 'object',
+      required: ['simulations', 'total'],
+      properties: {
+        simulations: { type: 'array', items: simulationResponseSchema },
+        total: { type: 'integer' },
+      },
+    },
   },
 } as const

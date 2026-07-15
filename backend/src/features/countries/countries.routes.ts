@@ -3,6 +3,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { CountriesCache } from '../../infra/countries.cache'
 import { listCountries } from './countries.repo'
+import { listCountriesSchema } from './countries.schemas'
 
 /**
  * Alimenta el desplegable del alta y el hint fiscal.
@@ -12,6 +13,12 @@ import { listCountries } from './countries.repo'
  */
 export function countriesRoutes(countries: CountriesCache) {
   return async (app: FastifyInstance): Promise<void> => {
-    app.get('/countries', async () => ({ countries: listCountries(countries) }))
+    // La vista se calcula UNA vez, aqui: la cache de paises no cambia en caliente
+    // (supuesto declarado en referencia 6.1), asi que mapear y ordenar por peticion
+    // seria trabajo repetido. El dia que exista un panel de impuestos, esto se invalida
+    // junto con la cache.
+    const vista = listCountries(countries)
+
+    app.get('/countries', { schema: listCountriesSchema }, async () => ({ countries: vista }))
   }
 }

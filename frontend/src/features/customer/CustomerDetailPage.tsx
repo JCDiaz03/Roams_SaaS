@@ -11,20 +11,9 @@ import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
 import { IconCheck, IconPlus } from '../../ui/icons'
+import { colorAvatar, iniciales } from '../../ui/avatar'
 import { SimulationHistoryCard } from './SimulationHistoryCard'
 import styles from './CustomerDetailPage.module.css'
-
-const PALETA: readonly (readonly [string, string])[] = [
-  ['#fdeaf4', '#c70069'],
-  ['#e7eefc', '#2a5bd7'],
-  ['#e6f5ee', '#0f7050'],
-  ['#fdf1de', '#8a5608'],
-  ['#efeafd', '#5c34bd'],
-  ['#e6f4f7', '#0b6273'],
-]
-
-const iniciales = (n: string) =>
-  n.split(/\s+/).slice(0, 2).map((p) => p.charAt(0)).join('').toUpperCase()
 
 type Estado =
   | { estado: 'cargando' }
@@ -110,7 +99,7 @@ export function CustomerDetailPage() {
   }
 
   const { cliente, historial } = datos
-  const [fondo, tinta] = PALETA[cliente.id % PALETA.length] as readonly [string, string]
+  const [fondo, tinta] = colorAvatar(cliente.id)
   const validado = cliente.fiscal_id_type !== 'unvalidated'
 
   return (

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { api, NetworkError, type CustomerListItem } from '../../lib/api-client'
+import { api, type CustomerListItem } from '../../lib/api-client'
 import { useSession } from '../../lib/session'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
@@ -28,6 +28,9 @@ export function DashboardPage() {
   const termino = params.get('q') ?? ''
   const [borrador, setBorrador] = useState(termino)
   const [datos, setDatos] = useState<Estado>({ estado: 'cargando' })
+  // Contador de reintentos: "Reintentar" no puede apoyarse en la URL, porque volver a
+  // escribir el mismo termino no cambia nada y el efecto no se relanzaria.
+  const [intento, setIntento] = useState(0)
 
   // Debounce: el borrador baja a la URL cuando el comercial deja de teclear.
   useEffect(() => {
@@ -46,15 +49,14 @@ export function DashboardPage() {
     api
       .searchCustomers(termino, control.signal)
       .then((r) => setDatos({ estado: 'listo', clientes: r.customers }))
-      .catch((e: unknown) => {
-        if (control.signal.aborted) return
-        // Solo la red es un error. Sin resultados es un 200 con lista vacia.
-        if (e instanceof NetworkError) setDatos({ estado: 'error' })
-        else setDatos({ estado: 'error' })
+      .catch(() => {
+        // Cualquier fallo (red o servidor) es la pantalla de error. Sin resultados NO
+        // pasa por aqui: es un 200 con lista vacia, que es otra pantalla (13.1).
+        if (!control.signal.aborted) setDatos({ estado: 'error' })
       })
 
     return () => control.abort()
-  }, [termino])
+  }, [termino, intento])
 
   return (
     <>
@@ -111,7 +113,7 @@ export function DashboardPage() {
         <Card>
           <div className={styles.banner}>
             <span>No hemos podido cargar los clientes.</span>
-            <Button variant="secondary" size="sm" onClick={() => setParams({ q: termino }, { replace: true })}>
+            <Button variant="secondary" size="sm" onClick={() => setIntento((i) => i + 1)}>
               Reintentar
             </Button>
           </div>
