@@ -46,8 +46,9 @@
 
 - ✅ Paquete `pricing`: motor de tramos graduated multi-métrica (función pura) + redondeo **half-up** con `bigint` + enum `Currency` con `minor_unit`
 - ✅ Tests del motor: **61 tests**, bordes 0/10/50/51, multi-métrica, métrica no facturada = 0, half-up con `.5` exacto (→ referencia §15). Validados por mutación: cuatro mutantes (half-up→hacia cero, off-by-one del corte, graduated→volume, métrica no facturada) mueren todos
-- ⏳ Validación fiscal: normalización (→ referencia §7.4) + registro `TaxIdValidator` con `ES_NIF` y `PassThroughValidator` (→ referencia §7.2-7.3) + chequeo de integridad dato↔registro en el arranque
-- ⏳ Tests fiscales: batería de válidos/inválidos por tipo (CIF la más amplia), normalización, fallbacks del registro
+- ✅ Validación fiscal: normalización (→ referencia §7.4) + registro `TaxIdValidator` con `ES_NIF` y `PassThroughValidator` (→ referencia §7.2-7.3). El seed ya pasa por el registro: normaliza y **el tipo lo dice el validador**, no el dato
+- ✅ Tests fiscales: **87 tests**, batería de válidos/inválidos por tipo (CIF la más amplia), normalización, fallbacks del registro. Validados por mutación: cinco mutantes (mod 10 exterior, validador permisivo, NIE sin sustituir la inicial, K/L/M como CIF, checksum sin reducir dígitos) mueren todos
+- ⏳ Chequeo de integridad dato↔registro **en el arranque**: el registro ya expone `hasValidator()`; el chequeo se cablea con la caché de países (→ §3.2), que es donde se recorre `countries` una sola vez
 
 ### 3.2 Backend — *Día 2*
 

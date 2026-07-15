@@ -9,6 +9,8 @@ import { existsSync } from 'node:fs'
 import { pathToFileURL } from 'node:url'
 import type { Metric } from '@saas/pricing'
 import { config } from '../config'
+import { normalizeFiscalId } from '../domain/tax-id/normalize'
+import { validatorFor } from '../domain/tax-id/registry'
 import { openDb, type Db } from './db'
 import { migrate } from './migrate'
 
@@ -158,9 +160,8 @@ const PLANS: readonly SeedPlan[] = [
 
 type SeedCustomer = {
   companyName: string
-  /** Forma ya normalizada: mayusculas, sin espacios ni guiones (referencia 7.4). */
+  /** Tal y como lo tecleria un humano: el seed lo normaliza, igual que el endpoint. */
   fiscalId: string
-  fiscalIdType: 'DNI' | 'NIE' | 'CIF' | 'unvalidated'
   email: string
   country: string
   planName: string
@@ -170,6 +171,9 @@ type SeedCustomer = {
  * (propuesto) Sin clientes, el evaluador entra al dashboard y ve el estado vacio: el
  * buscador, las cards y el historial -tres de las cuatro vistas obligatorias- solo se
  * pueden juzgar dando de alta datos a mano primero.
+ *
+ * El `fiscal_id_type` NO se declara aqui: lo dice el validador (ver seed()). Declararlo
+ * a mano permitiria escribir 'DNI' junto a un CIF y que nadie se enterase.
  *
  * Los CIF son SINTETICOS y con digito de control correcto (no son de empresas reales).
  * B12345674: pares 2+4+6 = 12; impares duplicados 1,3,5,7 -> 2,6,10,14 -> 2+6+1+5 = 14;
@@ -181,8 +185,8 @@ type SeedCustomer = {
 const CUSTOMERS: readonly SeedCustomer[] = [
   {
     companyName: 'Nébula Sistemas SL',
-    fiscalId: 'B12345674',
-    fiscalIdType: 'CIF',
+    // Sin normalizar a proposito: asi el seed ejercita el mismo camino que el alta.
+    fiscalId: 'b-1234 5674',
     email: 'compras@nebula.example',
     country: 'ES',
     planName: 'Plan A',
@@ -190,7 +194,6 @@ const CUSTOMERS: readonly SeedCustomer[] = [
   {
     companyName: 'Cárpatos Data SA',
     fiscalId: 'A87654323',
-    fiscalIdType: 'CIF',
     email: 'administracion@carpatos.example',
     country: 'ES',
     planName: 'Plan Escalado',
@@ -200,7 +203,6 @@ const CUSTOMERS: readonly SeedCustomer[] = [
     // UI desde el primer arranque.
     companyName: 'Thames Analytics Ltd',
     fiscalId: '12345678',
-    fiscalIdType: 'unvalidated',
     email: 'billing@thames.example',
     country: 'GB',
     planName: 'Plan B',
@@ -218,11 +220,14 @@ const CUSTOMERS: readonly SeedCustomer[] = [
  * servidor con paises sin tipo y revienta el chequeo de integridad con un error que no
  * explica la causa real.
  *
- * PENDIENTE (Fase 1 y 2): esta funcion debe pasar sus datos por los mismos validadores
- * que los endpoints -el registro de TaxIdValidator para cada fiscal_id, y el validador
- * de plantilla para cada plan-. Hoy no existen. Un seed que introduce datos que el
- * sistema rechazaria es una bomba de relojeria, y el motor confia en que los tramos son
- * coherentes sin comprobarlo (01-motor-tramos-y-simulaciones.md 4).
+ * El seed es un CAMINO DE ESCRITURA y pasa por el mismo validador fiscal que
+ * POST /customers: normaliza, resuelve el validador por el esquema del pais y le pregunta
+ * el tipo. Un seed que introduce datos que el sistema rechazaria es una bomba de
+ * relojeria, y ademas nadie tiene que recalcular a mano un digito de control nunca mas.
+ *
+ * PENDIENTE (Fase 2): falta pasar los planes por el validador de plantilla, que aun no
+ * existe. Importa porque el motor confia en que los tramos son coherentes sin
+ * comprobarlo (01-motor-tramos-y-simulaciones.md 4).
  */
 export function seed(db: Db): void {
   const ahora = new Date().toISOString()
@@ -278,7 +283,26 @@ export function seed(db: Db): void {
           `Seed incoherente: el cliente "${c.companyName}" apunta al plan "${c.planName}", que no esta en PLANS.`,
         )
       }
-      insertCustomer.run(c.companyName, c.fiscalId, c.fiscalIdType, c.email, c.country, planId, ahora)
+
+      const pais = COUNTRIES.find((p) => p.code === c.country)
+      if (pais === undefined) {
+        throw new Error(
+          `Seed incoherente: el cliente "${c.companyName}" es del pais "${c.country}", que no esta en COUNTRIES.`,
+        )
+      }
+
+      // El mismo camino que POST /customers: normalizar -> resolver validador por el
+      // esquema del pais -> validar. El tipo lo dice el validador; no se declara.
+      const fiscalId = normalizeFiscalId(c.fiscalId)
+      const { valid, type } = validatorFor(pais.scheme).validate(fiscalId)
+      if (!valid) {
+        throw new Error(
+          `Seed incoherente: el fiscal_id "${fiscalId}" de "${c.companyName}" no pasa el ` +
+            `validador de ${c.country}. Un seed no puede sembrar lo que el alta rechazaria.`,
+        )
+      }
+
+      insertCustomer.run(c.companyName, fiscalId, type, c.email, c.country, planId, ahora)
     }
   })()
 }

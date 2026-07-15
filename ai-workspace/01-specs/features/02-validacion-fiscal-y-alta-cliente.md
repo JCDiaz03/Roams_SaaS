@@ -105,9 +105,13 @@ Formato: `^[XYZ]\d{7}[A-Z]$`. Se sustituye la inicial (`X→0`, `Y→1`, `Z→2`
 
 ### 4.3 CIF — persona jurídica (el caso mayoritario)
 
-Formato: `^[ABCDEFGHJKLMNPQRSUVW]\d{7}[0-9A-J]$`.
+Formato: `^[ABCDEFGHJNPQRSUVW]\d{7}[0-9A-J]$`.
 
-La letra inicial es el **tipo de organización**. El conjunto excluye `I`, `O`, `T`, `Ñ` y `X`/`Y`/`Z` a propósito: `O` e `I` se confunden con `0` y `1`, y `X/Y/Z` son NIE.
+La letra inicial es el **tipo de organización**. El conjunto excluye a propósito:
+
+- `I`, `O` y `T`: `I` y `O` se confunden con `1` y `0`.
+- `X`, `Y`, `Z`: son NIE.
+- **`K`, `L` y `M`: no son CIF.** Son NIF de **persona física** del formato antiguo, y su control es una letra `mod 23` como el DNI, **no** el checksum ponderado. Bastantes implementaciones las meten en el conjunto del CIF, y eso significa calcularles el checksum equivocado y dar por bueno lo que no lo es. → §4.4.
 
 **Checksum ponderado** sobre los 7 dígitos centrales (posiciones 1..7):
 
@@ -135,14 +139,18 @@ C = 26  ->  control = (10 - 6) mod 10 = 4  ->  "B12345674" ✓
 | Inicial | Control |
 |---|---|
 | `A`, `B`, `E`, `H` | **Número** obligatorio |
-| `K`, `P`, `Q`, `R`, `S`, `N`, `W` | **Letra** obligatoria |
-| `C`, `D`, `F`, `G`, `J`, `L`, `M`, `U`, `V` | **Cualquiera de los dos** |
+| `P`, `Q`, `R`, `S`, `N`, `W` | **Letra** obligatoria |
+| `C`, `D`, `F`, `G`, `J`, `U`, `V` | **Cualquiera de los dos** |
 
-Un validador que acepte siempre ambos es **más permisivo de lo correcto** y deja pasar `A1234567J` (una S.A. con letra de control, que no existe). Se implementa la tabla: es un `switch` de tres ramas sobre el tipo de organización, no sobre el país — no vulnera ninguna regla del §5 de las directrices.
+Un validador que acepte siempre ambos es **más permisivo de lo correcto** y deja pasar `A1234567D` (una S.A. con la letra de control correcta, pero que no existe: una S.A. lleva número). Se implementa la tabla: es un `switch` de tres ramas sobre el tipo de organización, no sobre el país — no vulnera ninguna regla del §5 de las directrices.
 
 ### 4.4 Recorte consciente: los NIF especiales `K`, `L`, `M`
 
-Existen NIF de persona física que empiezan por `K` (menores), `L` (españoles no residentes) y `M` (extranjeros sin NIE), con control `mod 23` como el DNI. **No se implementan.** Motivo: la herramienta es **B2B** —se dan de alta empresas, y el CIF es el caso mayoritario (→ referencia §7.7)—; un NIF `K/L/M` no es cliente corporativo de este producto. Consecuencia asumida: un identificador `L1234567X` se rechaza como inválido, no como "no soportado". Si apareciera el caso, es una rama más en el mismo validador. → `../../03-proceso/recortes-conscientes.md`.
+Existen NIF de persona física que empiezan por `K` (menores), `L` (españoles no residentes) y `M` (extranjeros sin NIE), con control `mod 23` como el DNI. **No se implementan**: la herramienta es **B2B** —se dan de alta empresas, y el CIF es el caso mayoritario (→ referencia §7.7)—; un NIF `K/L/M` no es cliente corporativo de este producto.
+
+**El recorte obliga a sacarlos del conjunto de iniciales del CIF (§4.3), y esa es la parte que importa.** Bastantes implementaciones los incluyen ahí, y entonces a un `K1234567…` se le aplica el **checksum ponderado del CIF** cuando su control real sale de un `mod 23`. Eso no es "no soportarlo": es dar por bueno lo que no lo es, y rechazar lo que sí. Fuera del conjunto, los tres se rechazan enteros con cualquier control, que es lo que "no soportado" tiene que significar aquí.
+
+Consecuencia asumida: un identificador `L1234567L` se rechaza como inválido, no con un mensaje que distinga "no soportado". Si apareciera el caso, es una rama más en el mismo validador. → `../../03-proceso/recortes-conscientes.md`.
 
 ### 4.5 Regex: ancladas y lineales
 
@@ -195,8 +203,9 @@ Cubren §15 de la referencia. Se escriben **antes** que el endpoint (→ `roams-
 
 **CIF — la batería más amplia** (caso mayoritario B2B):
 - Válidos con control **numérico**: `B12345674`, `A87654323`.
-- Válido con control **letra**: `P1234567E`.
-- **Tipo de organización vs. tipo de control**: `A1234567J` (S.A. con letra) → **inválido**. `P12345674` (asociación con número) → **inválido**. Son los dos casos que un validador permisivo deja pasar.
+- Válido con control **letra**: `P1234567D` (mismos dígitos que `B12345674`: `C = 26` → control `4` → `"JABCDEFGHI"[4] = 'D'`).
+- **Tipo de organización vs. tipo de control**, y los dos casos tienen que ser afilados —el checksum **correcto**, y lo único que falla es el tipo de control—: `A1234567D` (S.A. con la letra correcta) → **inválido**, porque una S.A. lleva número. `P12345674` (corporación local con el número correcto) → **inválido**, porque lleva letra. Son los dos que un validador permisivo deja pasar; con un control equivocado no probarían nada, porque los rechazaría el checksum.
+- **`K`, `L`, `M` con cualquier control** (los 20 posibles) → **inválidos**: no son CIF (§4.4). Es el test que impide que vuelvan al conjunto de iniciales.
 - Control equivocado: `B12345675` → inválido.
 - Inicial prohibida: `I12345674`, `O12345674`, `T12345674` → inválidos.
 - Longitud: 6 y 8 dígitos → inválidos.
