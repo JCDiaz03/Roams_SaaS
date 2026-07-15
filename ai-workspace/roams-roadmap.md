@@ -90,6 +90,7 @@
 - ✅ UI admin: plantilla (bloques por métrica, cortes como "hasta cuántos", último tramo fijo como "En adelante", **vista previa en vivo con el mismo `quote()`**), listado con archivado y confirmación en lenguaje llano, aviso de versionado sin jerga
 - ✅ El seed cierra su círculo: los planes pasan por el **mismo validador de plantilla** que `POST /plans`
 - ✅ Verificado conduciendo la app: entrar como `ADMIN` → Administración → editar Ágora → plantilla incoherente rechazada **con el error en su fila** → arreglar y guardar → **v3 activa, v1 y v2 archivadas**, la simulación guardada sigue en 169,40 € con sus tramos de 10 €/8 €, y Nébula sigue apuntando a la v2
+- ✅ Registro del proceso en `/ai-workspace/03-proceso`: **9 sesiones** (una por commit, con el prompt literal y qué se rechazó) y **3 auditorías** de los defectos silenciosos. 🚫 **Incumple la regla 2**: se transcribió al final, no por sesión. El contenido es real y trazable a commits, y la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) lo declara en vez de disimularlo
 
 ## 5. Entrega — *fin del día 5* ⏳
 
@@ -112,7 +113,7 @@
 
 | Riesgo | Mitigación |
 |---|---|
-| La Fase 2 se come el día 5 y el core llega flojo | Regla 1: gate de Fase 1 obligatorio antes de abrirla. Si no hay tiempo, la Fase 2 entera pasa a §6 con su diseño documentado |
-| `/ai-workspace` queda vacío hasta el final | Regla 2: se alimenta por sesión, no al final. Es el 60 % de la nota |
+| La Fase 2 se come el día 5 y el core llega flojo | Regla 1: gate de Fase 1 obligatorio antes de abrirla. Si no hay tiempo, la Fase 2 entera pasa a §6 con su diseño documentado. **Funcionó**: el gate se ejecutó antes de abrir la Fase 2, y en verde |
+| `/ai-workspace` queda vacío hasta el final | Regla 2: se alimenta por sesión, no al final. Es el 60 % de la nota. **No se cumplió**: las specs y los ADR sí se escribieron antes de programar (que es el grueso), pero `sesiones/` y `auditorias/` se transcribieron al final. Se declara en la nota de procedencia; `git log` lo enseñaría de todas formas |
 | El evaluador prueba el caso literal del enunciado y no cuadra | Seed del Plan A literal (10/8/5, cortes 10/50) + prueba manual del gate: 15 usuarios = 140 € + IVA |
 | README con fricción | Verificación en máquina limpia como tarea explícita (dos veces: gate y entrega) |

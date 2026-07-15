@@ -18,6 +18,8 @@ Este directorio es el registro del proceso de ingeniería: qué se especificó a
 2. `roams-roadmap.md` — en qué punto está y qué queda.
 3. `02-arquitectura/directrices-ia.md` — las reglas bajo las que la IA generó cada línea.
 
+**Si solo hay tiempo para tres ficheros**, que sean las [auditorías](./03-proceso/auditorias/): los tres defectos **silenciosos** que el código generado traía —los que compilan, pasan los tests que existen y están mal—. Ahí es donde el control de calidad demuestra si sirve para algo. El [índice de sesiones](./03-proceso/sesiones/00-como-se-registro-esto.md) las enlaza y explica cómo se registró todo.
+
 ## Reglas de mantenimiento
 
 - Cada documento declara su capa en la cabecera y respeta **una sola casa por dato**: lo de otra capa se resume en una línea y se enlaza, no se duplica.
