@@ -227,7 +227,20 @@ España tiene dos filas: al arrancar debe resolverse **21 %**, nunca 18 %. El ca
 
 ### 3.2 `plans` + `plan_tiers`
 
-**Plan A — literal del enunciado.** Es el caso que el evaluador va a probar: 15 usuarios → 140 € + IVA.
+Nombres y tramos tomados del **prototipo de Claude Design** (`SaaS-O-Matic.dc.html`), que es la fuente del producto. El enunciado no nombra los planes: solo fija los tramos 10/8/5, que Ágora v2 respeta.
+
+Todos: `currency = 'EUR'`, `pricing_model = 'graduated'`.
+
+**Plan Ágora v1 `(active = 0)`** — la versión vieja, archivada:
+
+| `metric` | `sort_order` | `up_to` | `unit_price_minor` |
+|---|---|---|---|
+| `users` | 0 | 10 | `1200` |
+| `users` | 1 | `NULL` | `700` |
+
+**No es adorno.** `Fjord Systems AS` sigue apuntando aquí, y es lo único que hace visible **en pantalla** que un precio publicado es inmutable (→ referencia §5.5): su ficha dice "Mantiene su tarifa contratada" y simula con 1200/700, no con los tramos de hoy. Sin esta fila, el versionado solo existe en un test.
+
+**Plan Ágora v2 `(active = 1)`** — los tramos **literales del enunciado**. Es el caso que el evaluador va a probar: 15 usuarios → 140 € + IVA.
 
 | `metric` | `sort_order` | `up_to` | `unit_price_minor` |
 |---|---|---|---|
@@ -235,7 +248,7 @@ España tiene dos filas: al arrancar debe resolverse **21 %**, nunca 18 %. El ca
 | `users` | 1 | 50 | `800` |
 | `users` | 2 | `NULL` | `500` |
 
-**Plan B** — tramos por almacenamiento (→ referencia §5.1):
+**Plan Bitácora v1** — tramos por almacenamiento (→ referencia §5.1):
 
 | `metric` | `sort_order` | `up_to` | `unit_price_minor` |
 |---|---|---|---|
@@ -244,35 +257,38 @@ España tiene dos filas: al arrancar debe resolverse **21 %**, nunca 18 %. El ca
 | `storage_gb` | 2 | 2000 | `400` |
 | `storage_gb` | 3 | `NULL` | `200` |
 
-Ambos: `version = 1`, `active = 1`, `currency = 'EUR'`, `pricing_model = 'graduated'`.
-
-**Plan C — Escalado `(propuesto)`**: un plan multi-métrica (`users` + `api_calls`) que ningún requisito exige. Justificación: el §5.2 (un plan es un conjunto de métricas, cada una con su tabla) es la abstracción central del diseño, y **sin un plan multi-métrica en el seed solo se demuestra en un test unitario, nunca en pantalla**. Con él, el simulador enseña dos bloques sumando y el callout "esta métrica no afecta al coste" aparece en el Plan A por contraste. Coste: seis filas más en el seed, cero código.
+**Plan Cúspide v1** — el multi-métrica. El §5.2 (un plan es un conjunto de métricas, cada una con su tabla) es la abstracción central del diseño, y **sin un plan así en el seed solo se demuestra en un test unitario, nunca en pantalla**. Con él, el simulador enseña tres bloques sumando, y por contraste el callout "esta métrica no afecta al coste" aparece en Ágora y en Bitácora.
 
 | `metric` | `sort_order` | `up_to` | `unit_price_minor` |
 |---|---|---|---|
-| `users` | 0 | 25 | `900` |
+| `users` | 0 | 20 | `900` |
 | `users` | 1 | `NULL` | `600` |
-| `api_calls` | 0 | 100000 | `0` |
-| `api_calls` | 1 | 1000000 | `2` |
-| `api_calls` | 2 | `NULL` | `1` |
+| `storage_gb` | 0 | 500 | `500` |
+| `storage_gb` | 1 | `NULL` | `300` |
+| `api_calls` | 0 | 50000 | `2` |
+| `api_calls` | 1 | `NULL` | `1` |
 
-El primer tramo de `api_calls` a `0` es intencionado: modela un "incluido hasta 100.000" sin ningún concepto nuevo — un precio de cero es un precio. Es la prueba de que `CHECK (unit_price_minor >= 0)` admite el 0 por diseño y no por descuido.
+### 3.3 `customers` de demo
 
-### 3.3 `customers` de demo `(propuesto)`
-
-Sin clientes, el evaluador entra al dashboard y ve el estado vacío: el buscador, las cards y el historial —tres de las cuatro vistas obligatorias del enunciado— solo se pueden juzgar dando de alta datos a mano primero. Tres clientes de demo lo arreglan por el coste de tres filas.
+Sin clientes, el evaluador entra al dashboard y ve el estado vacío: el buscador, las cards y el historial —tres de las cuatro vistas obligatorias del enunciado— solo se pueden juzgar dando de alta datos a mano primero. Cuatro filas lo arreglan.
 
 | `company_name` | `fiscal_id` | `fiscal_id_type` | `country` | `plan` |
 |---|---|---|---|---|
-| Nébula Sistemas SL | `B12345674` | `CIF` | `ES` | Plan A |
-| Cárpatos Data SA | `A87654323` | `CIF` | `ES` | Plan C |
-| Thames Analytics Ltd | `12345678` | `unvalidated` | `GB` | Plan B |
+| Nébula Cloud S.L. | `B12345674` | `CIF` | `ES` | Ágora **v2** |
+| Meridian Data Ltd. | `GB428291` | `unvalidated` | `GB` | Cúspide v1 |
+| Talleres Duero | `12345678Z` | `DNI` | `ES` | Bitácora v1 |
+| Fjord Systems AS | `NO993110` | `unvalidated` | `DE` | Ágora **v1 (archivada)** |
 
+Cada uno cubre un caso que si no habría que provocar a mano:
+
+- **`fiscal_id_type` no se declara en el seed: lo dice el validador.** Declararlo permitiría escribir `'DNI'` junto a un CIF y que nadie se enterase. `Nébula` se siembra además con el identificador **sin normalizar** (`"b-1234 5674"`) para que el seed recorra el mismo camino que el alta; se persiste `B12345674`.
 - Los CIF son **sintéticos y con dígito de control correcto** (no son de empresas reales). `B12345674`: pares 2+4+6=12; impares duplicados 1,3,5,7 → 2,6,10,14 → 2+6+1+5=14; total 26 → control `(10 − 6) mod 10 = 4`. ✓
-- `Thames Analytics Ltd` existe para que `unvalidated` y una divisa de presentación ≠ EUR aparezcan en la UI desde el primer arranque.
+- **`Talleres Duero` lleva un DNI** entre tantos CIF: el validador español despacha por formato (→ §7.7), y así se ve.
+- **`Meridian` y `Fjord` son `unvalidated`**: pasan por `PassThroughValidator`. `Meridian` aporta además una divisa de presentación ≠ EUR (GBP) desde el primer arranque.
+- **`Fjord` apunta a la versión archivada** (→ §3.2).
 - **El seed no crea simulaciones.** El estado vacío del historial es una vista que hay que poder ver (→ `diseño-frontend.md`, ventana 3), y crear la primera simulación es justo el flujo que el evaluador va a recorrer.
 
-**Guarda del seed (test)**: cada `fiscal_id` sembrado se valida con el **mismo registro de validadores** que usa `POST /customers`. Un seed que introduce datos que el sistema rechazaría es una bomba de relojería; el test lo hace imposible sin recalcular a mano ningún dígito de control.
+**El seed es un camino de escritura y pasa por el mismo validador que `POST /customers`**: normaliza, resuelve el validador por el esquema del país y le pregunta el tipo. Un seed que introduce datos que el sistema rechazaría es una bomba de relojería, y así nadie tiene que recalcular a mano un dígito de control nunca más.
 
 ---
 

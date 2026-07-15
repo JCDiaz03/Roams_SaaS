@@ -151,12 +151,19 @@ enum-like Currency {
 
 Sin `minor_unit`, el problema de los decimales queda escondido, no resuelto: el desplegable permite elegir JPY y ahí `unit_price_minor` deja de ser "×100". Referencia ISO 4217: la mayoría = 2; JPY, KRW = 0; KWD, BHD, OMR, JOD, TND = 3. Cuesta un campo y cierra dos roturas futuras: el redondeo (un yen no tiene céntimos) y la pasarela (Stripe espera JPY en yenes enteros).
 
-Los símbolos y decimales al pintar se derivan con `Intl.NumberFormat` a partir del código ISO — cero tablas de símbolos que mantener:
+Los símbolos y decimales al pintar se derivan con `Intl.NumberFormat` a partir del código ISO — cero tablas de símbolos que mantener. **`currencyDisplay: 'narrowSymbol'` no es opcional**: con el `'symbol'` por defecto, `es-ES` mezcla símbolos y códigos según la divisa (`"140,00 €"` pero `"140 JPY"` y `"140,00 GBP"`), y el precio deja de ser el protagonista tipográfico que pide el diseño:
 
 ```js
-new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'JPY' }).format(140) // "140 ¥"
-new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR' }).format(140) // "140,00 €"
+const f = (c) => new Intl.NumberFormat('es-ES',
+  { style: 'currency', currency: c, currencyDisplay: 'narrowSymbol' })
+
+f('JPY').format(140)   // "140 ¥"      (sin decimales: minor_unit 0)
+f('EUR').format(140)   // "140,00 €"
+f('GBP').format(140)   // "140,00 £"
+f('KWD').format(140)   // "140,000 KWD"  (tres decimales; sin símbolo narrow definido)
 ```
+
+Contrapartida asumida: USD pasa de `"US$"` a `"$"`, ambiguo con otros dólares. Se acepta porque el importe convertido va siempre etiquetado como referencia y con su código ISO en el selector (§4.1).
 
 **UX**: el enum puede tener 160 divisas; el desplegable muestra las habituales (EUR/USD/GBP) arriba. Cosmética, no arquitectura.
 

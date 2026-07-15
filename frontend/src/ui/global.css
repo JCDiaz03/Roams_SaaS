@@ -1,1 +1,106 @@
-// Reset y estilos base.
+/* Reset y estilos base. Diseno: diseño-frontend.md 2 */
+
+/* Poppins AUTO-ALOJADA, no desde fonts.googleapis.com como en el prototipo. Dos motivos:
+ * la CSP estricta sin unsafe-inline (referencia 14.2) no tendria que abrir un host de
+ * terceros, y una herramienta interna no deberia depender de que Google responda para
+ * pintarse bien. Los cuatro pesos son los que usa el diseno.
+ *
+ * Subset `latin-` explicito: los ficheros sin subset arrastran tambien devanagari y
+ * latin-ext, que en un dashboard en castellano no pintan nada (512 KB de fuentes -> 68).
+ * El `latin` cubre castellano, tildes y la ñ. */
+@import '@fontsource/poppins/latin-400.css';
+@import '@fontsource/poppins/latin-500.css';
+@import '@fontsource/poppins/latin-600.css';
+@import '@fontsource/poppins/latin-700.css';
+
+@import './tokens.css';
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+
+  /* El tema se aplica con data-theme en la raiz (lib/theme.ts). La transicion hace que
+   * el conmutador sol/luna no sea un parpadeo. */
+  background: var(--color-bg);
+  color: var(--color-ink);
+  transition:
+    background 0.25s,
+    color 0.25s;
+}
+
+a {
+  color: var(--color-primary);
+  text-decoration: none;
+}
+
+a:hover {
+  color: var(--color-primary-hover);
+}
+
+input,
+button,
+select,
+textarea {
+  font-family: inherit;
+}
+
+/* Foco visible SIEMPRE. El prototipo no lo define porque es un mockup; aqui es requisito
+ * de accesibilidad y no se negocia: quien navega con teclado tiene que saber donde esta. */
+:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes toastIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Quien haya pedido menos movimiento no ve ninguno. Las animaciones de aqui son
+ * decorativas: ninguna comunica informacion que se pierda al apagarla. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+::selection {
+  background: var(--color-primary-soft);
+}

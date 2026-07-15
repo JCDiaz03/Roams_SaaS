@@ -12,6 +12,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@fontsource/poppins": "^5.2.7",
     "@saas/pricing": "*",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

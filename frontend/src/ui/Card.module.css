@@ -1,0 +1,29 @@
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+
+/* En oscuro --shadow-card es `none` y el borde es quien eleva. Por eso el borde va
+ * siempre y no solo en oscuro: es un token, no una rama. */
+
+.pad {
+  padding: 20px;
+}
+
+.interactive {
+  cursor: pointer;
+  text-align: left;
+  width: 100%;
+  font: inherit;
+  color: inherit;
+  transition:
+    border-color 0.15s,
+    transform 0.15s;
+}
+
+.interactive:hover {
+  border-color: var(--color-primary);
+  transform: translateY(-1px);
+}

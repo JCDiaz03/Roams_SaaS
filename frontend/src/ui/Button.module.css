@@ -1,0 +1,99 @@
+.base {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background 0.15s,
+    border-color 0.15s,
+    color 0.15s;
+}
+
+.base:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+/* Variantes */
+.primary {
+  background: var(--color-primary);
+  /* NO #fff: en oscuro el fucsia sube de luminosidad y el blanco encima se queda en
+   * 3,44. El token resuelve el par en cada tema (tokens.css). */
+  color: var(--color-on-primary);
+}
+.primary:hover:not(:disabled) {
+  background: var(--color-primary-hover);
+}
+
+.secondary {
+  background: var(--color-surface-2);
+  border-color: var(--color-border);
+  color: var(--color-ink);
+}
+.secondary:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+}
+
+.ghost {
+  background: none;
+  color: var(--color-ink);
+}
+.ghost:hover:not(:disabled) {
+  background: var(--color-primary-soft);
+}
+
+.danger {
+  background: none;
+  color: var(--color-danger);
+}
+.danger:hover:not(:disabled) {
+  background: var(--color-danger-soft);
+}
+
+/* Tamanos */
+.sm {
+  height: 34px;
+  padding: 0 14px;
+  font-size: 12.5px;
+}
+.md {
+  height: 38px;
+  padding: 0 16px;
+  font-size: 13.5px;
+}
+.lg {
+  height: 46px;
+  padding: 0 22px;
+  font-size: 15px;
+}
+
+.block {
+  width: 100%;
+}
+
+/* El contenido se atenua mientras carga en vez de desaparecer: sustituirlo por un
+ * spinner cambiaria el ancho del boton y movería el layout justo al pulsarlo. */
+.loading .label {
+  opacity: 0.6;
+}
+
+.spinner {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  border-top-color: transparent;
+  animation: spin 0.6s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}

@@ -61,6 +61,7 @@
 ### 3.3 Frontend core — *Día 3*
 
 - ✅ Configuración Vite con **proxy de dev hacia el backend** (mismo origen; nada de abrir CORS → referencia §14.1)
+- ✅ **Sistema de diseño importado** del prototipo de Claude Design (`SaaS-O-Matic.dc.html` → `01-specs/diseño-frontend.md` §6.3): `tokens.css` de ambos temas, primitivas (`Button`, `Card`, `Chip`, `Callout`, `Skeleton`, `Toast`, `ThemeToggle`, iconos), `lib/theme.ts` y `lib/currency-format.ts`. Del prototipo se porta el lenguaje visual; **su lógica no** (reimplementa motor, redondeo y validador fiscal → directrices §5). Poppins auto-alojada, subset latino. **Contraste AA como test que falla el CI** (`ui/tokens.test.ts`, 32 pares): 8 pares del prototipo fallaban AA y se corrigieron
 - ⏳ Login mock + sesión `{nombre, rol}` + `hasRole()` (→ referencia §8)
 - ⏳ Buscador con debounce (vacío ≠ error)
 - ⏳ Cards responsive: detalle de cliente + historial de simulaciones

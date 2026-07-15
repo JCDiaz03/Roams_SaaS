@@ -1,0 +1,46 @@
+.callout {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 15px;
+  border-radius: var(--radius-panel);
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+
+.icon {
+  flex: none;
+  margin-top: 1px;
+}
+
+.body {
+  min-width: 0;
+}
+
+.title {
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+.info {
+  background: var(--color-primary-soft);
+  color: var(--color-ink);
+}
+.info .icon {
+  color: var(--color-primary);
+}
+
+.warning {
+  background: var(--color-warning-soft);
+  color: var(--color-warning);
+}
+
+.danger {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.success {
+  background: var(--color-success-soft);
+  color: var(--color-success);
+}

@@ -1,1 +1,118 @@
-// Variables CSS semanticas de ambos temas. Diseno: diseño-frontend.md 2.2, 2.3
+/* Variables CSS semanticas de ambos temas. Diseno: diseño-frontend.md 2.2, 2.3
+ *
+ * Trasladadas del prototipo de Claude Design (SaaS-O-Matic.dc.html), que es la fuente
+ * del lenguaje visual. Los colores van VERBATIM: no se "mejoran" al portar.
+ *
+ * El tema oscuro es un INTERCAMBIO DE VARIABLES, nunca estilos duplicados: ningun
+ * componente puede llevar un @media (prefers-color-scheme) ni un `if (dark)`. Si un
+ * componente necesita saber el tema para pintarse, falta un token aqui.
+ *
+ * Los radios SI son nuevos: el prototipo los inlinea (999px, 18px, 12px...) porque es un
+ * mockup. Aqui se nombran, que es lo que pide el brief (2.2: "definir TODO como
+ * variables CSS semanticas").
+ */
+
+:root,
+[data-theme='light'] {
+  --color-primary: #e6007e;
+  --color-primary-hover: #c70069;
+  --color-primary-soft: #fdeaf4;
+
+  /* Ver la nota de ACCESIBILIDAD al final del fichero: estos dos existen porque el
+   * magenta de marca sobre blanco da 4,50 justo, y sobre cualquier tinte cae por debajo. */
+  --color-primary-strong: #d40074; /* texto de marca sobre fondos suaves */
+  --color-on-primary: #ffffff; /* texto sobre un relleno primario */
+
+  --color-ink: #1b1b3a;
+  --color-text-2: #6b6b86;
+  --color-text-3: #737383; /* diseno #9a9ab0 -> 2,75 sobre blanco, 2,68 sobre surface-2 */
+
+  --color-bg: #f7f7fa;
+  --color-surface: #ffffff;
+  --color-surface-2: #fbfbfd;
+
+  --color-border: #e5e7eb;
+  --color-border-2: #eef0f3;
+
+  --color-success: #117d57; /* diseno #12885f -> 3,96 sobre success-soft */
+  --color-success-soft: #e6f5ee;
+  --color-warning: #9b6209; /* diseno #a5680a -> 4,10 sobre warning-soft */
+  --color-warning-soft: #fdf1de;
+  --color-danger: #c82e4c; /* diseno #d23050 -> 4,21 sobre danger-soft */
+  --color-danger-soft: #fce9ec;
+
+  --shadow-card: 0 1px 2px rgba(27, 27, 58, 0.04), 0 6px 20px rgba(27, 27, 58, 0.06);
+  --shadow-pop: 0 8px 30px rgba(27, 27, 58, 0.14);
+
+  /* Fondo de la ranura del slider y de los esqueletos. */
+  --track: #ececf2;
+}
+
+[data-theme='dark'] {
+  --color-primary: #ff2e9a;
+  --color-primary-hover: #ff56ac;
+  --color-primary-soft: #33132a;
+
+  /* Aqui el rosa sobre el tinte oscuro ya da 4,82: no hace falta variante. */
+  --color-primary-strong: #ff2e9a;
+  /* Y aqui esta la diferencia con el tema claro: el fucsia oscuro es MAS luminoso a
+   * proposito (brief 2.3), asi que el blanco encima se queda en 3,44. El texto oscuro da
+   * 5,53 y el rosa sigue vivo. Apagar el rosa para salvar el blanco seria arreglar el
+   * problema por el lado equivocado. */
+  --color-on-primary: #0f0f1c;
+
+  --color-ink: #f3f3f8;
+  --color-text-2: #a3a3bd;
+  --color-text-3: #8787a1; /* diseno #727291 -> 3,68 sobre surface, 3,42 sobre surface-2 */
+
+  --color-bg: #0f0f1c;
+  --color-surface: #1a1a2e;
+  --color-surface-2: #20203a;
+
+  --color-border: #2c2c46;
+  --color-border-2: #26263e;
+
+  --color-success: #3ecf8e;
+  --color-success-soft: #122a22;
+  --color-warning: #e0a63a;
+  --color-warning-soft: #2c2413;
+  --color-danger: #ff6b85;
+  --color-danger-soft: #2e1620;
+
+  /* En oscuro los BORDES sustituyen a las sombras como mecanismo de elevacion: una
+   * sombra sobre fondo oscuro no se ve. Por eso --shadow-card se apaga en vez de
+   * suavizarse. */
+  --shadow-card: none;
+  --shadow-pop: 0 10px 34px rgba(0, 0, 0, 0.5);
+
+  --track: #2c2c46;
+}
+
+/* Radios. Nombrados por USO, no por tamano: quien escribe un componente elige "esto es
+ * una tarjeta", no "esto lleva 18px", y el dia que la marca cambie el radio se toca aqui. */
+:root {
+  --radius-pill: 999px; /* botones, chips, selector de divisa */
+  --radius-card: 18px; /* tarjetas y paneles grandes */
+  --radius-panel: 16px; /* bloques dentro de una tarjeta */
+  --radius-pop: 14px; /* menus y popovers */
+  --radius-field: 12px; /* inputs y selects */
+  --radius-sm: 9px; /* iconos, cuadros pequenos */
+
+  --font-sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
+
+/* ACCESIBILIDAD — por que estos colores no son exactamente los del prototipo
+ *
+ * El brief pone el contraste AA en los dos temas como REQUISITO DURO ("incluidos los
+ * estados deshabilitados y los badges", 2.3), y a la vez dice que los valores son "una
+ * aproximacion descriptiva... punto de partida ajustable manteniendo la personalidad".
+ * Al medirlos, siete pares fallaban AA. Los ajustes son de un 5-8 % hacia el negro: a
+ * ojo no se distinguen, y ahora pasan.
+ *
+ * La causa no es descuido del diseno, es estructural: el magenta de marca #E6007E sobre
+ * blanco da 4,50 EXACTO. Sobre cualquier fondo teñido cae por debajo, y por eso los
+ * chips de marca necesitan --color-primary-strong en vez de --color-primary.
+ *
+ * Esto NO es una promesa: ui/tokens.test.ts parsea este fichero y falla el CI si algun
+ * par baja de 4,5. Si anades un token de color, anade su par al test.
+ */

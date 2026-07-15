@@ -103,17 +103,41 @@ type SeedTier = {
 
 type SeedPlan = {
   name: string
+  version: number
+  active: boolean
   description: string
   currency: string
   /** El sort_order NO se declara: se deriva del orden de este array, por metrica. */
   tiers: readonly SeedTier[]
 }
 
+/**
+ * Nombres y tramos tomados del prototipo de Claude Design (SaaS-O-Matic.dc.html), que es
+ * la fuente del producto. El enunciado no nombra los planes: solo fija los tramos
+ * 10/8/5, que Agora v2 respeta.
+ */
 const PLANS: readonly SeedPlan[] = [
   {
-    // Literal del enunciado. Es el caso que el evaluador va a probar:
+    // La version vieja, ARCHIVADA. No es adorno: Fjord Systems sigue apuntando aqui, y
+    // es lo unico que hace visible en pantalla que un precio publicado es inmutable
+    // (referencia 5.5) y que "los clientes actuales mantienen su tarifa" es cierto y no
+    // una frase de un documento.
+    name: 'Plan Ágora',
+    version: 1,
+    active: false,
+    description: 'Tarifa por usuario activo. Versión anterior, ya no se ofrece a clientes nuevos.',
+    currency: 'EUR',
+    tiers: [
+      { metric: 'users', upTo: 10, unitPriceMinor: 1200 },
+      { metric: 'users', upTo: null, unitPriceMinor: 700 },
+    ],
+  },
+  {
+    // Los tramos LITERALES del enunciado. Es el caso que el evaluador va a probar:
     // 15 usuarios -> 10x1000 + 5x800 = 14000 minor = 140 EUR, mas 21 % = 169,40 EUR.
-    name: 'Plan A',
+    name: 'Plan Ágora',
+    version: 2,
+    active: true,
     description: 'Tarifa por usuario activo. El precio por usuario baja según crece el equipo.',
     currency: 'EUR',
     tiers: [
@@ -123,7 +147,9 @@ const PLANS: readonly SeedPlan[] = [
     ],
   },
   {
-    name: 'Plan B',
+    name: 'Plan Bitácora',
+    version: 1,
+    active: true,
     description: 'Tarifa por almacenamiento contratado. No cobra por usuarios ni por llamadas a la API.',
     currency: 'EUR',
     tiers: [
@@ -134,21 +160,22 @@ const PLANS: readonly SeedPlan[] = [
     ],
   },
   {
-    // (propuesto) Plan multi-metrica que ningun requisito exige. Justificacion: el 5.2
-    // (un plan es un conjunto de metricas, cada una con su tabla) es la abstraccion
-    // central del diseno, y sin un plan multi-metrica en el seed solo se demuestra en un
-    // test unitario, nunca en pantalla. Coste: seis filas mas, cero codigo.
-    name: 'Plan Escalado',
-    description: 'Combina usuarios y llamadas a la API. Incluye las primeras 100.000 llamadas sin coste.',
+    // El multi-metrica. El 5.2 (un plan es un conjunto de metricas, cada una con su
+    // tabla) es la abstraccion central del diseno, y sin un plan asi en el seed solo se
+    // demuestra en un test unitario, nunca en pantalla: aqui el simulador ensena tres
+    // bloques sumando, y por contraste el callout "esta metrica no afecta al coste"
+    // aparece en Agora y en Bitacora.
+    name: 'Plan Cúspide',
+    version: 1,
+    active: true,
+    description: 'Combina usuarios, almacenamiento y llamadas a la API en una sola tarifa.',
     currency: 'EUR',
     tiers: [
-      { metric: 'users', upTo: 25, unitPriceMinor: 900 },
+      { metric: 'users', upTo: 20, unitPriceMinor: 900 },
       { metric: 'users', upTo: null, unitPriceMinor: 600 },
-      // El primer tramo a 0 es intencionado: modela un "incluido hasta 100.000" sin
-      // ningun concepto nuevo. Un precio de cero ES un precio, y es la prueba de que
-      // CHECK (unit_price_minor >= 0) admite el 0 por diseno y no por descuido.
-      { metric: 'api_calls', upTo: 100_000, unitPriceMinor: 0 },
-      { metric: 'api_calls', upTo: 1_000_000, unitPriceMinor: 2 },
+      { metric: 'storage_gb', upTo: 500, unitPriceMinor: 500 },
+      { metric: 'storage_gb', upTo: null, unitPriceMinor: 300 },
+      { metric: 'api_calls', upTo: 50_000, unitPriceMinor: 2 },
       { metric: 'api_calls', upTo: null, unitPriceMinor: 1 },
     ],
   },
@@ -165,6 +192,8 @@ type SeedCustomer = {
   email: string
   country: string
   planName: string
+  /** La VERSION concreta del plan. Un cliente apunta a una fila, no a un nombre (5.5). */
+  planVersion: number
 }
 
 /**
@@ -184,28 +213,44 @@ type SeedCustomer = {
  */
 const CUSTOMERS: readonly SeedCustomer[] = [
   {
-    companyName: 'Nébula Sistemas SL',
+    companyName: 'Nébula Cloud S.L.',
     // Sin normalizar a proposito: asi el seed ejercita el mismo camino que el alta.
     fiscalId: 'b-1234 5674',
-    email: 'compras@nebula.example',
+    email: 'admin@nebula.example',
     country: 'ES',
-    planName: 'Plan A',
-  },
-  {
-    companyName: 'Cárpatos Data SA',
-    fiscalId: 'A87654323',
-    email: 'administracion@carpatos.example',
-    country: 'ES',
-    planName: 'Plan Escalado',
+    planName: 'Plan Ágora',
+    planVersion: 2,
   },
   {
     // Existe para que 'unvalidated' y una divisa de presentacion != EUR aparezcan en la
-    // UI desde el primer arranque.
-    companyName: 'Thames Analytics Ltd',
-    fiscalId: '12345678',
-    email: 'billing@thames.example',
+    // UI desde el primer arranque, y para ensenar el plan multi-metrica.
+    companyName: 'Meridian Data Ltd.',
+    fiscalId: 'GB428291',
+    email: 'ops@meridian.example',
     country: 'GB',
-    planName: 'Plan B',
+    planName: 'Plan Cúspide',
+    planVersion: 1,
+  },
+  {
+    // Un DNI entre tantos CIF: el validador espanol despacha por formato, y aqui se ve.
+    companyName: 'Talleres Duero',
+    fiscalId: '12345678Z',
+    email: 'gestion@duero.example',
+    country: 'ES',
+    planName: 'Plan Bitácora',
+    planVersion: 1,
+  },
+  {
+    // EL CLIENTE QUE IMPORTA: apunta a la version ARCHIVADA de Agora. Es el unico que
+    // hace visible el 5.5 en pantalla -su ficha dice "Mantiene su tarifa contratada" y
+    // simula con 1200/700, no con los tramos de hoy-. Sin el, el versionado solo existe
+    // en un test.
+    companyName: 'Fjord Systems AS',
+    fiscalId: 'NO993110',
+    email: 'hei@fjord.example',
+    country: 'DE',
+    planName: 'Plan Ágora',
+    planVersion: 1,
   },
 ]
 
@@ -241,7 +286,7 @@ export function seed(db: Db): void {
   )
   const insertPlan = db.prepare(
     `INSERT INTO plans (name, version, description, pricing_model, currency, active, created_at)
-     VALUES (?, 1, ?, 'graduated', ?, 1, ?)`,
+     VALUES (?, ?, ?, 'graduated', ?, ?, ?)`,
   )
   const insertTier = db.prepare(
     `INSERT INTO plan_tiers (plan_id, metric, up_to, unit_price_minor, sort_order)
@@ -260,10 +305,16 @@ export function seed(db: Db): void {
       insertRate.run(r.country, r.vigenteDesde, r.rateBp)
     }
 
+    // Clave por (nombre, version): un cliente apunta a una FILA concreta, no a un nombre.
+    // Con dos versiones de Agora vivas, la clave por nombre a secas mandaria a todo el
+    // mundo a la ultima insertada, que es justo el bug que el versionado evita.
     const planIds = new Map<string, number>()
     for (const p of PLANS) {
-      const planId = Number(insertPlan.run(p.name, p.description, p.currency, ahora).lastInsertRowid)
-      planIds.set(p.name, planId)
+      const planId = Number(
+        insertPlan.run(p.name, p.version, p.description, p.currency, p.active ? 1 : 0, ahora)
+          .lastInsertRowid,
+      )
+      planIds.set(`${p.name}#${p.version}`, planId)
 
       // El sort_order se deriva del orden del array, contando por metrica: declararlo a
       // mano permitiria escribir un orden que contradice los cortes, y entonces habria
@@ -277,10 +328,10 @@ export function seed(db: Db): void {
     }
 
     for (const c of CUSTOMERS) {
-      const planId = planIds.get(c.planName)
+      const planId = planIds.get(`${c.planName}#${c.planVersion}`)
       if (planId === undefined) {
         throw new Error(
-          `Seed incoherente: el cliente "${c.companyName}" apunta al plan "${c.planName}", que no esta en PLANS.`,
+          `Seed incoherente: el cliente "${c.companyName}" apunta a "${c.planName}" v${c.planVersion}, que no esta en PLANS.`,
         )
       }
 
