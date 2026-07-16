@@ -56,11 +56,13 @@ El criterio que gobierna toda la lista es el mismo que rechaza los puertos de m�
 **Por qué se aplaza**: no hay un plan que los necesite. Implementar dos estrategias sin un caso de uso es escribir código para un futuro imaginado.
 **Coste de hacerlo**: el Strategy sobre `pricing_model` deja el hueco (→ referencia §5.3). Sería una estrategia nueva **y** ampliar el `CHECK (pricing_model IN ('graduated'))` de la tabla, en el mismo commit — el `CHECK` con un solo valor está ahí a propósito, para que no se pueda sembrar un modelo que nadie sabe calcular (→ `../01-specs/modelo-datos.md` §2.3).
 
-### 2.6 Validadores fiscales de otros países (`PT_NIF`, `FR_SIREN`…)
+### 2.6 Validadores fiscales de otros países (`FR_SIREN`, `DE_USt`…)
 
-**Qué se pierde**: los nueve países no españoles del seed guardan el identificador **sin validar** (`unvalidated`).
+> **Este recorte se estrechó en la Fase 3**: `PT_NIF` salió de él como demostración (→ `../roams-roadmap.md` §5.3, spec 02 §3.3), y su diff comprobó la predicción del coste — una clase, una entrada, una columna, cero cambios en endpoints. El resto de países sigue recortado.
+
+**Qué se pierde**: los ocho países del seed sin esquema guardan el identificador **sin validar** (`unvalidated`).
 **Por qué se aplaza**: el enunciado exige España. Los demás son cada uno un algoritmo con su documentación y su batería de tests, y **la mayoría de países probablemente nunca la tendrán** (→ referencia §7.1) — el pass-through no es un estado transitorio, es el estado final del caso mayoritario.
-**Coste de hacerlo**: una clase + una entrada en el registro + rellenar `tax_id_scheme`. **Cero cambios en endpoints** (→ referencia §7.2). El chequeo de arranque garantiza que rellenar la columna sin escribir la clase **revienta el arranque** en vez de degradar en silencio a pass-through, que es el fallo que este diseño más teme.
+**Coste de hacerlo**: una clase + una entrada en el registro + rellenar `tax_id_scheme`. **Cero cambios en endpoints** (→ referencia §7.2), ya no como promesa sino como hecho medido en el diff de `PT_NIF`. El chequeo de arranque garantiza que rellenar la columna sin escribir la clase **revienta el arranque** en vez de degradar en silencio a pass-through, que es el fallo que este diseño más teme.
 
 ### 2.7 Consulta de existencia real del `fiscal_id` (AEAT / VIES)
 

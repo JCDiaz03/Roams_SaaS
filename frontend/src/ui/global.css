@@ -118,3 +118,25 @@ textarea {
   white-space: nowrap;
   border: 0;
 }
+
+/* Impresion (roadmap 5.4): al imprimir, la unica tinta es la hoja del presupuesto. La
+ * visibilidad -y no display- es lo que permite que la app entera desaparezca sin tocar
+ * un solo componente: cada uno sigue donde estaba, solo que invisible. La hoja se saca
+ * del flujo y ocupa la pagina desde arriba. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .hoja-impresion,
+  .hoja-impresion * {
+    visibility: visible;
+  }
+
+  .hoja-impresion {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+  }
+}

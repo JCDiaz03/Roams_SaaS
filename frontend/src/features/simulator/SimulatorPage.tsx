@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { METRICS, quote, type Metric, type Quantities } from '@saas/pricing'
-import { api, ApiError, type CustomerDetail } from '../../lib/api-client'
+import { api, ApiError, type CustomerDetail, type Simulation } from '../../lib/api-client'
 import { useRatesContext } from '../../lib/rates-context'
 import { useSession } from '../../lib/session'
 import { Button } from '../../ui/Button'
@@ -11,6 +11,7 @@ import { Card } from '../../ui/Card'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
 import { MetricSliderCard } from './MetricSliderCard'
+import { PrintSheet } from './PrintSheet'
 import { ResultPanel } from './ResultPanel'
 import styles from './SimulatorPage.module.css'
 
@@ -26,7 +27,9 @@ export function SimulatorPage() {
 
   const [cantidades, setCantidades] = useState<Quantities>({ users: 15, storage_gb: 0, api_calls: 0 })
   const [guardando, setGuardando] = useState(false)
-  const [selladaEn, setSelladaEn] = useState<string | null>(null)
+  // La simulacion GUARDADA entera, no solo su fecha: la hoja de impresion lleva el
+  // numero persistido del backend, nunca el preview (PrintSheet).
+  const [sellada, setSellada] = useState<Simulation | null>(null)
 
   useEffect(() => {
     let cancelado = false
@@ -90,7 +93,7 @@ export function SimulatorPage() {
         storage_gb: guardada.inputs.storage_gb,
         api_calls: guardada.inputs.api_calls,
       })
-      setSelladaEn(guardada.created_at)
+      setSellada(guardada)
       toast.showOk('Simulación guardada')
     } catch (e) {
       // El error NO pierde los valores de los sliders: reintentar no debe costar volver a
@@ -159,8 +162,8 @@ export function SimulatorPage() {
               onChange={(v) => {
                 setCantidades((c) => ({ ...c, [m]: v }))
                 // Al tocar algo, el sello desaparece: lo que se ve vuelve a ser un
-                // preview sin guardar, y decir "guardada" seria mentir.
-                setSelladaEn(null)
+                // preview sin guardar, y decir "guardada" (o imprimirla) seria mentir.
+                setSellada(null)
               }}
             />
           ))}
@@ -174,11 +177,16 @@ export function SimulatorPage() {
             stale={rates.estado === 'listo' && rates.rates.stale}
             staleDesde={rates.estado === 'listo' ? rates.rates.as_of : null}
             guardando={guardando}
-            selladaEn={selladaEn}
+            selladaEn={sellada?.created_at ?? null}
             onGuardar={() => void guardar()}
           />
         </div>
       </div>
+
+      {/* Solo con la simulacion sellada: el papel lleva el numero del backend. */}
+      {sellada !== null && (
+        <PrintSheet cliente={cliente} sim={sellada} emisor={session?.nombre ?? ''} />
+      )}
     </>
   )
 }

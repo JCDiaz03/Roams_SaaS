@@ -120,16 +120,24 @@
 - ✅ Job `e2e` en el CI (chromium, separado para no retrasar la señal rápida de lint+test) y `npm run test:e2e` en local
 - ✅ **Rindió antes de estar terminado**: su primer arranque cazó que el cinturón anti-CSRF (`Origin` vs `Host`) rechazaba a la propia aplicación detrás del proxy — el defecto exacto que 219 tests de integración no pueden ver, porque `app.inject` no atraviesa ningún proxy. Se corrigió a `Sec-Fetch-Site` (→ §5.1)
 
-### 5.3 Segundo validador fiscal: `PT_NIF` — ⏳ *(~media jornada)*
+### 5.3 Segundo validador fiscal: `PT_NIF` ✅
 
-> No contradice el recorte 2.6 («la mayoría de países nunca lo tendrán»): lo **demuestra**. El argumento entero del registro de estrategias — "añadir un país = una clase + una entrada + rellenar la columna, cero cambios en endpoints" — pasa de afirmación a hecho verificable en un diff que el evaluador puede leer en un minuto.
+> No contradice el recorte 2.6 («la mayoría de países nunca lo tendrán»): lo **demuestra**. El argumento entero del registro de estrategias — "añadir un país = una clase + una entrada + rellenar la columna, cero cambios en endpoints" — pasó de afirmación a hecho verificable en un diff que el evaluador puede leer en un minuto (→ spec 02 §3.3).
 
-- ⏳ `PortugueseTaxIdValidator` (NIF de 9 dígitos, mod 11) + entrada `PT_NIF` en el registro + `tax_id_scheme` de PT en el seed + batería de tests válidos/inválidos
-- ⏳ Verificar que el hint del alta y el chip «validado» aparecen para Portugal **sin tocar ni un componente** — eso es la prueba
+- ✅ `PortugueseTaxIdValidator`: 9 dígitos, **prefijo asignado por la AT** (aceptar cualquier nueve-dígitos-con-checksum sería más permisivo de lo correcto: el criterio de K/L/M) y mod 11 **con el pliegue de restos 0/1 → control 0**, testeado con casos de ambos restos. **16 tests** de batería (válidos por prefijo, checksums mal, prefijos no asignados con checksum correcto, formas ajenas)
+- ✅ Tipo `NIF` nuevo de punta a punta: `FiscalIdType`, `CHECK` de `customers` ampliado **en el mismo commit**, y la colisión de nombres que la referencia §7.1 predecía ("NIF" español vs portugués), disuelta por las claves espaciadas
+- ✅ Seed: PT con `tax_id_scheme = 'PT_NIF'` y **Lusitânia Dados Lda.** (NIF sintético `512345678`, sembrado sin normalizar) — el chip «NIF validado» y el hint resuelto, visibles desde el primer arranque
+- ✅ La prueba de la promesa: **ningún endpoint ni componente tocado**. Los tests de integración nuevos (alta PT válida/inválida, hint de `GET /countries`) pasan contra el código de siempre. Los tests que usaban `PT_NIF` como ejemplo de "esquema no registrado" migraron a `FR_SIREN` — exactamente el ciclo de vida que esos tests protegen
+- ✅ **235 tests** de backend (los 219 + 14 de batería PT + 2 de integración del alta), **330 en el repo** más los 3 E2E
 
-### 5.4 Presupuesto imprimible — ⏳ *(~media jornada)*
+### 5.4 Presupuesto imprimible ✅
 
 > Valor directo para el usuario real: el comercial que hoy explica el número por teléfono puede entregarlo en papel o PDF. Una hoja `@media print` para la simulación —desglose, fecha, divisa de facturación y quién lo emitió— y el diálogo de imprimir del navegador. **Sin librerías de PDF ni generación en servidor** (→ §5.5).
+
+- ✅ `PrintSheet`: hoja solo-para-print (membrete, cliente, plan, desglose por tramos, total, pie de emisión), en tinta sobre blanco — los tokens de tema son de pantalla, y un papel que dependiera del tema oscuro sería un papel negro
+- ✅ Dos reglas de producto en el diseño: **solo se imprime la simulación sellada** (el papel lleva el número persistido del backend, nunca un preview que nadie podría reproducir) y **la divisa de visualización no se imprime** — el papel va en la divisa de facturación; la conversión es una referencia efímera de pantalla
+- ✅ Botón «Imprimir presupuesto» junto al sello; la app entera desaparece del papel con una regla de visibilidad en `global.css`, sin tocar un solo componente
+- ✅ **Verificado en el smoke E2E** con `emulateMedia({ media: 'print' })`: la hoja visible con el número persistido y el emisor, y la app de pantalla invisible — lo que Ctrl+P imprimiría de verdad
 
 ### 5.5 Evaluado y descartado para esta fase
 

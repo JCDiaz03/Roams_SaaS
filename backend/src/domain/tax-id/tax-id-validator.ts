@@ -5,8 +5,13 @@
  * `unvalidated` es un valor de PRIMERA CLASE, no un hueco: es lo que devuelve
  * PassThroughValidator, y la base de datos distingue "no se pudo comprobar" de "no se
  * comprobo por descuido".
+ *
+ * 'NIF' es el portugues (PT_NIF). No colisiona con España aunque alli "NIF" sea el
+ * paraguas coloquial: el validador español devuelve el tipo CONCRETO (DNI/NIE/CIF), que
+ * es mas informativo. Añadir un tipo aqui exige ampliar el CHECK de customers en el
+ * mismo commit (schema.sql).
  */
-export type FiscalIdType = 'DNI' | 'NIE' | 'CIF' | 'unvalidated'
+export type FiscalIdType = 'DNI' | 'NIE' | 'CIF' | 'NIF' | 'unvalidated'
 
 /**
  * El par (valid, type) nunca es ambiguo:

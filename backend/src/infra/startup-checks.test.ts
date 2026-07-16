@@ -22,12 +22,12 @@ function baseSembrada(): Db {
 describe('chequeo 1 — esquema fiscal no registrado', () => {
   it('el arranque FALLA en vez de degradar en silencio a pass-through', async () => {
     const db = baseSembrada()
-    db.prepare("UPDATE countries SET tax_id_scheme = 'PT_NIF' WHERE code = 'PT'").run()
+    db.prepare("UPDATE countries SET tax_id_scheme = 'FR_SIREN' WHERE code = 'FR'").run()
 
     // Es el fallo que este diseno mas teme: arrancar igual daria de alta a los clientes
-    // portugueses SIN VALIDAR, marcados como 'unvalidated', y nadie se enteraria hasta
-    // auditar los datos.
-    expect(() => runStartupChecks(db)).toThrow(/PT_NIF/)
+    // franceses SIN VALIDAR, marcados como 'unvalidated', y nadie se enteraria hasta
+    // auditar los datos. (El ejemplo era PT_NIF hasta que la Fase 3 lo implemento.)
+    expect(() => runStartupChecks(db)).toThrow(/FR_SIREN/)
     expect(() => runStartupChecks(db)).toThrow(/registro de validadores/)
 
     db.close()

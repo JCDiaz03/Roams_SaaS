@@ -55,15 +55,17 @@ describe('registro — fallback de pais sin esquema', () => {
 
 describe('registro — esquema no registrado: nunca degradar en silencio', () => {
   it('lanza en vez de devolver PassThrough', () => {
-    // Es el fallo que este diseno mas teme: un seed que escribe tax_id_scheme = PT_NIF
-    // antes de que exista la clase daria de alta a los clientes portugueses SIN VALIDAR,
-    // marcados como 'unvalidated', y nadie se enteraria hasta auditar los datos.
-    expect(() => validatorFor('PT_NIF')).toThrow(/no registrado/)
+    // Es el fallo que este diseno mas teme: un seed que escribe tax_id_scheme = FR_SIREN
+    // antes de que exista la clase daria de alta a los clientes franceses SIN VALIDAR,
+    // marcados como 'unvalidated', y nadie se enteraria hasta auditar los datos. (El
+    // ejemplo era PT_NIF hasta que la Fase 3 lo implemento: exactamente el ciclo de vida
+    // que este test protege.)
+    expect(() => validatorFor('FR_SIREN')).toThrow(/no registrado/)
     expect(() => validatorFor('CUALQUIER_COSA')).toThrow()
   })
 
   it('el error dice que hacer, no solo que ha fallado', () => {
-    expect(() => validatorFor('PT_NIF')).toThrow(/pass-through/)
+    expect(() => validatorFor('FR_SIREN')).toThrow(/pass-through/)
   })
 
   it('hasValidator es lo que el chequeo de arranque usa para abortar', () => {
@@ -71,13 +73,14 @@ describe('registro — esquema no registrado: nunca degradar en silencio', () =>
     // countries y aborta el proceso si alguno no esta registrado, ANTES de aceptar
     // peticiones. validatorFor() lanzando es el cinturon de ese tirante.
     expect(hasValidator('ES_NIF')).toBe(true)
-    expect(hasValidator('PT_NIF')).toBe(false)
+    expect(hasValidator('PT_NIF')).toBe(true)
+    expect(hasValidator('FR_SIREN')).toBe(false)
   })
 })
 
 describe('registro — contenido', () => {
   it('hoy solo hay un esquema, y es el que exige el enunciado', () => {
-    expect(registeredSchemes()).toEqual(['ES_NIF'])
+    expect(registeredSchemes()).toEqual(['ES_NIF', 'PT_NIF'])
   })
 
   it('todo validador registrado cumple el contrato', () => {

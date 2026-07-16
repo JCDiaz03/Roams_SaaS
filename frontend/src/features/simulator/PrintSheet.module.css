@@ -1,0 +1,103 @@
+/* La hoja del presupuesto. En pantalla NO existe; el papel es su unico medio. Se imprime
+ * en tinta sobre blanco a proposito: los tokens de tema son de pantalla, y un papel que
+ * dependiera del tema oscuro seria un papel negro. */
+
+.hoja {
+  display: none;
+}
+
+@media print {
+  .hoja {
+    display: block;
+    color: #000;
+    background: #fff;
+    font-size: 12pt;
+    line-height: 1.45;
+    padding: 24pt 8pt;
+  }
+
+  .cabecera {
+    border-bottom: 2pt solid #000;
+    padding-bottom: 8pt;
+    margin-bottom: 14pt;
+  }
+
+  .marca {
+    font-size: 10pt;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .titulo {
+    font-size: 20pt;
+    margin: 2pt 0;
+  }
+
+  .fecha {
+    font-size: 10pt;
+  }
+
+  .datos {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6pt 18pt;
+    margin: 0 0 14pt;
+  }
+
+  .datos dt {
+    font-size: 9pt;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .datos dd {
+    margin: 0;
+    font-weight: 600;
+  }
+
+  .tabla {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 10pt;
+  }
+
+  .tabla th,
+  .tabla td {
+    text-align: left;
+    padding: 4pt 6pt;
+    border-bottom: 0.5pt solid #999;
+  }
+
+  .tabla th:last-child,
+  .tabla td:last-child {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .grupo td {
+    font-weight: 600;
+    border-bottom: 1pt solid #000;
+    padding-top: 8pt;
+  }
+
+  .subtotal td {
+    border-top: 1pt solid #000;
+  }
+
+  .total td {
+    font-weight: 700;
+    font-size: 14pt;
+    border-bottom: none;
+  }
+
+  .pie {
+    font-size: 9pt;
+    margin: 0 0 14pt;
+  }
+
+  .emision {
+    font-size: 9pt;
+    border-top: 0.5pt solid #999;
+    padding-top: 6pt;
+  }
+}

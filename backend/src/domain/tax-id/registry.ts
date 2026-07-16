@@ -2,6 +2,7 @@
 
 import { SpanishTaxIdValidator } from './es-nif.validator'
 import { PassThroughValidator } from './pass-through.validator'
+import { PortugueseTaxIdValidator } from './pt-nif.validator'
 import type { TaxIdValidator } from './tax-id-validator'
 
 /**
@@ -19,6 +20,9 @@ import type { TaxIdValidator } from './tax-id-validator'
  */
 const REGISTRO: ReadonlyMap<string, TaxIdValidator> = new Map<string, TaxIdValidator>([
   ['ES_NIF', new SpanishTaxIdValidator()],
+  // La entrada que demuestra la promesa de arriba: PT llego con una clase + esta linea +
+  // su columna en el seed. Ningun endpoint ni componente se toco (roadmap 5.3).
+  ['PT_NIF', new PortugueseTaxIdValidator()],
 ])
 
 /** El fallback de los paises con `tax_id_scheme = NULL`. Una estrategia mas, no un `if`. */

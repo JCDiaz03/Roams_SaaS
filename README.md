@@ -2,7 +2,7 @@
 
 Herramienta interna para el equipo comercial: registrar clientes corporativos, simular su consumo (usuarios, almacenamiento, llamadas API) y obtener presupuestos mensuales de suscripción, visualizables en varias divisas.
 
-> **Estado: completo.** Motor de tarificación, validación fiscal, API, autenticación con sesión de servidor, las 5 pantallas y la administración de planes. **314 tests**, verificado de punta a punta conduciendo la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
+> **Estado: completo.** Motor de tarificación, validación fiscal (ES y PT), API, autenticación con sesión de servidor, las 5 pantallas y la administración de planes. **330 tests + 3 E2E**, verificado de punta a punta contra la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
 
 ## Arranque en local
 
@@ -20,7 +20,7 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 | Script (raíz) | Qué hace |
 |---|---|
 | `npm run dev` | Levanta backend (`:3000`) y frontend (`:5173`) a la vez |
-| `npm test` | Los 314 tests de los tres workspaces |
+| `npm test` | Los 330 tests de los tres workspaces |
 | `npm run seed` | Repuebla la base de datos (solo sobre una base vacía) |
 | `npm run test:e2e` | El smoke E2E (Playwright): arranca backend, build con CSP estricta y navegador, y recorre la app como un evaluador. Primera vez: `npx playwright install chromium` |
 | `npm run lint` · `npm run typecheck` | Lo mismo que ejecuta el CI |
@@ -33,6 +33,7 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 3. **Divisa**: cambia el selector de la topbar a USD. El total se convierte, pero va **marcado como referencia** y con el importe de facturación real al lado. El número del negocio no cambia.
 4. **Validación fiscal**: en *Nuevo cliente*, prueba `B12345675` (control incorrecto) y luego `B12345674`. El error sale junto al campo.
 5. **Un precio publicado es inmutable**: entra como `ADMIN`, ve a *Administración*, edita el Plan Ágora y cámbiale un precio. Se crea una **versión nueva** y la anterior se archiva; las simulaciones que ya habías guardado siguen diciendo lo mismo, y Nébula sigue con su tarifa.
+6. **Entrégalo en papel**: tras guardar una simulación, *Imprimir presupuesto* (o Ctrl+P) abre el diálogo del navegador con una hoja limpia — desglose, total en la divisa de facturación y quién lo emitió.
 
 ## Estructura
 

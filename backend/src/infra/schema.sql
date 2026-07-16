@@ -90,12 +90,12 @@ CREATE TABLE IF NOT EXISTS customers (
   id             INTEGER PRIMARY KEY,
   company_name   TEXT NOT NULL,
   fiscal_id      TEXT NOT NULL UNIQUE,       -- forma NORMALIZADA (referencia 7.4)
-  fiscal_id_type TEXT NOT NULL,              -- DNI | NIE | CIF | unvalidated
+  fiscal_id_type TEXT NOT NULL,              -- DNI | NIE | CIF | NIF (PT) | unvalidated
   email          TEXT NOT NULL,
   country        TEXT NOT NULL REFERENCES countries(code) ON DELETE RESTRICT,
   plan_id        INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
   created_at     TEXT NOT NULL,
-  CHECK (fiscal_id_type IN ('DNI', 'NIE', 'CIF', 'unvalidated')),
+  CHECK (fiscal_id_type IN ('DNI', 'NIE', 'CIF', 'NIF', 'unvalidated')),
   -- Red de la normalizacion: si algun camino de escritura olvidara normalizar, la fila
   -- se rechaza en vez de colarse y romper el UNIQUE en silencio ("b12345674" y
   -- "B12345674" convivirian como dos empresas distintas).

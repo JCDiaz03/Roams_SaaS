@@ -88,9 +88,14 @@ export function ResultPanel({
         </div>
       ) : (
         // Guardada: el numero queda "sellado" con su fecha. A partir de aqui lo que se ve
-        // es lo que devolvio el backend, no el preview.
+        // es lo que devolvio el backend, no el preview — y por eso imprimir solo existe
+        // AQUI: el papel lleva el numero persistido (PrintSheet), no un preview que nadie
+        // podria reproducir.
         <div className={styles.sellada}>
           <Chip tone="success">Guardada · {fecha(selladaEn)}</Chip>
+          <Button variant="secondary" size="sm" onClick={() => window.print()}>
+            Imprimir presupuesto
+          </Button>
         </div>
       )}
     </Card>

@@ -372,7 +372,7 @@ Alternativas descartadas: preview solo-frontend (violaría el invariante #1: el 
 ### 11.1 Tablas
 
 - **`countries`**: `code` (ISO 3166-1 alfa-2, PK), `name`, `tax_id_scheme` (NULL = sin validación), `display_currency` (solo presentación) — → §6.1
-- **`customers`**: `id`, `company_name`, `fiscal_id` (**UNIQUE**, forma normalizada → §7.4), `fiscal_id_type` (resultado de la validación: DNI/NIE/CIF/`unvalidated`), `email`, `country` (FK → `countries.code`), `plan_id` (FK), `created_at`
+- **`customers`**: `id`, `company_name`, `fiscal_id` (**UNIQUE**, forma normalizada → §7.4), `fiscal_id_type` (resultado de la validación: DNI/NIE/CIF/NIF-PT/`unvalidated`), `email`, `country` (FK → `countries.code`), `plan_id` (FK), `created_at`
 - **`plans`**: `id`, `name`, `version`, `description`, `pricing_model` (`graduated`), `currency` (ISO, ∈ `Currency`), `active`, `created_at`
 - **`plan_tiers`**: `id`, `plan_id` (FK), `metric` (`users`|`storage_gb`|`api_calls`|...), `up_to` (NULL = ∞), `unit_price_minor`, `sort_order`
 - **`tax_rates`**: PK `(country, vigente_desde)`, `country` (FK → `countries.code`), `rate_bp` — vigente = mayor `vigente_desde` ≤ hoy (§6.2)

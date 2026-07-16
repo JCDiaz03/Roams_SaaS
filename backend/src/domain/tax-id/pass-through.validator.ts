@@ -11,7 +11,7 @@ import type { TaxIdValidation, TaxIdValidator } from './tax-id-validator'
  *
  * No es un estado transitorio a la espera de un validador de verdad: es el estado FINAL
  * del caso mayoritario. "Identificador fiscal" es un concepto distinto en cada pais y la
- * mayoria probablemente nunca tendran algoritmo implementado (referencia 7.1). Nueve de
+ * mayoria probablemente nunca tendran algoritmo implementado (referencia 7.1). Ocho de
  * los diez paises del seed pasan por aqui.
  */
 export class PassThroughValidator implements TaxIdValidator {

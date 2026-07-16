@@ -44,11 +44,28 @@ describe('POST /customers — alta', () => {
   })
 
   it('un pais sin esquema guarda tal cual como unvalidated', async () => {
-    // Nueve de los diez paises del seed pasan por PassThrough: es el caso mayoritario.
+    // Ocho de los diez paises del seed pasan por PassThrough: es el caso mayoritario.
     const r = await post(alta({ country: 'GB', fiscal_id: 'GB999888' }))
 
     expect(r.statusCode).toBe(201)
     expect(r.json().fiscal_id_type).toBe('unvalidated')
+  })
+
+  it('el alta portuguesa valida con PT_NIF sin que el endpoint sepa que Portugal existe', async () => {
+    // La demostracion del registro (roadmap 5.3): PT llego como una clase + una entrada
+    // + su columna. Este endpoint no se toco, y este test lo comprueba de punta a punta.
+    const r = await post(alta({ country: 'PT', fiscal_id: '123 456 789' }))
+
+    expect(r.statusCode).toBe(201)
+    expect(r.json().fiscal_id).toBe('123456789')
+    expect(r.json().fiscal_id_type).toBe('NIF')
+  })
+
+  it('un NIF portugues con el control mal -> 422, el mismo error que un CIF mal', async () => {
+    const r = await post(alta({ country: 'PT', fiscal_id: '123456780' }))
+
+    expect(r.statusCode).toBe(422)
+    expect(r.json().error).toMatchObject({ code: 'FISCAL_ID_INVALID', field: 'fiscal_id' })
   })
 })
 
@@ -123,7 +140,7 @@ describe('GET /customers — buscador', () => {
   it('sin termino devuelve los recientes, NO un 400', async () => {
     const r = await buscar('')
     expect(r.statusCode).toBe(200)
-    expect(r.json().customers.length).toBe(4)
+    expect(r.json().customers.length).toBe(5)
   })
 
   it('busca por nombre y por fiscal_id', async () => {
@@ -219,9 +236,12 @@ describe('GET /countries', () => {
 
     const { countries } = r.json() as { countries: { code: string; fiscal_id: { validated: boolean; hint: string } }[] }
     const es = countries.find((c) => c.code === 'ES')
+    const pt = countries.find((c) => c.code === 'PT')
     const gb = countries.find((c) => c.code === 'GB')
 
     expect(es?.fiscal_id).toEqual({ validated: true, hint: 'DNI, NIE o CIF — se comprueba automáticamente' })
+    // El hint del segundo validador llego solo, del mismo sitio que el primero: la clase.
+    expect(pt?.fiscal_id).toEqual({ validated: true, hint: 'NIF — se comprueba automáticamente' })
     expect(gb?.fiscal_id).toEqual({ validated: false, hint: 'Identificador fiscal' })
   })
 

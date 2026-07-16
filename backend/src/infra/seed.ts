@@ -34,9 +34,9 @@ type SeedCountry = {
  * estandar de ambito estatal, porque la cobertura fiscal es lo que define el universo de
  * paises (referencia 6.1) y un pais sin tipo calculable es inexpresable por diseno.
  *
- * Solo ES lleva esquema fiscal: los otros nueve van a PassThroughValidator. Ese es el
- * caso mayoritario del mundo real, y asi el fallback esta ejercitado por el seed y no
- * solo por un test.
+ * ES y PT llevan esquema fiscal (los dos validadores del registro); los otros ocho van a
+ * PassThroughValidator. Ese sigue siendo el caso mayoritario del mundo real, y asi el
+ * fallback esta ejercitado por el seed y no solo por un test.
  *
  * GB, CH y JP no son decorado: dan tres divisas de presentacion distintas de la de
  * facturacion, que es lo unico que prueba de verdad el 4.1 en pantalla. JP ejercita
@@ -51,7 +51,7 @@ type SeedCountry = {
  */
 const COUNTRIES: readonly SeedCountry[] = [
   { code: 'ES', name: 'España', scheme: 'ES_NIF', displayCurrency: 'EUR' },
-  { code: 'PT', name: 'Portugal', scheme: null, displayCurrency: 'EUR' },
+  { code: 'PT', name: 'Portugal', scheme: 'PT_NIF', displayCurrency: 'EUR' },
   { code: 'FR', name: 'Francia', scheme: null, displayCurrency: 'EUR' },
   { code: 'DE', name: 'Alemania', scheme: null, displayCurrency: 'EUR' },
   { code: 'IT', name: 'Italia', scheme: null, displayCurrency: 'EUR' },
@@ -239,6 +239,19 @@ const CUSTOMERS: readonly SeedCustomer[] = [
     fiscalId: '12345678Z',
     email: 'gestion@duero.example',
     country: 'ES',
+    planName: 'Plan Bitácora',
+    planVersion: 1,
+  },
+  {
+    // El segundo validador del registro, visible desde el primer arranque: su ficha
+    // enseña el chip "NIF validado" y el alta en PT el hint resuelto, sin que ningun
+    // componente sepa que Portugal existe (roadmap 5.3). El NIF es SINTETICO con control
+    // correcto: 5,1,2,3,4,5,6,7 ponderados 9..2 suman 157; 157 mod 11 = 3; 11 - 3 = 8.
+    companyName: 'Lusitânia Dados Lda.',
+    // Sin normalizar a proposito, como Nebula: el seed recorre el camino del alta.
+    fiscalId: '512 345 678',
+    email: 'geral@lusitania.example',
+    country: 'PT',
     planName: 'Plan Bitácora',
     planVersion: 1,
   },

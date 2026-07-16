@@ -48,10 +48,12 @@ export function crearCliente(db: Db, countries: CountriesCache, datos: AltaClien
   //    PassThrough, que es una estrategia mas y no una rama.
   const { valid, type } = validatorFor(pais.scheme).validate(fiscalId)
   if (!valid) {
+    // "Control" a secas, no "letra de control": en el DNI es una letra, en el NIF
+    // portugues un digito, y este mensaje es de TODOS los validadores del registro.
     throw new AppError(
       422,
       'FISCAL_ID_INVALID',
-      'La letra de control no corresponde. Revisa el identificador.',
+      'El control del identificador no corresponde. Revísalo.',
       'fiscal_id',
     )
   }

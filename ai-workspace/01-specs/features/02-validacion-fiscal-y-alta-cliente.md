@@ -74,9 +74,19 @@ Ninguno es un `if España` (→ referencia §7.3):
 | País sin fila en `countries` | **Rechazo en la entrada**: `422 COUNTRY_NOT_SUPPORTED`. "Cliente de país no soportado" es inexpresable (→ referencia §6.1) |
 | `tax_id_scheme` no nulo que **no está** en el registro | **Fallo ruidoso al arrancar** (→ `../modelo-datos.md` §4). Nunca degradar en silencio a pass-through |
 
-**La cuarta fila es la que justifica el chequeo de arranque.** Sin él, un seed que escribe `tax_id_scheme = 'PT_NIF'` antes de que exista la clase produce el peor fallo posible: los clientes portugueses se dan de alta **sin validar**, con `unvalidated`, y nadie se entera hasta que alguien audita los datos. La deriva dato↔código es silenciosa por naturaleza; por eso se convierte en un fallo de arranque, que es todo lo contrario.
+**La cuarta fila es la que justifica el chequeo de arranque.** Sin él, un seed que escribe `tax_id_scheme = 'FR_SIREN'` antes de que exista la clase produce el peor fallo posible: los clientes franceses se dan de alta **sin validar**, con `unvalidated`, y nadie se entera hasta que alguien audita los datos. La deriva dato↔código es silenciosa por naturaleza; por eso se convierte en un fallo de arranque, que es todo lo contrario. (El ejemplo de esta frase fue `PT_NIF` hasta que el §3.3 lo implementó: exactamente el ciclo de vida previsto.)
 
 `PassThroughValidator` devuelve `{ valid: true, type: 'unvalidated' }` **siempre**. `unvalidated` es un valor de primera clase en la columna (→ `../modelo-datos.md` §2.4), no un hueco: la base de datos distingue "no se pudo comprobar" de "no se comprobó por descuido".
+
+### 3.3 El segundo validador: `PT_NIF` (Fase 3, la demostración)
+
+El registro prometía que añadir un país costaba *una clase + una entrada + rellenar la columna, cero cambios en endpoints* (→ referencia §7.2). `PT_NIF` es esa promesa **ejecutada y verificable en un diff**: `pt-nif.validator.ts`, su línea en el registro y el esquema de PT en el seed. Ningún endpoint ni componente del frontend se tocó — el hint del alta («NIF — se comprueba automáticamente») y el chip «NIF validado» aparecieron solos, porque ambos salen del validador.
+
+**El algoritmo** (NIF/NIPC portugués): 9 dígitos; los 8 primeros ponderados 9..2, módulo 11; control = `11 − resto`, **con el pliegue de que resto 0 o 1 dan control 0** — el gotcha de este checksum, testeado con casos de ambos restos. El **prefijo debe estar asignado por la AT** (1-3, 45, 5, 6, 70-72, 74-75, 77-79, 8, 90-91, 98-99): un validador que acepte cualquier nueve-dígitos-con-checksum es más permisivo de lo correcto, el mismo criterio que deja K/L/M fuera del CIF (§4.4). Si la AT asigna un rango nuevo, es una línea de la regex.
+
+**La colisión de nombres que el §7.1 de la referencia predice es esta**: "NIF" existe en España (paraguas de DNI/NIE/CIF, mod 23 + checksum ponderado) y en Portugal (mod 11). Las claves espaciadas por país la disuelven, y los `type` persistidos no chocan: el español devuelve el tipo concreto; `'NIF'` en la columna es siempre el portugués. Añadir el tipo exigió ampliar el `CHECK` de `customers` **en el mismo commit** (→ `../modelo-datos.md` §2.4).
+
+A diferencia del español, aquí no hay detección de tipo por formato: el NIF portugués es **un** algoritmo — el prefijo dice a quién pertenece, no cómo se valida.
 
 ---
 

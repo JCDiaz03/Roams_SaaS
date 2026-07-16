@@ -35,6 +35,16 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
   await page.getByRole('button', { name: 'Guardar simulación' }).click()
   await expect(page.getByText(/Guardada ·/)).toBeVisible()
 
+  // --- El presupuesto imprimible: la hoja solo existe en @media print ------------------
+  // Emulando print se comprueba lo que Ctrl+P imprimiria de verdad: la hoja con el
+  // numero PERSISTIDO y quien lo emite, y la app de pantalla invisible.
+  await page.emulateMedia({ media: 'print' })
+  await expect(page.getByRole('heading', { name: 'Presupuesto mensual' })).toBeVisible()
+  await expect(page.getByText(/Emitido por/)).toContainText('María')
+  await expect(page.locator('.hoja-impresion').getByText(/184,45/).first()).toBeVisible()
+  await expect(page.getByLabel('Divisa de visualización')).not.toBeVisible()
+  await page.emulateMedia({ media: 'screen' })
+
   // --- Divisa de visualizacion: SOLO vista, siempre etiquetada como referencia --------
   await page.getByLabel('Divisa de visualización').selectOption('USD')
   await expect(page.getByText('≈ referencia · no es la divisa de facturación')).toBeVisible()

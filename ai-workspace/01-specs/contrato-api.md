@@ -22,7 +22,7 @@
 {
   "error": {
     "code": "FISCAL_ID_INVALID",
-    "message": "La letra de control no corresponde con los dígitos.",
+    "message": "El control del identificador no corresponde. Revísalo.",
     "field": "fiscal_id"
   }
 }

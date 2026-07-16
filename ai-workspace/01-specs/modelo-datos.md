@@ -113,12 +113,12 @@ CREATE TABLE customers (
   id            INTEGER PRIMARY KEY,
   company_name  TEXT NOT NULL,
   fiscal_id     TEXT NOT NULL UNIQUE,        -- forma NORMALIZADA (→ referencia §7.4)
-  fiscal_id_type TEXT NOT NULL,              -- DNI | NIE | CIF | unvalidated
+  fiscal_id_type TEXT NOT NULL,              -- DNI | NIE | CIF | NIF (PT) | unvalidated
   email         TEXT NOT NULL,
   country       TEXT NOT NULL REFERENCES countries(code) ON DELETE RESTRICT,
   plan_id       INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
   created_at    TEXT NOT NULL,
-  CHECK (fiscal_id_type IN ('DNI', 'NIE', 'CIF', 'unvalidated')),
+  CHECK (fiscal_id_type IN ('DNI', 'NIE', 'CIF', 'NIF', 'unvalidated')),
   CHECK (fiscal_id = upper(fiscal_id)),
   CHECK (length(company_name) BETWEEN 1 AND 200),
   CHECK (length(fiscal_id) BETWEEN 1 AND 20),
@@ -132,7 +132,7 @@ CREATE INDEX idx_customers_company_name ON customers(company_name COLLATE NOCASE
 - **`fiscal_id` es UNIQUE global, no por país.** Es lo que fija la referencia §7.4 y su motivo (un duplicado accidental es mucho más probable que una colisión real). *Gotcha conocido y aceptado*: dos países podrían emitir la misma cadena; el día que ocurra, la migración es `UNIQUE (country, fiscal_id)` y el mensaje "esta empresa ya existe" pasa a ser por país. No se adelanta porque hoy costaría un índice más ancho para un caso que no se ha visto.
 - **`UNIQUE` crea su propio índice**, así que `fiscal_id` no necesita un `CREATE INDEX` aparte (la referencia §11.1 pide índice en los dos campos del buscador; en `fiscal_id` ya lo da el UNIQUE).
 - **Honestidad sobre el índice de `company_name`**: el buscador usa `LIKE '%term%'` y **un comodín inicial impide usar el índice** — SQLite hará scan completo. El índice se mantiene igual porque sirve al orden y a las búsquedas por prefijo, y porque el coste es nulo a esta escala (miles de filas). Lo que **no** se hace es fingir que el índice resuelve el `LIKE`: si la tabla creciera a millones, la respuesta es FTS5, no otro índice B-tree. → detalle en `features/03-buscador-y-detalle.md`.
-- `fiscal_id_type` incluye `'unvalidated'` como valor de primera clase: es el resultado que devuelve `PassThroughValidator` (→ referencia §7.3), no un hueco.
+- `fiscal_id_type` incluye `'unvalidated'` como valor de primera clase: es el resultado que devuelve `PassThroughValidator` (→ referencia §7.3), no un hueco. `'NIF'` es el **portugués** (`PT_NIF`, → `features/02-validacion-fiscal-y-alta-cliente.md` §3.3); no colisiona con España porque el validador español devuelve el tipo concreto (DNI/NIE/CIF). Añadir un tipo = ampliar este `CHECK` en el mismo commit que el validador.
 
 ### 2.5 `simulations` (→ referencia §11.2)
 
@@ -197,7 +197,7 @@ Diez países. El criterio de selección **no es "los más grandes"**: es que exi
 | `code` | `name` | `tax_id_scheme` | `display_currency` | `rate_bp` | `vigente_desde` |
 |---|---|---|---|---|---|
 | `ES` | España | `ES_NIF` | `EUR` | `2100` | `2012-09-01` |
-| `PT` | Portugal | `NULL` | `EUR` | `2300` | `2011-01-01` |
+| `PT` | Portugal | `PT_NIF` | `EUR` | `2300` | `2011-01-01` |
 | `FR` | Francia | `NULL` | `EUR` | `2000` | `2014-01-01` |
 | `DE` | Alemania | `NULL` | `EUR` | `1900` | `2007-01-01` |
 | `IT` | Italia | `NULL` | `EUR` | `2200` | `2013-10-01` |
@@ -209,7 +209,7 @@ Diez países. El criterio de selección **no es "los más grandes"**: es que exi
 
 **Por qué esos diez y no otros**, que es donde está el criterio:
 
-- **Solo `ES` lleva esquema fiscal.** Los otros nueve van a `PassThroughValidator` (→ referencia §7.3). Eso es el caso mayoritario del mundo real y hace que el fallback esté ejercitado por el seed, no solo por un test.
+- **`ES` y `PT` llevan esquema fiscal** (los dos validadores del registro; `PT_NIF` entró en la Fase 3 como demostración de que añadir un país no toca endpoints). Los otros ocho van a `PassThroughValidator` (→ referencia §7.3): sigue siendo el caso mayoritario del mundo real, y el fallback queda ejercitado por el seed, no solo por un test.
 - **`GB`, `CH` y `JP` no son decorado.** Dan tres divisas de presentación distintas de la de facturación, que es lo único que prueba de verdad el §4.1 (facturación ≠ visualización) en pantalla. **`JP` en particular ejercita `minor_unit = 0`**: el yen no tiene decimales y `Intl.NumberFormat` lo pinta sin ellos (→ referencia §4.4). Sin un país JPY en el seed, esa decisión queda como una frase en un documento.
 - **`CH` a 8,1 %** aporta el único tipo con decimal del seed (`810` bp). Un seed donde todos los tipos son múltiplos de 100 no distingue un `rate_bp` correcto de un `rate_pct` con suerte.
 - **Estados Unidos está excluido a propósito.** No tiene un tipo indirecto de ámbito federal: el *sales tax* es estatal y depende del nexo. Meterlo con `rate_bp = 0` sería escribir una mentira en la base de datos; meterlo "bien" es un modelo de jurisdicciones subestatales que no es este proyecto. Queda como recorte consciente (→ `03-proceso/recortes-conscientes.md`). USD sigue disponible como **divisa de visualización** — que es independiente del país, precisamente por el §4.1.
@@ -270,13 +270,14 @@ Todos: `currency = 'EUR'`, `pricing_model = 'graduated'`.
 
 ### 3.3 `customers` de demo
 
-Sin clientes, el evaluador entra al dashboard y ve el estado vacío: el buscador, las cards y el historial —tres de las cuatro vistas obligatorias del enunciado— solo se pueden juzgar dando de alta datos a mano primero. Cuatro filas lo arreglan.
+Sin clientes, el evaluador entra al dashboard y ve el estado vacío: el buscador, las cards y el historial —tres de las cuatro vistas obligatorias del enunciado— solo se pueden juzgar dando de alta datos a mano primero. Cinco filas lo arreglan.
 
 | `company_name` | `fiscal_id` | `fiscal_id_type` | `country` | `plan` |
 |---|---|---|---|---|
 | Nébula Cloud S.L. | `B12345674` | `CIF` | `ES` | Ágora **v2** |
 | Meridian Data Ltd. | `GB428291` | `unvalidated` | `GB` | Cúspide v1 |
 | Talleres Duero | `12345678Z` | `DNI` | `ES` | Bitácora v1 |
+| Lusitânia Dados Lda. | `512345678` | `NIF` | `PT` | Bitácora v1 |
 | Fjord Systems AS | `NO993110` | `unvalidated` | `DE` | Ágora **v1 (archivada)** |
 
 Cada uno cubre un caso que si no habría que provocar a mano:
@@ -284,6 +285,7 @@ Cada uno cubre un caso que si no habría que provocar a mano:
 - **`fiscal_id_type` no se declara en el seed: lo dice el validador.** Declararlo permitiría escribir `'DNI'` junto a un CIF y que nadie se enterase. `Nébula` se siembra además con el identificador **sin normalizar** (`"b-1234 5674"`) para que el seed recorra el mismo camino que el alta; se persiste `B12345674`.
 - Los CIF son **sintéticos y con dígito de control correcto** (no son de empresas reales). `B12345674`: pares 2+4+6=12; impares duplicados 1,3,5,7 → 2,6,10,14 → 2+6+1+5=14; total 26 → control `(10 − 6) mod 10 = 4`. ✓
 - **`Talleres Duero` lleva un DNI** entre tantos CIF: el validador español despacha por formato (→ §7.7), y así se ve.
+- **`Lusitânia` es el segundo validador del registro visible desde el primer arranque**: su ficha enseña el chip «NIF validado» sin que ningún componente sepa que Portugal existe. El NIF es **sintético con control correcto**: `5,1,2,3,4,5,6,7` ponderados 9..2 suman 157; 157 mod 11 = 3; 11 − 3 = **8**. ✓ Se siembra sin normalizar (`"512 345 678"`), como Nébula.
 - **`Meridian` y `Fjord` son `unvalidated`**: pasan por `PassThroughValidator`. `Meridian` aporta además una divisa de presentación ≠ EUR (GBP) desde el primer arranque.
 - **`Fjord` apunta a la versión archivada** (→ §3.2).
 - **El seed no crea simulaciones.** El estado vacío del historial es una vista que hay que poder ver (→ `diseño-frontend.md`, ventana 3), y crear la primera simulación es justo el flujo que el evaluador va a recorrer.
