@@ -66,6 +66,13 @@ El criterio que gobierna toda la lista es el mismo que rechaza los puertos de m�
 **Por qué se aplaza**: **no-objetivo explícito de la v1** (→ referencia §7.6). No es un recorte por tiempo: es un límite de alcance declarado. El `mod 23` dice que la letra cuadra con los dígitos, no que ese DNI exista.
 **Por qué está escrito igualmente**: porque es el malentendido clásico con un perfil no técnico (*"pero si el sistema lo validó, ¿no?"*), y un recorte que nadie sabe que existe acaba siendo una promesa que alguien hace en una reunión.
 
+### 2.8 Panel de administración de impuestos
+
+**Qué se pierde**: cambiar un tipo impositivo exige tocar el seed y redesplegar; no hay pantalla para ello.
+**Por qué se aplaza**: los tipos estándar cambian una vez por década (España: 2010, 2012 — y de ahí las dos filas del seed). Un panel para eso es superficie de administración —validación, histórico editable, permisos— para una operación menos frecuente que un redeploy. Se reevaluó con el margen de plazo de la Fase 3 (→ `../roams-roadmap.md` §5.5) y se descartó otra vez.
+**Coste de hacerlo**: la tabla `tax_rates` ya conserva histórico con regla de vigencia, así que el modelo de datos está; faltaría el endpoint + pantalla y, la parte crítica, **invalidar la caché de arranque al escribir** — el supuesto declarado en referencia §6.1 dice explícitamente que caché-hasta-reinicio es correcta *porque* este panel no existe, y ese mismo párrafo dice qué hacer el día que exista.
+**Cuándo deja de ser aceptable**: cuando la cobertura pase de ~10 países a decenas y los cambios de tipo dejen de ser eventos raros, o cuando quien mantenga los tipos deje de ser quien despliega.
+
 ---
 
 ## 3. Recortes de implementación

@@ -5,7 +5,7 @@
 > * Qué es: hacia dónde va el proyecto y en qué punto está. Rastrea ESTADO, no cambios.
 > * Estado con marcadores (✅ hecho · 🔵 en curso · ⏳ pendiente · 🚫 descartado), NO con fechas de commit ni "antes/ahora". Una fecha solo si es un hito/objetivo real (aquí: la entrega, día 5).
 > * El "qué se construye y por qué" → `01-specs/idea-referencia.md` (no duplicar; resumir + enlazar). Diseño de pantallas → `01-specs/diseño-frontend.md`. Proceso con IA → `/ai-workspace`.
-> * Ideas sin comprometer (post-entrega) → §6 Diferido. No mezclar con las fases comprometidas.
+> * Ideas sin comprometer (post-entrega) → §7 Diferido. No mezclar con las fases comprometidas.
 
 ---
 
@@ -17,7 +17,7 @@
 
 1. **La Fase 1 (core del enunciado) se termina y se testea antes de tocar la Fase 2.** El 30 % de la nota es la robustez de lo entregado; el alcance extra no puede comprometerla.
 2. **`/ai-workspace` se alimenta desde el día 1**, no se reconstruye al final: cada feature arranca con su spec; cada sesión de vibe coding deja rastro (prompt de partida + resultado + qué se rechazó y por qué). Pesa el 60 % de la nota (35+25) y no es falsificable a posteriori con credibilidad.
-3. **Lo diseñado pero no implementado se documenta como recorte consciente** en `/ai-workspace` y en §6: demuestra criterio sin gastar tiempo de entrega.
+3. **Lo diseñado pero no implementado se documenta como recorte consciente** en `/ai-workspace` y en §7: demuestra criterio sin gastar tiempo de entrega.
 4. Al final de cada día: commit estable + nota de estado en este documento.
 
 ---
@@ -74,7 +74,7 @@
 ### 3.4 Robustez y entrega mínima — *Día 4*
 
 - ✅ Estados de carga/error en TODAS las llamadas (→ referencia §13.1) — criterio de evaluación explícito. Skeletons con la silueta del contenido (nunca spinner a pantalla completa), vacío ≠ error con mensajes distintos, errores de validación junto al campo, y botón deshabilitado durante el envío
-- ✅ Seguridad §14: regla ESLint anti `dangerouslySetInnerHTML` ✅ · `npm audit` en CI ✅ · **CSP estricta** ✅ — cabecera desde Vite (`server`/`preview`). El build corre bajo `style-src 'self'` **sin `unsafe-inline`** y con **cero violaciones**, verificado recorriendo la app: la fuente carga (auto-alojada), el CSS aplica y el `fetch` pasa. **El modo dev necesita `unsafe-inline` en `script-src` y `style-src`** (Vite inyecta el preámbulo de React Refresh y el CSS por JS): allí la CSP no defiende de un XSS y **no se pretende que lo haga** — se queda como alarma de deriva
+- ✅ Seguridad §14: regla ESLint anti `dangerouslySetInnerHTML` ✅ · `npm audit` en CI ✅ · **CSP estricta** ✅ — cabecera desde Vite (`server`/`preview`). El build corre bajo `style-src 'self'` **sin `unsafe-inline`** y con **cero violaciones**, verificado recorriendo la app: la fuente carga (auto-alojada), el CSS aplica y el `fetch` pasa. **El modo dev necesita `unsafe-inline` en `script-src` y `style-src`** (Vite inyecta el preámbulo de React Refresh y el CSS por JS): allí la CSP no defiende de un XSS y **no se pretende que lo haga** — se queda como alarma de deriva. Esta línea es la de la Fase 1: tras la entrega se suman Dependabot, CodeQL y dos endurecimientos (→ §6, «Después de la entrega»)
 - ✅ Test de paridad preview/persistencia (cinturón y tirantes)
 - ✅ Responsive verificado **midiendo**, no mirando: cero desbordamiento horizontal en las 3 pantallas críticas × 3 anchos (375 / 768 / 1280). Corregidos tres objetivos táctiles por debajo de los 24 px de WCAG 2.5.8 — el slider (su caja eran los 6 px de la ranura), el selector de divisa, y **el botón de usuario, que en móvil salía vacío**
 - ✅ README v1: arranque en local en 3 comandos (clonar → instalar → arrancar), qué probar en dos minutos, decisiones documentadas con enlace a su ADR (proxy de divisas, auth mock, preview híbrido, dinero en enteros, versionado, sin Docker), enlace a `/ai-workspace`
@@ -92,37 +92,106 @@
 - ✅ Verificado conduciendo la app: entrar como `ADMIN` → Administración → editar Ágora → plantilla incoherente rechazada **con el error en su fila** → arreglar y guardar → **v3 activa, v1 y v2 archivadas**, la simulación guardada sigue en 169,40 € con sus tramos de 10 €/8 €, y Nébula sigue apuntando a la v2
 - ✅ Registro del proceso en `/ai-workspace/03-proceso`: **9 sesiones** (una por commit, con el prompt literal y qué se rechazó) y **3 auditorías** de los defectos silenciosos. 🚫 **Incumple la regla 2**: se transcribió al final, no por sesión. El contenido es real y trazable a commits, y la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) lo declara en vez de disimularlo
 
-## 5. Entrega ✅
+## 5. Fase 3 — Endurecimiento con el margen de plazo ⏳
+
+> El reto se planificó a 5 días y el core está completo y verificado; el plazo real de entrega deja margen. Esta fase lo invierte en **profundidad, no en anchura**: cerrar el mayor riesgo declarado (auth, referencia §8.3), convertir las verificaciones manuales en repetibles, y demostrar con un diff dos costuras que hoy son afirmaciones. **Reglas heredadas**: ninguna feature sin su spec (se escribe primero), suite entera en verde tras cada una, y la sesión registrada en `03-proceso/` **al cerrarla, no al final** — que es exactamente como la regla 2 se dejó de cumplir la primera vez. **El orden de esta lista es la prioridad**: si el plazo llega antes que el final, lo no empezado vuelve a §7 con su diseño documentado (regla 3), y el gate de Fase 1 se re-ejecuta al cierre pase lo que pase.
+
+### 5.1 Auth real con identidad enchufable — ⏳ *(~1 día)*
+
+> Cierra el riesgo aceptado §8.3 (endpoints de admin sin protección) **sin inventar lo que no se puede saber**: el modelo de usuarios interno de la empresa. La línea divisoria es la misma dato/código de siempre, aplicada a la identidad — lo incognoscible (quién es usuario, cómo se autentica: SSO/LDAP/OIDC) queda detrás de un puerto; lo invariante (transporte y aplicación de la identidad) se construye ya.
+
+- ⏳ Spec `01-specs/features/07-autenticacion.md` + ADR: sesión de servidor en memoria vs JWT (revocable, cero secretos que gestionar, coherente con un solo proceso — el JWT stateless no aporta nada aquí y quita la revocación)
+- ⏳ Puerto **`IdentityProvider`** — `authenticate(usuario, password) → { nombre, rol } | null`. La implementación de hoy **es el mock actual** (cualquier usuario + `1111`, `ADMIN` → admin), declarado como siempre; sin tabla `users` y, por tanto, sin hashing que decidir en falso
+- ⏳ `POST /auth/login` (con rate limit básico) · `GET /auth/session` (rehidratación tras F5) · `POST /auth/logout` · cookie de sesión `httpOnly` + `SameSite=Strict`. CSRF: mismo origen por diseño (proxy, sin CORS) + comprobación de `Origin` en mutaciones
+- ⏳ El hook `onRequest` — la costura vacía desde el día 1 — **se rellena**: 401 sin sesión, y **el rol se comprueba en el backend**: `POST/PUT/DELETE /plans` y `?include_archived=true` → 403 si no admin
+- ⏳ Frontend: `lib/session.tsx` pregunta a la API en vez de derivar el rol localmente; `hasRole()` se mantiene; **el literal `"ADMIN"` desaparece de `frontend/src`** y su test guardián migra al backend
+- ⏳ Tests de integración: 401/403 por rol, flags de la cookie, logout, rate limit del login
+- ⏳ Docs: referencia §8, modelo de amenazas del README, y el recorte 2.1 se **estrecha** a lo único incognoscible: conectar el puerto al sistema de identidad real
+
+### 5.2 E2E con Playwright en CI — ⏳ *(~1 día)*
+
+> Las pantallas se verificaron conduciendo Chrome a mano (§3.3, §4): válido una vez, invisible en el siguiente push. Esto lo convierte en repetible.
+
+- ⏳ Smoke comercial: login → buscar → ficha → simular (**15 usuarios = 169,40 €**) → guardar → cambiar divisa (marcada como referencia) → historial
+- ⏳ Smoke admin: editar plan → versión nueva activa → **la simulación guardada no cambia** y el cliente antiguo mantiene su tarifa
+- ⏳ Chequeo de accesibilidad automatizado (axe-core) en las pantallas críticas — hoy solo el contraste AA tiene test
+- ⏳ En CI contra la app real: backend + `npm run preview` con la **CSP estricta** — una violación de CSP también revienta aquí, no en un despliegue
+
+### 5.3 Segundo validador fiscal: `PT_NIF` — ⏳ *(~media jornada)*
+
+> No contradice el recorte 2.6 («la mayoría de países nunca lo tendrán»): lo **demuestra**. El argumento entero del registro de estrategias — "añadir un país = una clase + una entrada + rellenar la columna, cero cambios en endpoints" — pasa de afirmación a hecho verificable en un diff que el evaluador puede leer en un minuto.
+
+- ⏳ `PortugueseTaxIdValidator` (NIF de 9 dígitos, mod 11) + entrada `PT_NIF` en el registro + `tax_id_scheme` de PT en el seed + batería de tests válidos/inválidos
+- ⏳ Verificar que el hint del alta y el chip «validado» aparecen para Portugal **sin tocar ni un componente** — eso es la prueba
+
+### 5.4 Presupuesto imprimible — ⏳ *(~media jornada)*
+
+> Valor directo para el usuario real: el comercial que hoy explica el número por teléfono puede entregarlo en papel o PDF. Una hoja `@media print` para la simulación —desglose, fecha, divisa de facturación y quién lo emitió— y el diálogo de imprimir del navegador. **Sin librerías de PDF ni generación en servidor** (→ §5.5).
+
+### 5.5 Evaluado y descartado para esta fase
+
+Con días extra, la tentación es rellenarlos. Lo que se consideró y **no** entra, para que conste que fue decisión y no olvido — la justificación completa de cada uno vive en [`recortes-conscientes.md`](./03-proceso/recortes-conscientes.md):
+
+| Propuesta | Por qué no entra ni con margen | Razonado en |
+|---|---|---|
+| `docker-compose` | Sigue sin haber servicios de sistema que orquestar; añadiría fricción al evaluador, no se la quitaría | recortes §4.1, ADR 0008 |
+| Cruzada de divisas (`USD→GBP`) | Todos los planes siguen siendo EUR; es una división el día que haga falta | recortes §3 |
+| FTS5 / tildes en el buscador | El scan sigue siendo submilisegundo a esta escala; ambos esperan al mismo día | recortes §3 |
+| Modelos `volume` / `flat` | Sigue sin existir un plan que los necesite: sería código para un futuro imaginado | recortes §2.5 |
+| Panel de administración de impuestos | Rompería el supuesto declarado de caché-hasta-reinicio para una operación que ocurre una vez por década | recortes §2.8 |
+| Generación de PDF en servidor | Una dependencia pesada (headless browser o librería) para lo que `@media print` resuelve | §5.4 |
+| Validación de plantilla en `@saas/pricing` | Bajarla es cómo un paquete compartido se convierte en vertedero | recortes §3 |
+
+## 6. Entrega ✅
 
 - ✅ Repo público con `/ai-workspace` en la raíz: [JCDiaz03/Roams_SaaS](https://github.com/JCDiaz03/Roams_SaaS)
 - ✅ Verificación del README en máquina limpia: clon → `npm install` (0 vulnerabilidades) → `npm run dev` → **15 usuarios = 169,40 €**, sin ningún paso manual de base de datos. Se ejecutó como gate de la Fase 1 (§3.4) y vale como verificación de entrega
 - ✅ Revisión de `/ai-workspace`: 6 specs de feature, contrato de API, modelo de datos, directrices, 8 ADRs con sus alternativas descartadas, 9 sesiones, 3 auditorías y los recortes conscientes
+- ⏳ **Re-verificación en máquina limpia al cierre de la Fase 3** (→ §5): el gate de §3.4 otra vez, antes de la entrega real — el margen de plazo no puede costarle la robustez a lo ya verificado
+
+### Después de la entrega ✅
+
+> La entrega no cerró el repositorio. Esto no es una fase nueva: es revisión de lo ya entregado, y se registra aquí porque este documento rastrea **estado**, y el estado cambió.
+
+- ✅ **Contrato de salida blindado**: esquema `response` en las 11 rutas. Fastify serializa con `fast-json-stringify`, así que lo que no está en el esquema no sale: una fuga por un campo añadido sin querer pasa a ser inexpresable en vez de vigilada
+- ✅ **El proxy de tipos recuerda el fallo**: con el proveedor caído, el tipo stale se sirve al instante en vez de reintentar y comerse el timeout en cada petición (→ referencia §9)
+- ✅ **Los precios del editor de planes usan el `minor_unit` de la divisa**: un plan en JPY guardaba ×100. El invariante estaba escrito (→ referencia §4.4) y la UI de admin no lo aplicaba — el tipo de defecto que solo aparece revisando lo entregado
+- ✅ Cinco arreglos más de frontend: el «Reintentar» del buscador reintenta de verdad, `PLAN_NAME_TAKEN` se pinta junto a su campo, avatares deduplicados en `ui/avatar.ts`, y `GET /rates` ya no se dispara en el login
+- ✅ **Seguridad, tras una revisión OWASP** que salió limpia dentro del modelo de amenazas declarado (→ referencia §14). Lo que faltaba estaba **fuera del código**:
+  - **Dependabot** vigila el lockfile sin esperar a un push, y el `npm audit` del CI corre además **por cron semanal**: una vulnerabilidad se publica cuando se publica, no cuando hay commits (→ referencia §14.3)
+  - **CodeQL** analiza *nuestro* código —no las dependencias, que ya cubre `audit`— en push/PR y semanalmente
+  - **Tope de 1 MB al cuerpo del proveedor de tipos**: el timeout acotaba el tiempo, no el volumen *dentro* de ese tiempo. El payload de un tercero no es de fiar (→ referencia §9)
+  - **`nosniff` y `Referrer-Policy` en toda respuesta**, de la API y de Vite. La CSP no va ahí: es del documento HTML y la envía Vite (→ referencia §14.2)
+- ✅ En verde: **204 tests** de backend (los 202 de §3.2 más los 2 del recuerdo de fallo) + **34** de frontend; typecheck, lint y build limpios
 
 ### Lo que queda fuera, y con qué cara
 
 **Nada de lo comprometido está a medias.** Lo que no está, no está por decisión y tiene su porqué escrito:
 
-- **La regla 2 no se cumplió** (`sesiones/` y `auditorias/` se transcribieron al final). Declarado en la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) y en §7.
-- **Lo diferido** (§6) sigue diferido, y ninguno bloquea nada: cada uno tiene su costura hecha.
+- **La regla 2 no se cumplió** (`sesiones/` y `auditorias/` se transcribieron al final). Declarado en la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) y en §8.
+- **Lo diferido** (§7) sigue diferido, y ninguno bloquea nada: cada uno tiene su costura hecha.
 - **Los recortes de implementación** viven en [`recortes-conscientes.md`](./03-proceso/recortes-conscientes.md): FTS5, tildes en el buscador, refresco proactivo de tipos, `/api/v1`, `docker-compose`.
+- **Lo evaluado y descartado para la Fase 3** — docker-compose, cruzada de divisas, FTS5, volume/flat, panel de impuestos… — está en §5.5: se consideró **otra vez** con el margen de plazo y se descartó otra vez, por las mismas razones.
 - **La CSP de desarrollo no defiende de un XSS** y se dice en el README en vez de dejar que parezca que sí (§3.4).
 
-## 6. Diferido (diseñado, no comprometido — solo documentación)
+## 7. Diferido (diseñado, no comprometido — solo documentación)
 
-- 🚫 Auth real (SSO/tokens): la costura existe (middleware + módulo de sesión); el modelo de usuario interno se define cuando se conozca el sistema de la empresa
+- 🚫 **Conexión al sistema de identidad corporativo** (SSO/OIDC/LDAP): la Fase 3 construye la sesión, el enforcement en backend y el puerto `IdentityProvider` (→ §5.1); lo que sigue diferido es la implementación del puerto contra el sistema real, que se define cuando se conozca. El diferido se **estrechó**: antes era "auth real" entero
 - 🚫 `VIESProvider` / reverse charge intracomunitario (la interfaz `TaxProvider` ya lo permite)
 - 🚫 Pasarela de pagos (lock del tipo de cambio en el instante del cobro)
 - 🚫 Planes con divisa de facturación ≠ EUR (price localization; la columna `currency` ya existe)
 - 🚫 Modelos de tarificación `volume` / `flat` (el Strategy ya deja el hueco)
 - 🚫 Consulta de existencia real del fiscal_id (AEAT/VIES) — no-objetivo explícito de la v1
-- 🚫 Validadores fiscales de otros países (`PT_NIF`, `FR_SIREN`…): el registro ya los admite con una clase + una entrada + rellenar `tax_id_scheme`
+- 🚫 Validadores fiscales del resto de países (`FR_SIREN`, `DE_USt`…): el registro ya los admite con una clase + una entrada + rellenar `tax_id_scheme`. La Fase 3 añade `PT_NIF` como demostración (→ §5.3); los demás siguen aquí
 - 🚫 `docker-compose`: sin dependencias de sistema que orquestar en v1 (SQLite es un fichero); útil cuando haya servicios reales (→ referencia §2.1)
 
-## 7. Riesgos del plan
+## 8. Riesgos del plan
 
 | Riesgo | Mitigación |
 |---|---|
-| La Fase 2 se come el día 5 y el core llega flojo | Regla 1: gate de Fase 1 obligatorio antes de abrirla. Si no hay tiempo, la Fase 2 entera pasa a §6 con su diseño documentado. **Funcionó**: el gate se ejecutó antes de abrir la Fase 2, y en verde |
+| La Fase 2 se come el día 5 y el core llega flojo | Regla 1: gate de Fase 1 obligatorio antes de abrirla. Si no hay tiempo, la Fase 2 entera pasa a §7 con su diseño documentado. **Funcionó**: el gate se ejecutó antes de abrir la Fase 2, y en verde |
+| La Fase 3 desestabiliza lo ya entregado y verificado | Reglas heredadas en §5: spec primero, suite entera en verde tras cada feature, orden de la lista = prioridad, lo no empezado vuelve a §7, y el gate de Fase 1 se re-ejecuta al cierre pase lo que pase |
+| El margen de plazo invita a ensanchar en vez de endurecer | §5.5: cada propuesta descartada, reevaluada con el margen y descartada otra vez por escrito. La Fase 3 solo profundiza (seguridad, verificación repetible, demostrar costuras) |
 | `/ai-workspace` queda vacío hasta el final | Regla 2: se alimenta por sesión, no al final. Es el 60 % de la nota. **No se cumplió**: las specs y los ADR sí se escribieron antes de programar (que es el grueso), pero `sesiones/` y `auditorias/` se transcribieron al final. Se declara en la nota de procedencia; `git log` lo enseñaría de todas formas |
 | El evaluador prueba el caso literal del enunciado y no cuadra | Seed del Plan A literal (10/8/5, cortes 10/50) + prueba manual del gate: 15 usuarios = 140 € + IVA |
 | README con fricción | Verificación en máquina limpia como tarea explícita (dos veces: gate y entrega) |
