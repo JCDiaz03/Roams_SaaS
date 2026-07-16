@@ -92,7 +92,7 @@
 - ✅ Verificado conduciendo la app: entrar como `ADMIN` → Administración → editar Ágora → plantilla incoherente rechazada **con el error en su fila** → arreglar y guardar → **v3 activa, v1 y v2 archivadas**, la simulación guardada sigue en 169,40 € con sus tramos de 10 €/8 €, y Nébula sigue apuntando a la v2
 - ✅ Registro del proceso en `/ai-workspace/03-proceso`: **9 sesiones** (una por commit, con el prompt literal y qué se rechazó) y **3 auditorías** de los defectos silenciosos. 🚫 **Incumple la regla 2**: se transcribió al final, no por sesión. El contenido es real y trazable a commits, y la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) lo declara en vez de disimularlo
 
-## 5. Fase 3 — Endurecimiento con el margen de plazo 🔵
+## 5. Fase 3 — Endurecimiento con el margen de plazo ✅
 
 > El reto se planificó a 5 días y el core está completo y verificado; el plazo real de entrega deja margen. Esta fase lo invierte en **profundidad, no en anchura**: cerrar el mayor riesgo declarado (auth, referencia §8.3), convertir las verificaciones manuales en repetibles, y demostrar con un diff dos costuras que hoy son afirmaciones. **Reglas heredadas**: ninguna feature sin su spec (se escribe primero), suite entera en verde tras cada una, y la sesión registrada en `03-proceso/` **al cerrarla, no al final** — que es exactamente como la regla 2 se dejó de cumplir la primera vez. **El orden de esta lista es la prioridad**: si el plazo llega antes que el final, lo no empezado vuelve a §7 con su diseño documentado (regla 3), y el gate de Fase 1 se re-ejecuta al cierre pase lo que pase.
 
@@ -158,7 +158,7 @@ Con días extra, la tentación es rellenarlos. Lo que se consideró y **no** ent
 - ✅ Repo público con `/ai-workspace` en la raíz: [JCDiaz03/Roams_SaaS](https://github.com/JCDiaz03/Roams_SaaS)
 - ✅ Verificación del README en máquina limpia: clon → `npm install` (0 vulnerabilidades) → `npm run dev` → **15 usuarios = 169,40 €**, sin ningún paso manual de base de datos. Se ejecutó como gate de la Fase 1 (§3.4) y vale como verificación de entrega
 - ✅ Revisión de `/ai-workspace`: 6 specs de feature, contrato de API, modelo de datos, directrices, 8 ADRs con sus alternativas descartadas, 9 sesiones, 3 auditorías y los recortes conscientes
-- ⏳ **Re-verificación en máquina limpia al cierre de la Fase 3** (→ §5): el gate de §3.4 otra vez, antes de la entrega real — el margen de plazo no puede costarle la robustez a lo ya verificado
+- ✅ **Re-verificación en máquina limpia al cierre de la Fase 3** (→ §5): clon limpio → `npm install` (0 vulnerabilidades) → `npm run dev` siguiendo solo el README → el `.db` se crea y siembra solo (con PT y los 5 clientes) → login con sesión real → **15 usuarios = 140 € + 21 % = 169,40 €** → frontend sirviendo. El margen de plazo no le costó la robustez a lo ya verificado
 
 ### Después de la entrega ✅
 
