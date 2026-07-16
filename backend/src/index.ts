@@ -1,6 +1,7 @@
 // Arranque: seed si no existe el .db, carga countries en memoria, listen. Spec: 2.1
 
 import { config } from './config'
+import { MockIdentityProvider } from './domain/auth/mock-identity.provider'
 import { OpenErApiProvider } from './features/rates/rates.provider'
 import { RatesService } from './features/rates/rates.service'
 import { ensureDatabase } from './infra/seed'
@@ -25,6 +26,9 @@ async function main(): Promise<void> {
     countries,
     taxProvider: new StandardCountryRateProvider(countries),
     ratesService: new RatesService(new OpenErApiProvider(config.ratesUrl)),
+    // Credenciales de demostracion sobre sesion REAL: la estructura es la definitiva,
+    // el proveedor es lo unico que se sustituye al conocer el IdP de la empresa.
+    identityProvider: new MockIdentityProvider(),
     logger: true,
   })
 

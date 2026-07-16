@@ -2,7 +2,7 @@
 
 Herramienta interna para el equipo comercial: registrar clientes corporativos, simular su consumo (usuarios, almacenamiento, llamadas API) y obtener presupuestos mensuales de suscripción, visualizables en varias divisas.
 
-> **Estado: completo.** Motor de tarificación, validación fiscal, API, las 5 pantallas y la administración de planes. **297 tests**, verificado de punta a punta conduciendo la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
+> **Estado: completo.** Motor de tarificación, validación fiscal, API, autenticación con sesión de servidor, las 5 pantallas y la administración de planes. **314 tests**, verificado de punta a punta conduciendo la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
 
 ## Arranque en local
 
@@ -20,7 +20,7 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 | Script (raíz) | Qué hace |
 |---|---|
 | `npm run dev` | Levanta backend (`:3000`) y frontend (`:5173`) a la vez |
-| `npm test` | Los 297 tests de los tres workspaces |
+| `npm test` | Los 314 tests de los tres workspaces |
 | `npm run seed` | Repuebla la base de datos (solo sobre una base vacía) |
 | `npm run lint` · `npm run typecheck` | Lo mismo que ejecuta el CI |
 | `npm run build -w frontend` + `npm run preview -w frontend` | Sirve el build en `:4173` **con la CSP estricta**. Es lo más parecido a producción que hay aquí (ver abajo) |
@@ -56,7 +56,7 @@ ai-workspace/      El proceso: specs, arquitectura y desarrollo con IA
 
 **Los tipos de cambio se consumen a través del backend**, no directamente desde el navegador. El enunciado dice que «la interfaz debe conectar con una API pública», y se cumple: la interfaz consume tipos de una API pública y el backend es una capa intermedia estándar (*cache-aside*). **La desviación de la letra es deliberada y el motivo es de negocio, no técnico**: con caché en el navegador, dos comerciales pueden cotizar al mismo cliente con tipos distintos el mismo día — uno abrió la pestaña ayer, el otro hoy. La caché de servidor garantiza que todo el equipo ve el mismo número a la misma hora. → [ADR 0004](./ai-workspace/02-arquitectura/decisiones.md).
 
-**La autenticación es un mock declarado y está fuera del modelo de amenazas.** La contraseña es `1111` y los endpoints de administración **no están protegidos**: cualquiera puede llamarlos. Es aceptable en una herramienta interna con el mock declarado; lo que no vale es *creerse* protegido. No se inventa hoy un modelo de usuarios porque no se conoce el sistema de identidad de la empresa. Lo que sí existe desde el día 1 es la **costura**: el rol se deriva una sola vez y hay un test que comprueba que el literal `"ADMIN"` aparece en un único fichero, que es lo que hace el mock sustituible en un módulo. → [ADR 0007](./ai-workspace/02-arquitectura/decisiones.md).
+**La autenticación es real; las credenciales son de demostración, y se declara.** El login abre una **sesión de servidor** (cookie `HttpOnly` + `SameSite=Strict`, revocable al instante), toda la API exige sesión y los endpoints de administración exigen rol admin **en el backend** (401/403 de verdad, no solo pantallas ocultas). Lo que sigue siendo de demostración es la verificación de credenciales (`1111`, pública): vive detrás del puerto `IdentityProvider`, porque no se conoce el sistema de identidad de la empresa y conectarlo será **una implementación más de ese puerto**, sin tocar sesión, rutas ni frontend. Dos tests vigilan que el literal `"ADMIN"` viva en un único fichero del backend y en ninguno del frontend. Las sesiones viven en memoria: reiniciar el servidor es volver a entrar. → [ADR 0007 y 0009](./ai-workspace/02-arquitectura/decisiones.md).
 
 **El preview del simulador es híbrido.** Se calcula en local, a 0 ms y sin red, con **la misma función pura** que ejecuta el servidor (`@saas/pricing`, importado por los dos): no existen dos implementaciones que puedan divergir. Al guardar, el backend recalcula desde cero y **su número manda**. → [ADR 0003](./ai-workspace/02-arquitectura/decisiones.md).
 

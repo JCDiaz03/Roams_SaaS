@@ -11,11 +11,11 @@ afterEach(async () => {
   await h.close()
 })
 
-const get = (qs = '') => h.app.inject({ method: 'GET', url: `/api/plans${qs}` })
-const post = (payload: Record<string, unknown>) => h.app.inject({ method: 'POST', url: '/api/plans', payload })
+const get = (qs = '') => h.inject({ method: 'GET', url: `/api/plans${qs}` })
+const post = (payload: Record<string, unknown>) => h.inject({ method: 'POST', url: '/api/plans', payload })
 const put = (id: number, payload: Record<string, unknown>) =>
-  h.app.inject({ method: 'PUT', url: `/api/plans/${id}`, payload })
-const del = (id: number) => h.app.inject({ method: 'DELETE', url: `/api/plans/${id}` })
+  h.inject({ method: 'PUT', url: `/api/plans/${id}`, payload })
+const del = (id: number) => h.inject({ method: 'DELETE', url: `/api/plans/${id}` })
 
 const plantilla = (parcial: Record<string, unknown> = {}) => ({
   name: 'Plan Nuevo',
@@ -81,7 +81,7 @@ describe('POST /plans — crear', () => {
   it('aparece en el listado de activos y se puede usar en un alta', async () => {
     const nuevo = (await post(plantilla())).json()
 
-    const alta = await h.app.inject({
+    const alta = await h.inject({
       method: 'POST',
       url: '/api/customers',
       payload: {
@@ -180,7 +180,7 @@ describe('PUT /plans/{id} — "editar" es versionar', () => {
 
     await put(v2, plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 9999 }] }))
 
-    const detalle = (await h.app.inject({ method: 'GET', url: `/api/customers/${nebula}` })).json()
+    const detalle = (await h.inject({ method: 'GET', url: `/api/customers/${nebula}` })).json()
     expect(detalle.plan.id).toBe(v2)
     expect(detalle.plan.version).toBe(2)
     expect(detalle.plan.active).toBe(false)
@@ -193,7 +193,7 @@ describe('PUT /plans/{id} — "editar" es versionar', () => {
     // contrato presente (referencia 11.2, 5.5).
     const nebula = customerId(h.db, 'Nébula Cloud S.L.')
     const antes = (
-      await h.app.inject({
+      await h.inject({
         method: 'POST',
         url: '/api/simulations',
         payload: { customer_id: nebula, active_users: 15, storage_gb: 0, api_calls: 0 },
@@ -206,7 +206,7 @@ describe('PUT /plans/{id} — "editar" es versionar', () => {
     )
 
     const historial = (
-      await h.app.inject({ method: 'GET', url: `/api/customers/${nebula}/simulations` })
+      await h.inject({ method: 'GET', url: `/api/customers/${nebula}/simulations` })
     ).json().simulations
 
     expect(historial[0].total_minor).toBe(antes.total_minor)
@@ -221,7 +221,7 @@ describe('PUT /plans/{id} — "editar" es versionar', () => {
       plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 9999 }] }),
     )
 
-    const nueva = await h.app.inject({
+    const nueva = await h.inject({
       method: 'POST',
       url: '/api/simulations',
       payload: { customer_id: nebula, active_users: 15, storage_gb: 0, api_calls: 0 },
@@ -271,7 +271,7 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
     const nebula = customerId(h.db, 'Nébula Cloud S.L.')
     await del(planId(h.db, 'Plan Ágora', 2))
 
-    const sim = await h.app.inject({
+    const sim = await h.inject({
       method: 'POST',
       url: '/api/simulations',
       payload: { customer_id: nebula, active_users: 15, storage_gb: 0, api_calls: 0 },
@@ -292,7 +292,7 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
     const v2 = planId(h.db, 'Plan Ágora', 2)
     await del(v2)
 
-    const alta = await h.app.inject({
+    const alta = await h.inject({
       method: 'POST',
       url: '/api/customers',
       payload: {

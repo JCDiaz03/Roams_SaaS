@@ -12,7 +12,7 @@ afterEach(async () => {
 })
 
 const simular = (payload: Record<string, unknown>) =>
-  h.app.inject({ method: 'POST', url: '/api/simulations', payload })
+  h.inject({ method: 'POST', url: '/api/simulations', payload })
 
 const entradas = (parcial: Record<string, unknown> = {}) => ({
   customer_id: customerId(h.db, 'Nébula Cloud S.L.'),
@@ -168,7 +168,7 @@ describe('POST /simulations — persistencia', () => {
 
 describe('GET /customers/{id}/simulations — historial', () => {
   const historial = (id: number) =>
-    h.app.inject({ method: 'GET', url: `/api/customers/${id}/simulations` })
+    h.inject({ method: 'GET', url: `/api/customers/${id}/simulations` })
 
   it('cliente sin simulaciones -> 200 con lista vacia', async () => {
     const r = await historial(customerId(h.db, 'Talleres Duero'))
@@ -225,7 +225,7 @@ describe('paridad preview/persistencia — cinturon y tirantes', () => {
     const id = customerId(h.db, 'Meridian Data Ltd.')
 
     // Lo que el frontend tiene: el detalle del cliente, en una sola peticion.
-    const detalle = (await h.app.inject({ method: 'GET', url: `/api/customers/${id}` })).json()
+    const detalle = (await h.inject({ method: 'GET', url: `/api/customers/${id}` })).json()
 
     for (const [users, gb, api] of [
       [0, 0, 0],

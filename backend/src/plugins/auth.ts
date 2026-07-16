@@ -1,31 +1,78 @@
-// Middleware de auth (mock declarado): la costura existe desde el dia 1. Spec: 8.2
+// El hook de auth, relleno: sesion obligatoria, rol por config de ruta, cinturon anti-CSRF. Spec: 07-autenticacion.md 5
 
 import type { FastifyInstance } from 'fastify'
+import type { Identity, Rol } from '../domain/auth/identity-provider'
+import { sidDe } from '../features/auth/auth.cookie'
+import type { SessionStore } from '../features/auth/auth.sessions'
+import { AppError } from './error-handler'
+
+declare module 'fastify' {
+  interface FastifyRequest {
+    /** La identidad de la sesion. Poblada por el hook; null solo en rutas publicas. */
+    identity: Identity | null
+  }
+  interface FastifyContextConfig {
+    /** true = no exige sesion. La unica es POST /auth/login. */
+    publica?: boolean
+    /** El rol que la ruta exige, declarado como el esquema: visible en code review. */
+    requiereRol?: Rol
+  }
+}
+
+const MUTACIONES = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
 
 /**
- * LA COSTURA DE AUTH. Hoy no valida nada, y es deliberado (referencia 8.2, regla 3).
+ * LA COSTURA DE AUTH, RELLENA. Este hook estuvo vacio desde el dia 1 con un comentario
+ * que decia "aqui se enchufara la validacion real": esto es ese enchufe (ADR 0009). La
+ * verificacion de credenciales sigue detras del puerto IdentityProvider; lo que hay aqui
+ * es lo INVARIANTE, que no cambia decida lo que decida la empresa sobre su IdP.
  *
- * NO LO BORRES PORQUE PAREZCA CODIGO MUERTO: es lo contrario. Es la diferencia entre
- * "hay que anadir auth" -buscar donde, tocar cada ruta, arriesgarse a olvidar una- y
- * "hay que rellenar esta funcion".
+ * Tres comprobaciones, en este orden:
  *
- * Por que un mock y no auth de verdad (referencia 8.2): no se conocen ni los datos ni el
- * sistema de identidad interno de la empresa. Inventar hoy un modelo de usuarios costaria
- * mas que anadirlo cuando se conozca, y casi con certeza seria el modelo equivocado. Por
- * eso aqui no hay una forma de token a medio adivinar.
- *
- * RIESGO ACEPTADO Y DECLARADO (referencia 8.3, 14.3): los endpoints de administracion NO
- * estan protegidos. Cualquiera puede llamarlos directamente. Es aceptable en una
- * herramienta interna con el mock declarado; lo que no vale es CREERSE protegido. Por eso
- * los planes de admin cuelgan de `GET /plans?include_archived=true` y no de un `/admin/*`
- * que solo daria ilusion de seguridad. El README lo declara fuera del modelo de amenazas.
- *
- * Cuando llegue el auth real, aqui dentro va: leer la cabecera, validar el token contra
- * el sistema de la empresa, colgar la identidad de `req` y rechazar con 401 si no cuadra.
- * Ninguna ruta de contrato-api.md cambia.
+ *  1. Cinturon anti-CSRF: una mutacion cuyo Origin no es el propio host se rechaza. Los
+ *     tirantes son SameSite=Strict y el mismo origen por diseño (proxy, sin CORS); las
+ *     peticiones sin Origin (curl, tests, same-origin GET) pasan, porque el navegador
+ *     moderno SIEMPRE manda Origin en las mutaciones cross-site.
+ *  2. Sesion: todo lo que no sea publico exige sesion viva -> 401. Herramienta interna:
+ *     no hay lecturas anonimas que justificar.
+ *  3. Rol: si la ruta declara `requiereRol` y la sesion no lo tiene -> 403. El gating
+ *     visual del frontend sigue existiendo, pero ahora es UX sobre una autorizacion
+ *     real, no en vez de ella.
  */
-export function registerAuth(app: FastifyInstance): void {
-  app.addHook('onRequest', async () => {
-    // Intencionadamente vacio. Ver el bloque de arriba antes de tocar esto.
+export function registerAuth(app: FastifyInstance, deps: { sessions: SessionStore }): void {
+  app.decorateRequest('identity', null)
+
+  app.addHook('onRequest', async (req) => {
+    const origin = req.headers.origin
+    if (origin !== undefined && MUTACIONES.has(req.method)) {
+      let hostDeOrigin: string | null
+      try {
+        hostDeOrigin = new URL(origin).host
+      } catch {
+        // Un Origin imparseable (p. ej. el literal "null" de un contexto opaco) se trata
+        // como ajeno: rechazar es el unico comportamiento seguro.
+        hostDeOrigin = null
+      }
+
+      if (hostDeOrigin === null || hostDeOrigin !== req.headers.host) {
+        throw new AppError(403, 'AUTH_FORBIDDEN', 'La petición no viene de esta aplicación.')
+      }
+    }
+
+    // El not-found handler tambien pasa por aqui y no trae config de ruta.
+    const config = req.routeOptions.config ?? {}
+    if (config.publica === true) return
+
+    const sid = sidDe(req.headers.cookie)
+    const identity = sid === null ? null : deps.sessions.get(sid)
+    if (identity === null) {
+      throw new AppError(401, 'AUTH_REQUIRED', 'Tu sesión ha caducado. Vuelve a entrar.')
+    }
+
+    req.identity = identity
+
+    if (config.requiereRol !== undefined && identity.rol !== config.requiereRol) {
+      throw new AppError(403, 'AUTH_FORBIDDEN', 'Tu usuario no puede hacer esta operación.')
+    }
   })
 }

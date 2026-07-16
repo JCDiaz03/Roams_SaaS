@@ -303,37 +303,36 @@ Al ser B2B, el **CIF será el caso mayoritario** → el mejor testeado. Batería
 
 ---
 
-## 8. Autenticación `(mock declarado)`
+## 8. Autenticación: sesión real, identidad enchufable
 
 ### 8.1 Comportamiento
 
-- Pantalla de login: usuario + contraseña. Contraseña siempre `1111`; cualquier otra → error.
-- Cualquier nombre de usuario → dashboard saluda "Hola {nombre}"; el nombre queda disponible para presupuestos.
-- Usuario `ADMIN` → se muestran además los paneles de administración (crear/archivar planes).
-- Cerrar sesión → limpia la sesión y vuelve al login.
+- Pantalla de login: usuario + contraseña. Credenciales de **demostración** (declaradas en pantalla): cualquier usuario con `1111`; el usuario `ADMIN` obtiene rol admin.
+- El login abre una **sesión de servidor** (cookie `HttpOnly` + `SameSite=Strict`, caducidad absoluta de 12 h); el dashboard saluda "Hola {nombre}" y un F5 no pierde la sesión (`GET /auth/session` rehidrata).
+- **Toda la API exige sesión** salvo el propio login (`401 AUTH_REQUIRED`); las rutas de administración exigen además rol admin (`403 AUTH_FORBIDDEN`). Detalle → `features/07-autenticacion.md`.
+- Cerrar sesión revoca en el servidor (la cookie deja de valer al instante) y vuelve al login.
 
-### 8.2 Por qué mock, y por qué no genera deuda
+### 8.2 La línea que parte el auth en dos
 
-**Contexto**: no se conocen ni los datos ni el sistema de identidad interno de la empresa. Inventar ahora un modelo de usuarios (tablas de roles, `sales_rep_id`) costaría más que añadirlo cuando se conozca. El objetivo del mock es **demostrar el flujo** (ventanas condicionadas por rol) con la **costura de sustitución ya construida**.
+**Contexto**: no se conocen ni los datos ni el sistema de identidad interno de la empresa, y eso no ha cambiado. Lo que se hace es partir la feature por la línea dato/código de siempre, aplicada a la identidad (→ ADR 0009):
 
-La deuda no depende de que el auth sea falso, sino de **dónde vive la comprobación de rol**:
+- **Lo incognoscible** —quién es usuario, cómo se autentica de verdad (SSO/LDAP/OIDC)— vive detrás del puerto **`IdentityProvider`** (`authenticate(usuario, password) → { nombre, rol } | null`). La implementación de hoy es la de demostración; conectar el sistema real = **otra implementación del puerto**, cero cambios en sesión, rutas o enforcement.
+- **Lo invariante** —cómo viaja la identidad, dónde vive la sesión, quién aplica el rol— está construido y es definitivo: no depende de nada que la empresa tenga que contarnos.
 
-- ❌ `if (usuario === "ADMIN")` esparcido por 20 componentes → eso sí es deuda.
-- ✅ El login deriva **una vez** una sesión `{ nombre, rol }` (`'admin' | 'sales'`); los componentes preguntan `hasRole('admin')` → cambiar el mock por auth real = sustituir **un módulo**. Deuda ≈ 0.
+Reglas concretas que se conservan del diseño original:
+1. El rol lo deriva **el servidor, una sola vez, en el login**. `"ADMIN"` aparece una única vez en el sistema (el `MockIdentityProvider`) y **cero** en el frontend; dos tests lo vigilan.
+2. Los componentes preguntan `hasRole('admin')`; el gating visual es UX **sobre** la autorización real del backend, no en vez de ella.
+3. La divisa de visualización y el tema siguen siendo estado del cliente: preferencias del rato de trabajo, no identidad.
+4. Sigue sin haber tablas de usuarios ni hash de contraseñas: no hay usuarios que modelar hasta conocer el IdP.
 
-Reglas concretas:
-1. El rol se calcula **una sola vez, en el login**. `"ADMIN"` no se vuelve a comparar como string en ningún otro sitio.
-2. El nombre vive en un contexto/estado de sesión; muere al cerrar sesión.
-3. La **costura en backend (middleware de auth) existe desde el día 1**, aunque hoy no valide nada: es el punto donde se enchufará la validación real de tokens.
-4. No se crean todavía tablas de roles ni columnas de usuario interno.
+### 8.3 Riesgos: cerrados y restantes
 
-### 8.3 Riesgos aceptados conscientemente
+1. ~~Un rol comprobado solo en frontend no es seguridad~~ — **cerrado**: los endpoints de admin devuelven 401/403 en el backend, con el CSRF cubierto por `SameSite=Strict` + comprobación de `Origin` en mutaciones.
+2. **La credencial `1111` es pública y se declara**: el sistema es "seguridad real con credenciales de demostración". La estructura (sesión, revocación, rate limit del login) es la definitiva; el secreto no lo es y no se pretende.
+3. **El nombre en presupuestos sigue sin ser auditable**: la identidad no se verifica contra ningún sistema. Se cierra el día del IdP real (→ diferido).
+4. Las sesiones viven en memoria y **mueren al reiniciar el servidor**: volver a entrar. Mismo criterio que la caché de tipos (§9).
 
-1. **Un rol comprobado solo en frontend no es seguridad**: cualquiera puede llamar a los endpoints de admin directamente. Aceptable en herramienta interna con mock declarado; lo que no vale es *creerse* protegido.
-2. La contraseña hardcodeada es visible en el código del cliente. Aceptable como mock etiquetado.
-3. El nombre en presupuestos no es auditable si es texto libre. Con auth real, "quién emitió esto" es una identidad, no un campo tecleado.
-
-→ El README declara el mock como fuera del modelo de amenazas (→ §14).
+→ El README declara el estado tal cual: qué protege de verdad y qué es demostración (→ §14).
 
 ---
 
@@ -400,7 +399,7 @@ Como los planes son datos editables (con panel admin, editables **en caliente**)
 - `GET /customers?search=...` — Buscador por nombre o fiscal_id.
 - `GET /customers/{id}` — Detalle. **Embebe el plan del cliente con sus tramos** (aunque esté archivado — un cliente puede apuntar a una versión antigua, §5.5) **y el `tax_rate_bp` de su país**: todo lo que el preview local necesita en una sola petición (§10).
 - `GET /customers/{id}/simulations` — Historial (cards).
-- `GET /plans` — Planes **activos** con sus tramos: listados y alta de clientes. Acepta **`?include_archived=true`** para el panel de administración (Ventana 6) — parámetro y no endpoint aparte porque su único consumidor es el admin y el gating por rol es UX declarada, no seguridad (§8.3). El plan de un cliente concreto se obtiene por su detalle, no por aquí.
+- `GET /plans` — Planes **activos** con sus tramos: listados y alta de clientes. Acepta **`?include_archived=true`** para el panel de administración (Ventana 6) — parámetro y no endpoint aparte porque el recurso es el mismo; el parámetro exige rol admin **de verdad** (403, §8.3). El plan de un cliente concreto se obtiene por su detalle, no por aquí.
 - `GET /rates` — Proxy de divisas (§9).
 
 **Admin**
@@ -456,9 +455,9 @@ Herramienta interna sin datos de pago; el modelo de amenazas es acotado y **expl
 - **Fuga de información (tu stack trace)**: gestor de errores de producción devuelve mensajes genéricos con código; el detalle va al log del servidor, nunca al cliente.
 
 ### 14.3 Riesgos aceptados y documentados
-- **Auth mock** (§8.3): los endpoints de admin no están protegidos de verdad. Fuera del modelo de amenazas de la v1; la costura de sustitución existe.
-- **Cadena de suministro npm**: dependencias mínimas, lockfile commiteado, `npm audit` en CI.
-- El rol condicionado solo en frontend **es UX, no seguridad** (§8.3).
+- **Credenciales de demostración** (§8.3): la sesión, la revocación y el 401/403 de los endpoints de admin son reales; lo que no verifica nada es el `IdentityProvider` de demostración (`1111`, pública y declarada). El nombre en presupuestos no es auditable hasta conectar el IdP real.
+- **Cadena de suministro npm**: dependencias mínimas, lockfile commiteado, `npm audit` en CI + cron, Dependabot y CodeQL.
+- La cookie de sesión va **sin `Secure` en local** (no hay HTTPS); detrás de un proxy TLS se añade.
 
 ---
 

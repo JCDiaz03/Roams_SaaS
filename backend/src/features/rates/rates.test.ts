@@ -12,7 +12,7 @@ afterEach(async () => {
   await h.close()
 })
 
-const get = () => h.app.inject({ method: 'GET', url: '/api/rates' })
+const get = () => h.inject({ method: 'GET', url: '/api/rates' })
 
 const enUnaHora = () => new Date(Date.now() + 60 * 60 * 1000).toISOString()
 const haceUnaHora = () => new Date(Date.now() - 60 * 60 * 1000).toISOString()
@@ -141,7 +141,7 @@ describe('GET /rates — fallback', () => {
     h.rates.respuesta = new Error('ECONNREFUSED')
     expect((await get()).statusCode).toBe(503)
 
-    const sim = await h.app.inject({
+    const sim = await h.inject({
       method: 'POST',
       url: '/api/simulations',
       payload: { customer_id: 1, active_users: 15, storage_gb: 0, api_calls: 0 },
@@ -167,7 +167,7 @@ describe('GET /rates — el payload de un tercero no es de fiar', () => {
   })
 
   it('no acepta parametros: es lo que ancla el "sin SSRF"', async () => {
-    const r = await h.app.inject({ method: 'GET', url: '/api/rates?base=USD' })
+    const r = await h.inject({ method: 'GET', url: '/api/rates?base=USD' })
 
     // Ninguna entrada del usuario puede llegar a componer la URL saliente, porque la ruta
     // no tiene entrada. El parametro extra ni se mira.

@@ -71,6 +71,9 @@ export type Rates = {
   stale: boolean
 }
 
+/** La sesion tal y como la cuenta el servidor. El rol YA VIENE derivado (spec 07). */
+export type SesionApi = { nombre: string; rol: 'admin' | 'sales' }
+
 // --- Errores --------------------------------------------------------------------------
 
 /**
@@ -105,6 +108,17 @@ export class NetworkError extends Error {
   }
 }
 
+/**
+ * Aviso de sesion caducada. La registra el SessionProvider: cuando cualquier llamada
+ * devuelve 401 AUTH_REQUIRED, la sesion local se limpia y la app vuelve al login. Un
+ * callback de modulo y no un contexto: el cliente API no es un componente.
+ */
+let alCaducarSesion: (() => void) | null = null
+
+export function onSesionCaducada(fn: () => void): void {
+  alCaducarSesion = fn
+}
+
 async function pedir<T>(path: string, init?: RequestInit): Promise<T> {
   let respuesta: Response
   try {
@@ -131,6 +145,11 @@ async function pedir<T>(path: string, init?: RequestInit): Promise<T> {
     if (e === undefined) throw new NetworkError()
 
     const { code, message, field, ...extra } = e
+
+    // Solo AUTH_REQUIRED (la sesion caduco o no existe), NO el 401 del login: unas
+    // credenciales mal tecleadas no deben "cerrar la sesion" de nadie.
+    if (respuesta.status === 401 && code === 'AUTH_REQUIRED') alCaducarSesion?.()
+
     throw new ApiError(
       respuesta.status,
       String(code),
@@ -146,6 +165,15 @@ async function pedir<T>(path: string, init?: RequestInit): Promise<T> {
 // --- La API ---------------------------------------------------------------------------
 
 export const api = {
+  // --- Auth (spec 07). La cookie de sesion viaja sola: fetch es same-origin. ---------
+  auth: {
+    login: (usuario: string, password: string) =>
+      pedir<SesionApi>('/auth/login', { method: 'POST', body: JSON.stringify({ usuario, password }) }),
+    /** Quien soy, para rehidratar tras un F5. 401 = no hay nadie, no un error. */
+    session: () => pedir<SesionApi>('/auth/session'),
+    logout: () => pedir<undefined>('/auth/logout', { method: 'POST' }),
+  },
+
   countries: () => pedir<{ countries: Country[] }>('/countries').then((r) => r.countries),
 
   plans: (includeArchived = false) =>

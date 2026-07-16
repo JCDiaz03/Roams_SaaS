@@ -1,7 +1,8 @@
-// La costura del auth mock: el rol se deriva UNA vez. Spec: 15, referencia 8.2
+// Guardianes de la costura de sesion: el rol lo deriva el SERVIDOR. Spec: 07-autenticacion.md 8
 //
 // El grueso de esta feature es una decision de diseno, no un algoritmo. Los tests que
-// valen aqui son los que protegen LA COSTURA, no el mock.
+// valen aqui son los que protegen LA COSTURA: que nadie vuelva a derivar el rol en el
+// cliente ni a comparar strings fuera de la sesion.
 
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join, relative } from 'node:path'
@@ -31,21 +32,18 @@ function soloCodigo(contenido: string): string {
   return contenido.replace(/\/\*[\s\S]*?\*\//g, '').replace(/\/\/.*$/gm, '')
 }
 
-describe('el literal "ADMIN" vive en un solo sitio', () => {
-  it('aparece exactamente una vez en todo frontend/src', () => {
-    // ES EL TEST QUE IMPORTA DE ESTA FEATURE. Los demas comprueban que el mock funciona;
-    // este comprueba que SIGUE SIENDO SUSTITUIBLE EN UN MODULO, que es la unica razon por
-    // la que un mock es aceptable (referencia 8.2).
-    //
-    // Con `if (usuario === "ADMIN")` esparcido por veinte componentes, sustituir el mock
-    // significa encontrarlos y tocarlos todos, y el que se olvide no falla: deja de
-    // proteger, en silencio. Con la derivacion en un punto, es cambiar una funcion.
+describe('el literal "ADMIN" NO vive en el frontend', () => {
+  it('aparece cero veces en todo frontend/src', () => {
+    // Desde la spec 07 el rol lo deriva el SERVIDOR (el literal vive en el
+    // MockIdentityProvider del backend, con su propio guardian en auth.test.ts). Si el
+    // literal reaparece aqui, alguien ha vuelto a derivar el rol en el cliente: la misma
+    // deuda que el mock original evito, reintroducida con el auth ya real.
     const apariciones = ficherosFuente(SRC).flatMap((f) => {
       const contenido = soloCodigo(readFileSync(f, "utf8"))
       return [...contenido.matchAll(/'ADMIN'|"ADMIN"/g)].map(() => f)
     })
 
-    expect(apariciones.map((f) => relative(SRC, f).split('\\').join('/'))).toEqual(['lib/session.tsx'])
+    expect(apariciones.map((f) => relative(SRC, f).split('\\').join('/'))).toEqual([])
   })
 
   it('ningun componente compara el rol a mano: se pregunta con hasRole()', () => {

@@ -21,7 +21,11 @@ import styles from './routes.module.css'
  * defender nada.
  */
 export function AppRoutes() {
-  const { session, hasRole } = useSession()
+  const { session, hasRole, restaurando } = useSession()
+
+  // Mientras GET /auth/session decide si hay alguien (un F5 con la cookie viva), no se
+  // pinta nada: enseñar el login y sustituirlo al instante seria un parpadeo que miente.
+  if (restaurando) return null
 
   if (session === null) return <LoginPage />
 

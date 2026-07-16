@@ -18,10 +18,10 @@ type FilaPlan = {
 /**
  * Los planes con sus tramos.
  *
- * `includeArchived` es un PARAMETRO y no un endpoint aparte porque el gating por rol es
- * UX declarada, no seguridad (referencia 8.3): un `/admin/plans` sin auth real solo daria
- * ilusion de proteccion. Por defecto, solo activos: es lo que alimenta el selector del
- * alta, donde un plan archivado no debe aparecer.
+ * `includeArchived` es un PARAMETRO y no un endpoint aparte porque el recurso es el
+ * mismo; desde la spec 07 el parametro exige rol admin DE VERDAD (403 en la ruta), asi
+ * que la separacion /admin/* seguiria sin aportar nada. Por defecto, solo activos: es lo
+ * que alimenta el selector del alta, donde un plan archivado no debe aparecer.
  *
  * Una sola consulta de tramos para todos los planes, no una por plan: son cuatro filas
  * hoy, pero el N+1 se escribe igual de facil y se paga cuando ya no lo son.

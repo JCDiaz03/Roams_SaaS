@@ -20,12 +20,14 @@ El criterio que gobierna toda la lista es el mismo que rechaza los puertos de m�
 
 ## 2. Recortes de producto
 
-### 2.1 Auth real (SSO / tokens)
+### 2.1 Conexión al sistema de identidad corporativo (SSO / OIDC / LDAP)
 
-**Qué se pierde**: los endpoints de admin no están protegidos de verdad; el nombre en los presupuestos no es auditable.
-**Por qué se aplaza**: no se conocen ni los datos ni el sistema de identidad interno de la empresa. Inventar hoy un modelo de usuarios sería casi con certeza el modelo equivocado, y habría que tirarlo. → ADR 0007.
-**Coste de hacerlo el día que haga falta**: sustituir **un módulo** (`derivarSesion`) y rellenar el hook `onRequest` del backend. La costura existe desde el día 1 y el string `"ADMIN"` aparece una sola vez, con un test que lo vigila.
-**Cuándo deja de ser aceptable**: en cuanto la herramienta salga de la red interna, o en cuanto un presupuesto tenga valor contractual y "quién lo emitió" tenga que ser una identidad y no un campo tecleado.
+> **Este recorte se estrechó en la Fase 3** (→ ADR 0009): la sesión de servidor, la cookie `HttpOnly`, el rate limit del login y el rol aplicado en el backend (401/403) **ya están construidos**. La predicción original —"rellenar el hook y sustituir un módulo"— se ejecutó y se cumplió. Lo que sigue recortado es solo lo de abajo.
+
+**Qué se pierde**: la identidad no se verifica contra ningún sistema real — cualquiera con la credencial de demostración (pública y declarada) entra, y el nombre en los presupuestos sigue sin ser auditable.
+**Por qué se aplaza**: no se conocen ni los datos ni el sistema de identidad interno de la empresa. Implementar hoy un `OidcProvider` contra un IdP elegido a ciegas sería casi con certeza el equivocado, y habría que tirarlo. → ADR 0007, 0009.
+**Coste de hacerlo el día que haga falta**: **una implementación más del puerto `IdentityProvider`** y cambiar qué se inyecta en `index.ts`. Sesión, cookie, enforcement y frontend no se tocan; hay tests que fijan que el literal del usuario mágico vive en un solo módulo.
+**Cuándo deja de ser aceptable**: en cuanto la herramienta salga de la red interna, o en cuanto un presupuesto tenga valor contractual y "quién lo emitió" tenga que ser una identidad verificada y no un nombre tecleado.
 
 ### 2.2 `VIESProvider` / reverse charge intracomunitario
 

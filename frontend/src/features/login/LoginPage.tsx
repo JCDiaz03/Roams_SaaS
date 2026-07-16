@@ -9,24 +9,28 @@ import { IconLogo } from '../../ui/icons'
 import styles from './LoginPage.module.css'
 
 /**
- * El acceso mock. Diseno: limpio y neutro, SIN candados dramaticos ni escudos: no debe
- * aparentar una seguridad que no hay (diseno, ventana 1).
+ * El acceso. Desde la spec 07 el login es una peticion REAL (POST /auth/login): la
+ * sesion la abre el servidor y la cookie es HttpOnly. Lo que sigue siendo de
+ * demostracion son las credenciales, y se declaran abajo. Diseno: limpio y neutro, SIN
+ * candados dramaticos ni escudos (diseno, ventana 1).
  */
 export function LoginPage() {
   const { login, session, toggleTheme } = useSession()
 
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [enviando, setEnviando] = useState(false)
 
-  const enviar = (e: React.FormEvent) => {
+  const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
     setEnviando(true)
-    setError(false)
+    setError(null)
 
-    if (!login(usuario, password)) {
-      setError(true)
+    // El mensaje viene del servidor (credenciales, rate limit) o del cliente API (red).
+    const mensaje = await login(usuario, password)
+    if (mensaje !== null) {
+      setError(mensaje)
       setEnviando(false)
     }
     // Si entra, el enrutado cambia de pantalla y este componente se desmonta.
@@ -48,7 +52,7 @@ export function LoginPage() {
       </div>
 
       <Card className={styles.tarjeta}>
-        <form onSubmit={enviar} noValidate>
+        <form onSubmit={(e) => void enviar(e)} noValidate>
           <div className={styles.campo}>
             <label className={styles.label} htmlFor="usuario">
               Usuario
@@ -71,17 +75,17 @@ export function LoginPage() {
             <input
               id="password"
               type="password"
-              className={`${styles.input} ${error ? styles.inputError : ''}`}
+              className={`${styles.input} ${error !== null ? styles.inputError : ''}`}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="current-password"
-              aria-invalid={error}
-              aria-describedby={error ? 'login-error' : undefined}
+              aria-invalid={error !== null}
+              aria-describedby={error !== null ? 'login-error' : undefined}
             />
             {/* El error va JUNTO al campo, no en un alert generico (referencia 13.1). */}
-            {error && (
+            {error !== null && (
               <p className={styles.error} id="login-error" role="alert">
-                Usuario o contraseña incorrectos.
+                {error}
               </p>
             )}
           </div>
@@ -93,11 +97,11 @@ export function LoginPage() {
           </div>
         </form>
 
-        {/* El mock se DECLARA, no se disimula (referencia 8.3). Esconderlo seria fingir
-            una seguridad que no existe, y el evaluador lo va a ver en el codigo igual. */}
+        {/* Las credenciales de demostracion se DECLARAN, no se disimulan (spec 07, 7):
+            la sesion y los permisos son reales; lo unico simulado es quien puede entrar. */}
         <p className={styles.nota}>
-          Acceso simulado: cualquier usuario con la contraseña <strong>1111</strong>. Entra como{' '}
-          <strong>ADMIN</strong> para ver los paneles de administración.
+          Credenciales de demostración: cualquier usuario con la contraseña <strong>1111</strong>.
+          Entra como <strong>ADMIN</strong> para ver los paneles de administración.
         </p>
       </Card>
     </div>

@@ -92,21 +92,22 @@
 - ✅ Verificado conduciendo la app: entrar como `ADMIN` → Administración → editar Ágora → plantilla incoherente rechazada **con el error en su fila** → arreglar y guardar → **v3 activa, v1 y v2 archivadas**, la simulación guardada sigue en 169,40 € con sus tramos de 10 €/8 €, y Nébula sigue apuntando a la v2
 - ✅ Registro del proceso en `/ai-workspace/03-proceso`: **9 sesiones** (una por commit, con el prompt literal y qué se rechazó) y **3 auditorías** de los defectos silenciosos. 🚫 **Incumple la regla 2**: se transcribió al final, no por sesión. El contenido es real y trazable a commits, y la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) lo declara en vez de disimularlo
 
-## 5. Fase 3 — Endurecimiento con el margen de plazo ⏳
+## 5. Fase 3 — Endurecimiento con el margen de plazo 🔵
 
 > El reto se planificó a 5 días y el core está completo y verificado; el plazo real de entrega deja margen. Esta fase lo invierte en **profundidad, no en anchura**: cerrar el mayor riesgo declarado (auth, referencia §8.3), convertir las verificaciones manuales en repetibles, y demostrar con un diff dos costuras que hoy son afirmaciones. **Reglas heredadas**: ninguna feature sin su spec (se escribe primero), suite entera en verde tras cada una, y la sesión registrada en `03-proceso/` **al cerrarla, no al final** — que es exactamente como la regla 2 se dejó de cumplir la primera vez. **El orden de esta lista es la prioridad**: si el plazo llega antes que el final, lo no empezado vuelve a §7 con su diseño documentado (regla 3), y el gate de Fase 1 se re-ejecuta al cierre pase lo que pase.
 
-### 5.1 Auth real con identidad enchufable — ⏳ *(~1 día)*
+### 5.1 Auth real con identidad enchufable ✅
 
 > Cierra el riesgo aceptado §8.3 (endpoints de admin sin protección) **sin inventar lo que no se puede saber**: el modelo de usuarios interno de la empresa. La línea divisoria es la misma dato/código de siempre, aplicada a la identidad — lo incognoscible (quién es usuario, cómo se autentica: SSO/LDAP/OIDC) queda detrás de un puerto; lo invariante (transporte y aplicación de la identidad) se construye ya.
 
-- ⏳ Spec `01-specs/features/07-autenticacion.md` + ADR: sesión de servidor en memoria vs JWT (revocable, cero secretos que gestionar, coherente con un solo proceso — el JWT stateless no aporta nada aquí y quita la revocación)
-- ⏳ Puerto **`IdentityProvider`** — `authenticate(usuario, password) → { nombre, rol } | null`. La implementación de hoy **es el mock actual** (cualquier usuario + `1111`, `ADMIN` → admin), declarado como siempre; sin tabla `users` y, por tanto, sin hashing que decidir en falso
-- ⏳ `POST /auth/login` (con rate limit básico) · `GET /auth/session` (rehidratación tras F5) · `POST /auth/logout` · cookie de sesión `httpOnly` + `SameSite=Strict`. CSRF: mismo origen por diseño (proxy, sin CORS) + comprobación de `Origin` en mutaciones
-- ⏳ El hook `onRequest` — la costura vacía desde el día 1 — **se rellena**: 401 sin sesión, y **el rol se comprueba en el backend**: `POST/PUT/DELETE /plans` y `?include_archived=true` → 403 si no admin
-- ⏳ Frontend: `lib/session.tsx` pregunta a la API en vez de derivar el rol localmente; `hasRole()` se mantiene; **el literal `"ADMIN"` desaparece de `frontend/src`** y su test guardián migra al backend
-- ⏳ Tests de integración: 401/403 por rol, flags de la cookie, logout, rate limit del login
-- ⏳ Docs: referencia §8, modelo de amenazas del README, y el recorte 2.1 se **estrecha** a lo único incognoscible: conectar el puerto al sistema de identidad real
+- ✅ Spec `01-specs/features/07-autenticacion.md` + ADR 0009: sesión de servidor en memoria vs JWT (revocable, cero secretos que gestionar, coherente con un solo proceso — el JWT stateless no aporta nada aquí y quita la revocación)
+- ✅ Puerto **`IdentityProvider`** — `authenticate(usuario, password) → { nombre, rol } | null`. La implementación de hoy **es el mock de siempre** (cualquier usuario + `1111`, `ADMIN` → admin), declarado; sin tabla `users` y, por tanto, sin hashing que decidir en falso
+- ✅ `POST /auth/login` (rate limit: 10/min por IP → 429) · `GET /auth/session` (rehidratación tras F5: la sesión ya sobrevive a un F5, que antes la perdía) · `POST /auth/logout` (revocación inmediata) · cookie `HttpOnly` + `SameSite=Strict` + `Path=/api`, caducidad absoluta de 12 h, tope de 1.000 sesiones. CSRF: mismo origen por diseño + comprobación de `Origin` en mutaciones
+- ✅ El hook `onRequest` — la costura vacía desde el día 1 — **relleno**: 401 sin sesión en toda la API salvo el login, y el rol en el backend con `requiereRol: 'admin'` declarado en la ruta: `POST/PUT/DELETE /plans` y `?include_archived=true` → 403
+- ✅ Frontend: `lib/session.tsx` pregunta a la API; `hasRole()` intacto (los componentes no se enteraron: la costura del 0007 funcionó); **el literal `"ADMIN"` desapareció de `frontend/src`** — su guardián comprueba cero apariciones y el del backend exactamente una, en el `MockIdentityProvider`. Un 401 en cualquier llamada devuelve al login
+- ✅ **15 tests de integración nuevos** (login y flags de cookie, 401/403 por rol, Origin ajeno, revocación, caducidad a las 12 h, rate limit, guardián) — 219 de backend en total, **314** en el repo
+- ✅ Verificado contra el servidor real por HTTP: sin sesión → 401 · login mal → mensaje único · `sales` + `include_archived` → 403 · `sales` + DELETE plan → 403 · admin → 200 · `Origin` ajeno → 403 · logout → la misma cookie deja de valer
+- ✅ Docs: referencia §8 y §14.3 reescritos, contrato-api §1.6 + 4 códigos nuevos, README, la frase "el gating es UX, no seguridad" actualizada en sus tres sitios, recorte 2.1 estrechado, nota de superseded en `05-auth-mock.md`
 
 ### 5.2 E2E con Playwright en CI — ⏳ *(~1 día)*
 

@@ -1,6 +1,8 @@
 # Spec — Autenticación mock
 
 > **Capa SPEC de feature.** El porqué y los riesgos aceptados → `../idea-referencia.md` §8 completo. La pantalla → `../diseño-frontend.md` ventana 1 y topbar.
+>
+> **Superseded parcialmente por [`07-autenticacion.md`](./07-autenticacion.md)** (Fase 3): la costura del backend (§3.3) se rellenó —sesión de servidor, rol aplicado con 401/403— y la derivación del rol se mudó al `IdentityProvider` del backend. Siguen vigentes el comportamiento del login (§2, ahora como credenciales de demostración sobre sesión real) y el estado de sesión del cliente (§4, divisa y tema). Se conserva porque documenta la apuesta que la 07 comprobó: sustituir el mock costó un módulo.
 
 ---
 

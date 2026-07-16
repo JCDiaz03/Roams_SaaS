@@ -9,7 +9,9 @@
 // ciclo completo -esquema JSON, hooks, error handler, serializacion-. Es integracion de
 // verdad, no llamar al servicio a mano.
 
-import type { FastifyInstance } from 'fastify'
+import type { FastifyInstance, InjectOptions, LightMyRequestResponse } from 'fastify'
+import { MockIdentityProvider } from './domain/auth/mock-identity.provider'
+import { SessionStore } from './features/auth/auth.sessions'
 import { RatesService } from './features/rates/rates.service'
 import type { RatesPayload, RatesProvider } from './features/rates/rates.provider'
 import { openDb, type Db } from './infra/db'
@@ -42,6 +44,14 @@ export type Harness = {
   app: FastifyInstance
   db: Db
   rates: FakeRatesProvider
+  sessions: SessionStore
+  /**
+   * app.inject con la sesion admin del harness ya puesta. Los tests de feature usan
+   * esta; app.inject a pelo queda para los tests de auth, que ejercitan justo el caso
+   * sin sesion. La sesion se crea DIRECTAMENTE en el store (sin pasar por el login):
+   * el login tiene sus propios tests y aqui solo estorbaria un await por fichero.
+   */
+  inject: (opts: InjectOptions) => Promise<LightMyRequestResponse>
   close: () => Promise<void>
 }
 
@@ -52,18 +62,28 @@ export function crearHarness(): Harness {
 
   const countries = runStartupChecks(db)
   const rates = new FakeRatesProvider()
+  const sessions = new SessionStore()
 
   const app = buildServer({
     db,
     countries,
     taxProvider: new StandardCountryRateProvider(countries),
     ratesService: new RatesService(rates),
+    identityProvider: new MockIdentityProvider(),
+    sessions,
   })
+
+  // 'Evaluadora' a proposito: el literal del usuario administrador vive en el mock y en
+  // ningun otro sitio, y este fichero no es un .test que el guardian excluya.
+  const sid = sessions.create({ nombre: 'Evaluadora', rol: 'admin' })
 
   return {
     app,
     db,
     rates,
+    sessions,
+    inject: (opts: InjectOptions) =>
+      app.inject({ ...opts, cookies: { sid, ...(opts.cookies as Record<string, string> | undefined) } }),
     close: async () => {
       await app.close()
       db.close()

@@ -21,7 +21,7 @@ const alta = (parcial: Record<string, unknown> = {}) => ({
 })
 
 const post = (payload: Record<string, unknown>) =>
-  h.app.inject({ method: 'POST', url: '/api/customers', payload })
+  h.inject({ method: 'POST', url: '/api/customers', payload })
 
 describe('POST /customers — alta', () => {
   it('da de alta y devuelve el fiscal_id NORMALIZADO', async () => {
@@ -118,7 +118,7 @@ describe('POST /customers — errores', () => {
 })
 
 describe('GET /customers — buscador', () => {
-  const buscar = (qs: string) => h.app.inject({ method: 'GET', url: `/api/customers${qs}` })
+  const buscar = (qs: string) => h.inject({ method: 'GET', url: `/api/customers${qs}` })
 
   it('sin termino devuelve los recientes, NO un 400', async () => {
     const r = await buscar('')
@@ -176,7 +176,7 @@ describe('GET /customers — buscador', () => {
 })
 
 describe('GET /customers/{id} — detalle', () => {
-  const detalle = (id: number) => h.app.inject({ method: 'GET', url: `/api/customers/${id}` })
+  const detalle = (id: number) => h.inject({ method: 'GET', url: `/api/customers/${id}` })
 
   it('trae el plan con sus tramos y el tipo del pais en UNA peticion', async () => {
     // Es lo que hace posible el preview local: todo lo que quote() necesita, de una vez.
@@ -207,14 +207,14 @@ describe('GET /customers/{id} — detalle', () => {
   })
 
   it('id no numerico -> 400', async () => {
-    expect((await h.app.inject({ method: 'GET', url: '/api/customers/abc' })).statusCode).toBe(400)
+    expect((await h.inject({ method: 'GET', url: '/api/customers/abc' })).statusCode).toBe(400)
   })
 })
 
 describe('GET /countries', () => {
   it('trae el hint YA RESUELTO por el validador de cada pais', async () => {
     // Es lo que hace que el frontend nunca compare un codigo de pais.
-    const r = await h.app.inject({ method: 'GET', url: '/api/countries' })
+    const r = await h.inject({ method: 'GET', url: '/api/countries' })
     expect(r.statusCode).toBe(200)
 
     const { countries } = r.json() as { countries: { code: string; fiscal_id: { validated: boolean; hint: string } }[] }
@@ -226,7 +226,7 @@ describe('GET /countries', () => {
   })
 
   it('ordena alfabeticamente con locale espanol', async () => {
-    const r = await h.app.inject({ method: 'GET', url: '/api/countries' })
+    const r = await h.inject({ method: 'GET', url: '/api/countries' })
     const nombres = (r.json().countries as { name: string }[]).map((c) => c.name)
 
     expect(nombres).toEqual([...nombres].sort((a, b) => a.localeCompare(b, 'es')))

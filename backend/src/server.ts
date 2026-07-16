@@ -1,7 +1,10 @@
 // Construye la app Fastify: registro de features, error handler, auth. Spec: 2.1
 
 import Fastify, { type FastifyInstance } from 'fastify'
+import type { IdentityProvider } from './domain/auth/identity-provider'
 import type { TaxProvider } from './domain/tax/tax-provider'
+import { authRoutes } from './features/auth/auth.routes'
+import { SessionStore } from './features/auth/auth.sessions'
 import { countriesRoutes } from './features/countries/countries.routes'
 import { customersRoutes } from './features/customers/customers.routes'
 import { plansRoutes } from './features/plans/plans.routes'
@@ -18,6 +21,9 @@ export type ServerDeps = {
   countries: CountriesCache
   taxProvider: TaxProvider
   ratesService: RatesService
+  identityProvider: IdentityProvider
+  /** Inyectable para que el harness de tests pueda abrir sesiones sin pasar por HTTP. */
+  sessions?: SessionStore
   logger?: boolean
 }
 
@@ -44,8 +50,10 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
     },
   })
 
+  const sessions = deps.sessions ?? new SessionStore()
+
   registerErrorHandler(app)
-  registerAuth(app)
+  registerAuth(app, { sessions })
 
   // Cabeceras de endurecimiento en TODA respuesta de la API. nosniff impide que un
   // navegador reinterprete un JSON como otra cosa; la Referrer-Policy es gratis en una
@@ -63,6 +71,7 @@ export function buildServer(deps: ServerDeps): FastifyInstance {
     // Las dependencias van explicitas por feature, no en un objeto-dios: asi se lee de un
     // vistazo que toca cada una. `countries` no ve la base de datos; `rates` no ve nada
     // del dominio.
+    await scope.register(authRoutes({ identityProvider: deps.identityProvider, sessions }))
     await scope.register(countriesRoutes(deps.countries))
     await scope.register(customersRoutes({ db: deps.db, countries: deps.countries }))
     await scope.register(simulationsRoutes({ db: deps.db, taxProvider: deps.taxProvider }))

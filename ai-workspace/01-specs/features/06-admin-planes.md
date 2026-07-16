@@ -110,7 +110,7 @@ Detalle → `../diseño-frontend.md` ventanas 6 y 7. Lo que esta spec fija:
 - **Nada de jerga de versionado** (→ referencia §5.5). El admin ve "Editar plan" y un aviso: *"Los clientes actuales mantendrán la tarifa anterior. Se creará una nueva versión."* Es **toda** la jerga que se permite, y aparece una vez.
 - **El archivado se confirma en lenguaje llano**: *"El plan dejará de ofrecerse a clientes nuevos. Los clientes actuales no se ven afectados."* Son las dos reglas del §5.3 de `02-validacion-fiscal-y-alta-cliente.md`, dichas sin una palabra técnica.
 - **Los planes archivados no aparecen al dar de alta clientes**, pero sí en el panel de admin (`?include_archived=true`) y en el histórico.
-- **El gating por rol es UX, no seguridad** (→ `05-auth-mock.md` §5). Los endpoints de esta spec **no están protegidos** y es un riesgo declarado.
+- **Los endpoints de esta spec exigen rol admin de verdad** desde la spec 07 (`requiereRol: 'admin'` en la ruta → 403): las mutaciones de planes y `?include_archived=true`. El gating visual del frontend es UX **sobre** esa autorización, no en vez de ella (→ `07-autenticacion.md` §5).
 
 ---
 

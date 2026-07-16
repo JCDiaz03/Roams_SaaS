@@ -1,8 +1,9 @@
-// Sesion { nombre, rol } derivada una sola vez + hasRole() + { currency, source: auto | manual }. Ref: 8.2, 13
+// Sesion { nombre, rol } contada por el SERVIDOR + hasRole() + { currency, source: auto | manual }. Spec: 07-autenticacion.md 6
 
-import { createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { CurrencyCode } from '@saas/pricing'
+import { api, ApiError, onSesionCaducada } from './api-client'
 import { applyTheme, preferredTheme, toggleTheme as siguienteTema, type Theme } from './theme'
 
 export type Rol = 'admin' | 'sales'
@@ -15,26 +16,20 @@ export type Session = {
   theme: Theme
 }
 
-const PASSWORD_MOCK = '1111'
-
 /**
- * EL UNICO SITIO DEL FRONTEND DONDE SE COMPARA "ADMIN".
- *
- * Toda la tesis del auth mock esta aqui (referencia 8.2): la deuda no depende de que el
- * auth sea falso, sino de DONDE vive la comprobacion de rol. Con la derivacion en un solo
- * punto, sustituir el mock por auth real = sustituir esta funcion. Con un
- * `if (usuario === "ADMIN")` esparcido por veinte componentes, sustituirlo significa
- * encontrarlos y tocarlos todos, y el que se olvide no falla: deja de proteger.
- *
- * Hay un test que comprueba que el literal aparece una sola vez en frontend/src.
+ * EL ROL YA NO SE DERIVA AQUI: lo cuenta el servidor (POST /auth/login), que es quien lo
+ * aplica de verdad con 401/403. El literal "ADMIN" desaparecio de frontend/src -hay un
+ * test que comprueba que son CERO apariciones- y vive en el MockIdentityProvider del
+ * backend, con su propio guardian. Los componentes siguen preguntando hasRole('admin'):
+ * la costura del ADR 0007 hizo su trabajo -sustituir el mock fue tocar UN modulo- y
+ * sigue en pie para cuando el IdentityProvider apunte al sistema real (ADR 0009).
  */
-function derivarRol(usuario: string): Rol {
-  return usuario.trim().toUpperCase() === 'ADMIN' ? 'admin' : 'sales'
-}
-
 type Api = {
   session: Session | null
-  login: (usuario: string, password: string) => boolean
+  /** true mientras GET /auth/session decide si hay alguien (rehidratacion tras F5). */
+  restaurando: boolean
+  /** null = dentro. Un string = el mensaje de error que ve quien teclea. */
+  login: (usuario: string, password: string) => Promise<string | null>
   logout: () => void
   hasRole: (rol: Rol) => boolean
   /** La elige el comercial a mano: a partir de aqui, `source` es 'manual' para siempre. */
@@ -48,32 +43,75 @@ const SessionContext = createContext<Api | null>(null)
 
 export function SessionProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
+  const [restaurando, setRestaurando] = useState(true)
   const [theme, setTheme] = useState<Theme>(() => {
     const inicial = preferredTheme()
     applyTheme(inicial)
     return inicial
   })
 
-  const login = useCallback(
-    (usuario: string, password: string): boolean => {
-      if (password !== PASSWORD_MOCK || usuario.trim() === '') return false
-
-      setSession({
-        nombre: usuario.trim(),
-        // El rol se calcula UNA sola vez, aqui.
-        rol: derivarRol(usuario),
-        currency: 'EUR',
-        currencySource: 'auto',
-        theme,
-      })
-      return true
-    },
+  /** La sesion local desde lo que dijo el servidor. Divisa y tema son del CLIENTE. */
+  const sesionDe = useCallback(
+    (s: { nombre: string; rol: Rol }): Session => ({
+      nombre: s.nombre,
+      rol: s.rol,
+      currency: 'EUR',
+      currencySource: 'auto',
+      theme,
+    }),
     [theme],
   )
 
-  // Cerrar sesion limpia nombre, rol y divisa: la sesion muere entera (referencia 8.2,
-  // regla 2). El tema sobrevive porque es del dispositivo, no de quien entra.
-  const logout = useCallback(() => setSession(null), [])
+  // Rehidratacion tras F5: el navegador conserva la cookie, asi que se pregunta "quien
+  // soy" una vez al arrancar. El 401 aqui significa "nadie", no un error.
+  useEffect(() => {
+    let cancelado = false
+
+    api.auth
+      .session()
+      .then((s) => {
+        if (!cancelado) setSession(sesionDe(s))
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelado) setRestaurando(false)
+      })
+
+    return () => {
+      cancelado = true
+    }
+    // Solo al montar: la rehidratacion es una pregunta unica, no una suscripcion.
+  }, [])
+
+  // Un 401 AUTH_REQUIRED en CUALQUIER llamada = la sesion del servidor murio (caducidad
+  // de 12 h, reinicio, logout en otra pestaña): la local se limpia y la app vuelve al
+  // login, en vez de dejar cada pantalla lidiando con un error criptico.
+  useEffect(() => {
+    onSesionCaducada(() => setSession(null))
+  }, [])
+
+  const login = useCallback(
+    async (usuario: string, password: string): Promise<string | null> => {
+      try {
+        const s = await api.auth.login(usuario, password)
+        setSession(sesionDe(s))
+        return null
+      } catch (e) {
+        // El mensaje del backend es texto de producto (mensaje UNICO usuario/contraseña,
+        // o el del rate limit); la caida de red tiene el suyo propio.
+        return e instanceof ApiError ? e.message : 'No hemos podido conectar. Inténtalo de nuevo.'
+      }
+    },
+    [sesionDe],
+  )
+
+  // Cerrar sesion revoca EN EL SERVIDOR (la cookie deja de valer al instante) y limpia
+  // la local sin esperar la respuesta: quien pulsa "salir" sale, con red o sin ella.
+  // El tema sobrevive porque es del dispositivo, no de quien entra.
+  const logout = useCallback(() => {
+    void api.auth.logout().catch(() => {})
+    setSession(null)
+  }, [])
 
   const setCurrency = useCallback((currency: CurrencyCode) => {
     setSession((s) => (s === null ? s : { ...s, currency, currencySource: 'manual' }))
@@ -100,9 +138,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     })
   }, [])
 
-  const api = useMemo<Api>(
+  const api_ = useMemo<Api>(
     () => ({
       session: session === null ? null : { ...session, theme },
+      restaurando,
       login,
       logout,
       // Los componentes preguntan hasRole('admin'), no comparan strings.
@@ -111,10 +150,10 @@ export function SessionProvider({ children }: { children: ReactNode }) {
       preselectCurrency,
       toggleTheme: cambiarTema,
     }),
-    [session, theme, login, logout, setCurrency, preselectCurrency, cambiarTema],
+    [session, restaurando, theme, login, logout, setCurrency, preselectCurrency, cambiarTema],
   )
 
-  return <SessionContext.Provider value={api}>{children}</SessionContext.Provider>
+  return <SessionContext.Provider value={api_}>{children}</SessionContext.Provider>
 }
 
 export function useSession(): Api {
@@ -123,7 +162,7 @@ export function useSession(): Api {
   return api
 }
 
-// RIESGO ACEPTADO Y DECLARADO (referencia 8.3): un rol comprobado solo en el frontend NO
-// es seguridad. Cualquiera puede llamar a los endpoints de admin directamente. Es
-// aceptable en una herramienta interna con el mock declarado; lo que no vale es CREERSE
-// protegido. La contrasena hardcodeada tampoco se ofusca: ofuscarla seria fingir.
+// El gating visual por rol sigue siendo del frontend (que pantallas se pintan), pero
+// desde la spec 07 es UX SOBRE una autorizacion real: los endpoints de admin devuelven
+// 403 en el backend. La credencial de demostracion (1111) sigue siendo publica y
+// declarada; lo que ya no es de mentira es la sesion.

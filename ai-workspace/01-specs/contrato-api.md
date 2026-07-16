@@ -60,7 +60,31 @@ La línea es útil porque separa dos responsabilidades reales: un `400` signific
 
 ### 1.6 Autenticación
 
-El middleware de auth existe desde el día 1 y **hoy no valida nada** (→ referencia §8.2, regla 3). Ninguna ruta de este contrato exige cabecera de autorización, y **los endpoints de admin no están protegidos**: es un riesgo aceptado y declarado (→ referencia §8.3), no un olvido. El contrato no inventa hoy la forma del token porque no se conoce el sistema de identidad de la empresa; cuando se conozca, cambia el middleware, no las rutas.
+**Toda ruta de este contrato exige sesión viva, salvo `POST /auth/login`** (→ `features/07-autenticacion.md`). La sesión viaja en una cookie `HttpOnly` + `SameSite=Strict` que el navegador gestiona solo; sin ella, cualquier endpoint devuelve `401 AUTH_REQUIRED`. Las rutas de administración (`POST/PUT/DELETE /plans`, y `GET /plans?include_archived=true`) exigen además rol `admin` → `403 AUTH_FORBIDDEN`.
+
+La **verificación de credenciales** sigue detrás del puerto `IdentityProvider` con la implementación de demostración del enunciado (cualquier usuario + `1111`, `ADMIN` → admin): cuando se conozca el sistema de identidad de la empresa, cambia esa implementación, **no este contrato**.
+
+#### `POST /auth/login` — la única ruta pública
+
+```
+{ "usuario": string(1..60), "password": string(1..100) }
+  -> 200 { "nombre": string, "rol": "admin" | "sales" }  + Set-Cookie: sid=...
+  -> 401 AUTH_INVALID_CREDENTIALS   (mensaje ÚNICO: no revela si falló usuario o contraseña)
+  -> 429 AUTH_RATE_LIMITED          (~10 intentos por IP y minuto)
+```
+
+#### `GET /auth/session` — rehidratación tras F5
+
+```
+  -> 200 { "nombre", "rol" }   con sesión viva
+  -> 401 AUTH_REQUIRED         sin sesión: el frontend lo lee como "no hay nadie", no como error
+```
+
+#### `POST /auth/logout`
+
+```
+  -> 204   borra la sesión del servidor (revocación inmediata) y expira la cookie
+```
 
 ---
 
@@ -342,7 +366,7 @@ Que el elemento del historial y el del `POST` sean **el mismo tipo** es delibera
 |---|---|---|
 | `include_archived` | boolean | `false` |
 
-Por defecto solo planes **activos** (alimenta el selector del alta). `?include_archived=true` los devuelve todos, para el panel de administración (→ referencia §12). Es un parámetro y no un endpoint aparte porque el gating por rol es **UX declarada, no seguridad** (→ referencia §8.3): un endpoint `/admin/plans` sin auth real solo daría la ilusión de protección.
+Por defecto solo planes **activos** (alimenta el selector del alta). `?include_archived=true` los devuelve todos, para el panel de administración, y **exige rol admin de verdad** (`403 AUTH_FORBIDDEN` → §1.6). Es un parámetro y no un endpoint aparte porque el recurso es el mismo: lo que cambia con el rol es cuánto se ve de él.
 
 **Respuesta `200`**
 
@@ -489,6 +513,10 @@ Pone `active = 0`. **Nunca borra** (→ referencia §5.5).
 | `code` | HTTP | Significado |
 |---|---|---|
 | `VALIDATION_ERROR` | 400 | El cuerpo no respeta el esquema declarado |
+| `AUTH_REQUIRED` | 401 | Sin sesión viva (toda ruta salvo el login la exige, §1.6) |
+| `AUTH_INVALID_CREDENTIALS` | 401 | El login falló. Mensaje único: no revela qué campo |
+| `AUTH_FORBIDDEN` | 403 | La sesión no tiene el rol que la ruta exige, o la mutación llega con `Origin` ajeno |
+| `AUTH_RATE_LIMITED` | 429 | Demasiados intentos de login desde la misma IP |
 | `FISCAL_ID_INVALID` | 422 | El validador del país rechaza el identificador |
 | `FISCAL_ID_DUPLICATE` | 409 | Ya existe un cliente con ese `fiscal_id` normalizado |
 | `COUNTRY_NOT_SUPPORTED` | 422 | El país no tiene fila en `countries` |
