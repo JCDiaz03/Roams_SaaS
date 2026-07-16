@@ -147,3 +147,22 @@ Es además la práctica de industria: en Stripe un `Price` no permite cambiar su
 **Cuándo dejaría de ser cierto**, que es la parte que hace que esto sea una decisión y no una excusa: en cuanto haya un servicio real que orquestar (una base de datos que sea un proceso, una caché compartida entre instancias, un worker). Ese día `docker-compose` entra por la puerta grande. Queda como diferido documentado (→ `roams-roadmap.md` §6).
 
 El único riesgo real es `better-sqlite3`, que compila binario nativo: si el evaluador tuviera una versión de Node sin binario precompilado disponible, `npm install` pediría herramientas de compilación. Lo mitiga el `engines` + `.nvmrc` fijando una versión LTS con binarios publicados, y el README diciendo cuál es.
+
+---
+
+## 0009 — Sesión de servidor en memoria con `IdentityProvider` (supersede parcialmente 0007)
+
+**Contexto.** Fase 3: el core está entregado y el margen de plazo se invierte en profundidad (→ `roams-roadmap.md` §5). El mayor riesgo declarado del proyecto es el §8.3-1 —los endpoints de admin no tienen protección real— y a la vez **sigue sin conocerse el sistema de identidad de la empresa**, que fue la razón entera del 0007. La pregunta no es "¿mock o auth real?": es **qué mitad del auth se puede construir sin inventar nada**.
+
+**Alternativas consideradas.**
+
+- **Conectar ya un IdP concreto** (OIDC contra Keycloak/Azure AD/lo que sea, elegido por nosotros). Construye la mitad incognoscible adivinándola: el día que la empresa diga cuál es su sistema, lo elegido se tira. Es exactamente el error que el 0007 evitó, con más código. Descartada — la conexión al IdP real **sigue diferida**.
+- **JWT stateless firmado.** La opción de moda, y peor aquí en los tres ejes que importan: **no es revocable** sin una lista negra (que es reinventar la sesión de servidor con más piezas), añade **un secreto que gestionar y rotar**, y su ventaja real —que N servicios validen sin estado compartido— no existe con **un** proceso y **un** consumidor. Stateless resuelve un problema que este sistema no tiene.
+- **Tabla `sessions` en SQLite.** Sobrevive al reinicio, a cambio de persistir estado volátil de una jornada y mantener limpieza de expiradas. El mismo criterio que dejó la caché de tipos en memoria (0004): reiniciar = volver a entrar, aceptable en herramienta interna. Descartada.
+- **Sesión en memoria + puerto `IdentityProvider`.** Elegida.
+
+**Decisión.** `Map` en memoria con ids de `crypto.randomBytes`, cookie `HttpOnly` + `SameSite=Strict`, caducidad absoluta de 12 h, y el rol aplicado **en el backend** (401/403). La verificación de credenciales queda detrás del puerto `IdentityProvider`, cuya única implementación hoy es el mock del enunciado (cualquier usuario + `1111`, `ADMIN` → admin). Spec completa → `../01-specs/features/07-autenticacion.md`.
+
+**Consecuencias.** El riesgo §8.3-1 **se cierra**: el sistema pasa de "sin seguridad, declarado" a "seguridad real con credenciales de demostración, declarado" — la estructura (sesión, revocación, rate limit, enforcement) es la definitiva; el secreto de demostración no lo es y no se pretende. El diferido **se estrecha** a lo único incognoscible: implementar el puerto contra el sistema real. Se paga: las sesiones mueren al reiniciar el proceso (aceptado y declarado), y la frase "el gating por rol es UX, no seguridad" —escrita en tres sitios— deja de ser cierta y hay que actualizarla en todos, porque una documentación que sobrevive a su verdad es deuda de la peor clase.
+
+**Qué supersede del 0007 y qué no.** La costura del backend (el hook vacío) se rellena, que era su destino escrito. Lo que NO cambia: la derivación única de la sesión, `hasRole()` como única pregunta de los componentes, y cero tablas de usuario. El 0007 apostó a que sustituir el mock costaría un módulo; esta decisión es la comprobación de esa apuesta.
