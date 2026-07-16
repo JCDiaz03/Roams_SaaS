@@ -1,6 +1,6 @@
 // Ventana 2 - Dashboard / buscador con debounce. Diseno: 4
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { api, type CustomerListItem } from '../../lib/api-client'
 import { useSession } from '../../lib/session'
@@ -32,13 +32,32 @@ export function DashboardPage() {
   // escribir el mismo termino no cambia nada y el efecto no se relanzaria.
   const [intento, setIntento] = useState(0)
 
-  // Debounce: el borrador baja a la URL cuando el comercial deja de teclear.
+  // Lo ultimo que ESTE debounce escribio en la URL: distingue "la URL cambio porque yo
+  // la escribi" de "la URL cambio desde fuera" (el buscador de la topbar navega a /?q=).
+  const ultimoEscrito = useRef(termino)
+
+  // Un cambio EXTERNO del termino baja al borrador, o el input no lo mostraria y el
+  // debounce de abajo lo revertiria a los 250 ms con el valor viejo del input — que es
+  // exactamente lo que pasaba al buscar desde la topbar estando en el dashboard
+  // (setSearchParams cambia de identidad con cada URL y relanzaba el efecto).
   useEffect(() => {
+    if (termino !== ultimoEscrito.current) {
+      ultimoEscrito.current = termino
+      setBorrador(termino)
+    }
+  }, [termino])
+
+  // Debounce: el borrador baja a la URL cuando el comercial deja de teclear. El guard de
+  // igualdad es lo que hace inofensivo que el efecto se relance por identidad.
+  useEffect(() => {
+    if (borrador === termino) return
+
     const t = setTimeout(() => {
+      ultimoEscrito.current = borrador
       setParams(borrador === '' ? {} : { q: borrador }, { replace: true })
     }, DEBOUNCE_MS)
     return () => clearTimeout(t)
-  }, [borrador, setParams])
+  }, [borrador, termino, setParams])
 
   useEffect(() => {
     // AbortController: sin el, dos busquedas seguidas pueden llegar desordenadas y la
@@ -93,7 +112,7 @@ export function DashboardPage() {
       </div>
 
       {datos.estado === 'cargando' && (
-        <div className={styles.lista} aria-busy="true" aria-label="Cargando clientes">
+        <div className={styles.lista} role="status" aria-busy="true" aria-label="Cargando clientes">
           {[0, 1, 2].map((i) => (
             <Card key={i}>
               <div style={{ display: 'flex', gap: 14, alignItems: 'center' }}>

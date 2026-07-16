@@ -60,7 +60,7 @@ La línea es útil porque separa dos responsabilidades reales: un `400` signific
 
 ### 1.6 Autenticación
 
-**Toda ruta de este contrato exige sesión viva, salvo `POST /auth/login`** (→ `features/07-autenticacion.md`). La sesión viaja en una cookie `HttpOnly` + `SameSite=Strict` que el navegador gestiona solo; sin ella, cualquier endpoint devuelve `401 AUTH_REQUIRED`. Las rutas de administración (`POST/PUT/DELETE /plans`, y `GET /plans?include_archived=true`) exigen además rol `admin` → `403 AUTH_FORBIDDEN`.
+**Toda ruta de este contrato exige sesión viva, salvo `POST /auth/login` y `POST /auth/logout`** (→ `features/07-autenticacion.md`). El logout es público con motivo: salir tiene que funcionar precisamente cuando la sesión ya murió sola (caducidad, reinicio); si exigiera sesión, el 401 impediría expirar la cookie muerta del navegador. La sesión viaja en una cookie `HttpOnly` + `SameSite=Strict` que el navegador gestiona solo; sin ella, cualquier endpoint devuelve `401 AUTH_REQUIRED`. Las rutas de administración (`POST/PUT/DELETE /plans`, y `GET /plans?include_archived=true`) exigen además rol `admin` → `403 AUTH_FORBIDDEN`.
 
 La **verificación de credenciales** sigue detrás del puerto `IdentityProvider` con la implementación de demostración del enunciado (cualquier usuario + `1111`, `ADMIN` → admin): cuando se conozca el sistema de identidad de la empresa, cambia esa implementación, **no este contrato**.
 
@@ -293,6 +293,8 @@ Sin parámetros. Sirve el desplegable del alta y el hint fiscal (→ referencia 
 
 Sin resultados → `200` con `customers: []` y `total: 0`. **Vacío no es error** y por eso no es un `404`: son dos pantallas distintas (→ referencia §13.1).
 
+**`total` es el tamaño de la COLECCIÓN que coincide, no el de la página devuelta** (un `COUNT` sin el `LIMIT`): con 300 coincidencias y `limit=20`, `customers` trae 20 y `total` dice 300. La misma regla aplica al historial de simulaciones (§3.4). Un campo llamado `total` que devolviera el tamaño de la página sería un contador mintiendo con nombre de verdad.
+
 `simulation_count` va aquí porque la card del buscador lo muestra y evita N+1 peticiones desde el cliente.
 
 ### 3.3 `GET /customers/{id}`
@@ -513,7 +515,8 @@ Pone `active = 0`. **Nunca borra** (→ referencia §5.5).
 | `code` | HTTP | Significado |
 |---|---|---|
 | `VALIDATION_ERROR` | 400 | El cuerpo no respeta el esquema declarado |
-| `AUTH_REQUIRED` | 401 | Sin sesión viva (toda ruta salvo el login la exige, §1.6) |
+| `MALFORMED_REQUEST` | 400 / 413 / 415 | La petición no se pudo ni leer: JSON roto, cuerpo mayor que el `bodyLimit` o Content-Type que no es JSON. Distinto de `VALIDATION_ERROR`: aquí ni siquiera hay cuerpo que validar |
+| `AUTH_REQUIRED` | 401 | Sin sesión viva (toda ruta salvo login y logout la exige, §1.6) |
 | `AUTH_INVALID_CREDENTIALS` | 401 | El login falló. Mensaje único: no revela qué campo |
 | `AUTH_FORBIDDEN` | 403 | La sesión no tiene el rol que la ruta exige, o la mutación llega declarada cross-site (`Sec-Fetch-Site`) |
 | `AUTH_RATE_LIMITED` | 429 | Demasiados intentos de login desde la misma IP |

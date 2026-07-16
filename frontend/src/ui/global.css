@@ -119,24 +119,13 @@ textarea {
   border: 0;
 }
 
-/* Impresion (roadmap 5.4): al imprimir, la unica tinta es la hoja del presupuesto. La
- * visibilidad -y no display- es lo que permite que la app entera desaparezca sin tocar
- * un solo componente: cada uno sigue donde estaba, solo que invisible. La hoja se saca
- * del flujo y ocupa la pagina desde arriba. */
+/* Impresion (roadmap 5.4): cuando existe la hoja del presupuesto (PrintSheet se monta
+ * por portal FUERA de #root y marca el body con esta clase), la app entera sale del
+ * papel con display — no con visibility, que conservaria el layout del simulador oculto
+ * y regalaria una o dos paginas en blanco detras de la hoja. Sin hoja, Ctrl+P imprime
+ * la pantalla normal en vez de un papel vacio. */
 @media print {
-  body * {
-    visibility: hidden;
-  }
-
-  .hoja-impresion,
-  .hoja-impresion * {
-    visibility: visible;
-  }
-
-  .hoja-impresion {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
+  body.con-hoja-impresion #root {
+    display: none;
   }
 }

@@ -10,7 +10,7 @@ import { Callout } from '../../ui/Callout'
 import { Card } from '../../ui/Card'
 import { Skeleton } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
-import { TierEditor, UNIDAD, bloqueVacio, type BloqueBorrador } from './TierEditor'
+import { TierEditor, UNIDAD, bloqueVacio, nuevoTramo, type BloqueBorrador } from './TierEditor'
 import styles from './PlanTemplatePage.module.css'
 
 const DIVISAS: readonly CurrencyCode[] = ['EUR', 'USD', 'GBP', 'CHF', 'JPY']
@@ -87,11 +87,32 @@ export function PlanTemplatePage() {
   })
 
   useEffect(() => {
-    if (!editando) return
+    // Cambiar de plan por la URL (o saltar de editar a "nuevo") REUTILIZA el componente
+    // montado: el formulario se resetea aqui, no en el montaje, o el estado del plan
+    // anterior sobrevive al cambio ("Nuevo plan" prerrellenado con los tramos del 5).
+    setNombre('')
+    setDescripcion('')
+    setCurrency('EUR')
+    setBorradores(vacios())
+    setViolaciones([])
+    setErrorGeneral(null)
+    setErrorNombre(null)
+
+    if (!editando) {
+      setCargando(false)
+      return
+    }
+
+    setCargando(true)
+    let cancelado = false
 
     api
       .plans(true)
       .then((planes) => {
+        // La bandera es lo que impide que, saltando /planes/5 -> /planes/7 con la
+        // primera respuesta lenta, los tramos del 5 aterricen en el formulario del 7.
+        if (cancelado) return
+
         const plan = planes.find((p) => p.id === Number(id))
         if (plan === undefined) {
           navegar('/planes')
@@ -109,20 +130,27 @@ export function PlanTemplatePage() {
             ? { activo: false, tramos: [] }
             : {
                 activo: true,
-                tramos: suyos.map((t) => ({
-                  upTo: t.up_to === null ? '' : String(t.up_to),
-                  // El inverso de aMinor, con el MISMO factor por divisa.
-                  price: String(t.unit_price_minor / 10 ** minorUnitOf(plan.currency)),
-                })),
+                tramos: suyos.map((t) =>
+                  nuevoTramo(
+                    t.up_to === null ? '' : String(t.up_to),
+                    // El inverso de aMinor, con el MISMO factor por divisa.
+                    String(t.unit_price_minor / 10 ** minorUnitOf(plan.currency)),
+                  ),
+                ),
               }
         }
         setBorradores(nuevos)
         setCargando(false)
       })
       .catch(() => {
+        if (cancelado) return
         setErrorGeneral('No hemos podido cargar el plan.')
         setCargando(false)
       })
+
+    return () => {
+      cancelado = true
+    }
   }, [editando, id, navegar])
 
   /**

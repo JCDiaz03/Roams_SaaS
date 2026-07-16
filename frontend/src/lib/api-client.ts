@@ -213,7 +213,7 @@ export const api = {
 
   rates: () => pedir<Rates>('/rates'),
 
-  // --- Admin. SIN proteccion real: es un riesgo declarado (referencia 8.3). ------------
+  // --- Admin. Protegidas EN EL BACKEND (403 sin rol admin, spec 07). -------------------
 
   createPlan: (body: Plantilla) => pedir<Plan>('/plans', { method: 'POST', body: JSON.stringify(body) }),
 

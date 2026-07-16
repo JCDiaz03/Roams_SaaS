@@ -35,6 +35,8 @@ export function NewCustomerPage() {
   const [countries, setCountries] = useState<Country[] | null>(null)
   const [plans, setPlans] = useState<Plan[] | null>(null)
   const [cargaFallida, setCargaFallida] = useState(false)
+  // Reintento en la SPA, como el buscador: navegar(0) recargaba la pagina entera.
+  const [intento, setIntento] = useState(0)
 
   const [nombre, setNombre] = useState('')
   const [pais, setPais] = useState('ES')
@@ -46,6 +48,7 @@ export function NewCustomerPage() {
   const [error, setError] = useState<ApiError | null>(null)
 
   useEffect(() => {
+    setCargaFallida(false)
     Promise.all([api.countries(), api.plans()])
       .then(([cs, ps]) => {
         setCountries(cs)
@@ -53,7 +56,7 @@ export function NewCustomerPage() {
         setPlanId(ps[0]?.id ?? null)
       })
       .catch(() => setCargaFallida(true))
-  }, [])
+  }, [intento])
 
   // EL HINT LLEGA RESUELTO DE LA API, junto al pais elegido (referencia 7.2). Aqui NO hay
   // ningun `if (pais === 'ES')`: la UI pinta el texto que recibe. Es el mismo principio
@@ -91,7 +94,7 @@ export function NewCustomerPage() {
     return (
       <Card>
         <p>No hemos podido cargar los países ni los planes.</p>
-        <Button variant="secondary" onClick={() => navegar(0)}>
+        <Button variant="secondary" onClick={() => setIntento((i) => i + 1)}>
           Reintentar
         </Button>
       </Card>
@@ -101,6 +104,8 @@ export function NewCustomerPage() {
   /** El error de un campo concreto, para pintarlo junto a el (referencia 13.1). */
   const errorDe = (campo: string) => (error?.field === campo ? error : null)
   const errorFiscal = errorDe('fiscal_id')
+  const errorNombre = errorDe('company_name')
+  const errorEmail = errorDe('email')
 
   return (
     <>
@@ -115,14 +120,26 @@ export function NewCustomerPage() {
             </label>
             <input
               id="nombre"
-              className={`${styles.input} ${errorDe('company_name') !== null ? styles.inputError : ''}`}
+              className={`${styles.input} ${errorNombre !== null ? styles.inputError : ''}`}
               value={nombre}
-              onChange={(e) => setNombre(e.target.value)}
+              onChange={(e) => {
+                setNombre(e.target.value)
+                setError(null)
+              }}
               placeholder="Acme Innovación S.L."
               maxLength={200}
               required
               autoFocus
+              aria-invalid={errorNombre !== null}
             />
+            {/* El mensaje, no solo el borde: un borde rojo mudo no dice que arreglar, y
+                para un lector de pantalla ni siquiera existe (13.1). */}
+            {errorNombre !== null && (
+              <p className={styles.error} role="alert">
+                <IconWarning size={14} />
+                {errorNombre.message}
+              </p>
+            )}
           </div>
 
           <div className={`${styles.campo} ${styles.dos}`}>
@@ -158,13 +175,23 @@ export function NewCustomerPage() {
               <input
                 id="email"
                 type="email"
-                className={`${styles.input} ${errorDe('email') !== null ? styles.inputError : ''}`}
+                className={`${styles.input} ${errorEmail !== null ? styles.inputError : ''}`}
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value)
+                  setError(null)
+                }}
                 placeholder="contacto@empresa.com"
                 maxLength={254}
                 required
+                aria-invalid={errorEmail !== null}
               />
+              {errorEmail !== null && (
+                <p className={styles.error} role="alert">
+                  <IconWarning size={14} />
+                  {errorEmail.message}
+                </p>
+              )}
             </div>
           </div>
 

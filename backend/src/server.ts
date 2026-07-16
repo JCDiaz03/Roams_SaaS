@@ -24,6 +24,8 @@ export type ServerDeps = {
   identityProvider: IdentityProvider
   /** Inyectable para que el harness de tests pueda abrir sesiones sin pasar por HTTP. */
   sessions?: SessionStore
+  /** true solo detras de un proxy de confianza (config.ts): X-Forwarded-For es espoofable. */
+  trustProxy?: boolean
   logger?: boolean
 }
 
@@ -33,6 +35,7 @@ const BODY_LIMIT = 64 * 1024
 export function buildServer(deps: ServerDeps): FastifyInstance {
   const app = Fastify({
     logger: deps.logger ?? false,
+    trustProxy: deps.trustProxy ?? false,
     bodyLimit: BODY_LIMIT,
     ajv: {
       customOptions: {

@@ -225,3 +225,14 @@ describe('el literal "ADMIN" vive en un solo sitio del sistema', () => {
     ])
   })
 })
+
+describe('logout es publico', () => {
+  it('sin sesion -> 204 igualmente: salir funciona justo cuando la sesion murio sola', async () => {
+    // Si exigiera sesion, el 401 del hook impediria expirar la cookie muerta del
+    // navegador: el camino "salir" fallaria exactamente cuando mas se necesita.
+    const r = await h.app.inject({ method: 'POST', url: '/api/auth/logout' })
+
+    expect(r.statusCode).toBe(204)
+    expect(String(r.headers['set-cookie'])).toContain('Max-Age=0')
+  })
+})

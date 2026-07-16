@@ -52,7 +52,8 @@ export class RatesService {
 
   constructor(private readonly provider: RatesProvider) {}
 
-  async get(): Promise<RatesView> {
+  /** Estructural y no FastifyBaseLogger: el servicio no conoce el framework. */
+  async get(log?: { warn: (obj: unknown, msg: string) => void }): Promise<RatesView> {
     if (this.cache !== null && !this.caducada(this.cache)) {
       return this.vista(this.cache, false)
     }
@@ -66,7 +67,11 @@ export class RatesService {
       this.cache = frescos
       this.falloEn = null
       return this.vista(frescos, false)
-    } catch {
+    } catch (e) {
+      // El motivo del fallo se LOGUEA antes de degradar: el dia que el badge ambar
+      // aparezca, el log tiene que decir por que (timeout, 500 del proveedor, payload
+      // gigante...). Un fallback silencioso es imposible de diagnosticar.
+      log?.warn({ err: e }, 'La API de tipos fallo; se sirve el fallback')
       this.falloEn = Date.now()
       return this.fallback()
     }

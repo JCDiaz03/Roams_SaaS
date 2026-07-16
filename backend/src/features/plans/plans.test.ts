@@ -317,3 +317,16 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
     expect((await del(9999)).statusCode).toBe(404)
   })
 })
+
+describe('POST /plans — topes anti-overflow', () => {
+  it('un precio desorbitado -> 400 por esquema, no un plan que rompe simulaciones', async () => {
+    // Sin el maximum, este plan devolvia 201 y toda simulacion futura de sus clientes
+    // reventaba con 500 (base > int64 de SQLite) o persistia importes imprecisos.
+    const r = await post(
+      plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 1e15 }] }),
+    )
+
+    expect(r.statusCode).toBe(400)
+    expect(r.json().error.code).toBe('VALIDATION_ERROR')
+  })
+})

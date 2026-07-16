@@ -7,7 +7,9 @@
 
 import { createServer } from 'node:http'
 
-const PORT = 9099
+// El puerto lo dicta playwright.config.ts (unica fuente); el default solo sirve para
+// arrancar el fixture a mano.
+const PORT = Number(process.env['RATES_PORT'] ?? 9099)
 const ahora = Math.floor(Date.now() / 1000)
 
 const payload = {

@@ -23,7 +23,8 @@ export function SimulatorPage() {
   const rates = useRatesContext()
 
   const [cliente, setCliente] = useState<CustomerDetail | null>(null)
-  const [fallo, setFallo] = useState(false)
+  const [fallo, setFallo] = useState<'error' | 'no-encontrado' | null>(null)
+  const [intento, setIntento] = useState(0)
 
   const [cantidades, setCantidades] = useState<Quantities>({ users: 15, storage_gb: 0, api_calls: 0 })
   const [guardando, setGuardando] = useState(false)
@@ -34,6 +35,15 @@ export function SimulatorPage() {
   useEffect(() => {
     let cancelado = false
 
+    // Cambiar de cliente por la URL (historial del navegador) REUTILIZA este componente
+    // montado: sin este reset, la simulacion sellada de un cliente sobreviviria al
+    // cambio y la hoja de impresion mezclaria el nombre de uno con los importes de otro
+    // -exactamente el documento que PrintSheet jura no producir-.
+    setCliente(null)
+    setFallo(null)
+    setSellada(null)
+    setCantidades({ users: 15, storage_gb: 0, api_calls: 0 })
+
     // UNA sola peticion: trae el plan con sus tramos y el tax_rate_bp del pais. Es lo que
     // hace posible el preview local (referencia 10).
     api
@@ -43,14 +53,16 @@ export function SimulatorPage() {
         setCliente(c)
         preselectCurrency(c.country.display_currency)
       })
-      .catch(() => {
-        if (!cancelado) setFallo(true)
+      .catch((e: unknown) => {
+        if (cancelado) return
+        // El 404 no es un fallo que reintentar: ese cliente no va a existir (13.1).
+        setFallo(e instanceof ApiError && e.status === 404 ? 'no-encontrado' : 'error')
       })
 
     return () => {
       cancelado = true
     }
-  }, [id, preselectCurrency])
+  }, [id, preselectCurrency, intento])
 
   /**
    * EL PREVIEW. La MISMA funcion pura que corre en el backend, con los tramos que ya
@@ -106,11 +118,25 @@ export function SimulatorPage() {
     }
   }
 
-  if (fallo) {
+  if (fallo === 'no-encontrado') {
+    return (
+      <Card>
+        <p>No encontramos a ese cliente.</p>
+        <Button variant="secondary" onClick={() => navegar('/')}>
+          Volver al buscador
+        </Button>
+      </Card>
+    )
+  }
+
+  if (fallo === 'error') {
     return (
       <Card>
         <p>No hemos podido cargar el cliente.</p>
-        <Button variant="secondary" onClick={() => navegar('/')}>
+        <Button variant="secondary" onClick={() => setIntento((i) => i + 1)}>
+          Reintentar
+        </Button>
+        <Button variant="ghost" onClick={() => navegar('/')}>
           Volver al buscador
         </Button>
       </Card>
@@ -119,7 +145,7 @@ export function SimulatorPage() {
 
   if (cliente === null || preview === null) {
     return (
-      <div className={styles.rejilla} aria-busy="true" aria-label="Cargando simulador">
+      <div className={styles.rejilla} role="status" aria-busy="true" aria-label="Cargando simulador">
         <div className={styles.controles}>
           {[0, 1, 2].map((i) => (
             <Card key={i} className={styles.migas}>
@@ -159,6 +185,9 @@ export function SimulatorPage() {
               metric={m}
               value={cantidades[m]}
               billed={factura(m)}
+              // Bloqueados mientras se guarda: la respuesta re-sella con los valores
+              // ENVIADOS, y un arrastre a mitad de vuelo se desharia sin aviso.
+              disabled={guardando}
               onChange={(v) => {
                 setCantidades((c) => ({ ...c, [m]: v }))
                 // Al tocar algo, el sello desaparece: lo que se ve vuelve a ser un

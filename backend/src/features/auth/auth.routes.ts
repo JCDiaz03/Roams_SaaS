@@ -4,7 +4,7 @@ import type { FastifyInstance } from 'fastify'
 import type { IdentityProvider } from '../../domain/auth/identity-provider'
 import { AppError } from '../../plugins/error-handler'
 import { cookieDeSesion, cookieExpirada, sidDe } from './auth.cookie'
-import { loginSchema, sessionSchema } from './auth.schemas'
+import { loginSchema, logoutSchema, sessionSchema } from './auth.schemas'
 import type { SessionStore } from './auth.sessions'
 
 type Deps = { identityProvider: IdentityProvider; sessions: SessionStore }
@@ -17,12 +17,29 @@ type Deps = { identityProvider: IdentityProvider; sessions: SessionStore }
 const INTENTOS_MAX = 10
 const VENTANA_MS = 60_000
 
+/** Tope de IPs recordadas: la memoria no puede crecer sin limite POR DISEÑO, como el
+ *  Map de sesiones (auth.sessions.ts). Sin el, una rotacion de direcciones IPv6 dejaria
+ *  una entrada por direccion para siempre. */
+const MAX_IPS = 1000
+
 export function authRoutes({ identityProvider, sessions }: Deps) {
   // En memoria y por proceso, como las sesiones: mismo alcance, mismo ciclo de vida.
   const intentos = new Map<string, { n: number; resetEn: number }>()
 
   function limitar(ip: string): void {
     const ahora = Date.now()
+
+    // Al llenarse se barren las ventanas caducadas y, si no basta, cae la mas antigua.
+    if (intentos.size >= MAX_IPS && !intentos.has(ip)) {
+      for (const [llave, entrada] of intentos) {
+        if (ahora >= entrada.resetEn) intentos.delete(llave)
+      }
+      if (intentos.size >= MAX_IPS) {
+        const masVieja = intentos.keys().next().value
+        if (masVieja !== undefined) intentos.delete(masVieja)
+      }
+    }
+
     const actual = intentos.get(ip)
 
     if (actual === undefined || ahora >= actual.resetEn) {
@@ -57,7 +74,10 @@ export function authRoutes({ identityProvider, sessions }: Deps) {
     // el hook ya devolvio 401 y el cliente lo lee como "no hay nadie", no como error.
     app.get('/auth/session', { schema: sessionSchema }, async (req) => req.identity)
 
-    app.post('/auth/logout', async (req, reply) => {
+    // PUBLICA como el login, y con motivo: salir tiene que funcionar precisamente cuando
+    // la sesion ya murio sola (caducidad, reinicio). Si exigiera sesion, el 401 del hook
+    // impediria expirar la cookie muerta del navegador.
+    app.post('/auth/logout', { schema: logoutSchema, config: { publica: true } }, async (req, reply) => {
       const sid = sidDe(req.headers.cookie)
       // Borrar la entrada ES revocar: la misma cookie deja de valer en este instante.
       if (sid !== null) sessions.delete(sid)

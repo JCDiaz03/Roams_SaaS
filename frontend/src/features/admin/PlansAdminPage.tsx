@@ -1,6 +1,6 @@
 // Ventana 6 - Admin de planes: lista con ?include_archived=true. Ref: 12 · Diseno: 4
 
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import type { Metric } from '@saas/pricing'
 import { api, type Plan } from '../../lib/api-client'
@@ -30,10 +30,14 @@ export function PlansAdminPage() {
   const [fallo, setFallo] = useState(false)
   const [aArchivar, setAArchivar] = useState<Plan | null>(null)
   const [archivando, setArchivando] = useState(false)
+  const botonCancelarRef = useRef<HTMLButtonElement>(null)
 
   const cargar = useCallback(() => {
-    // include_archived: el panel de admin es el unico consumidor, y es un parametro y no
-    // un endpoint aparte porque el gating por rol es UX, no seguridad (referencia 8.3).
+    // include_archived: el panel de admin es el unico consumidor. Desde la spec 07 el
+    // parametro exige rol admin DE VERDAD (403 en el backend); sigue siendo parametro y
+    // no endpoint aparte porque el recurso es el mismo.
+    setFallo(false)
+    setPlanes(null)
     api
       .plans(true)
       .then(setPlanes)
@@ -41,6 +45,20 @@ export function PlansAdminPage() {
   }, [])
 
   useEffect(cargar, [cargar])
+
+  // El modal gestiona el foco que su aria-modal promete: al abrir, el foco entra
+  // (Cancelar: la accion segura); Escape cierra, como el menu de la topbar.
+  useEffect(() => {
+    if (aArchivar === null) return
+
+    botonCancelarRef.current?.focus()
+
+    const escape = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setAArchivar(null)
+    }
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [aArchivar])
 
   const archivar = async () => {
     if (aArchivar === null) return
@@ -62,7 +80,7 @@ export function PlansAdminPage() {
     return (
       <Card>
         <p>No hemos podido cargar los planes.</p>
-        <Button variant="secondary" onClick={() => navegar(0)}>
+        <Button variant="secondary" onClick={cargar}>
           Reintentar
         </Button>
       </Card>
@@ -95,10 +113,22 @@ export function PlansAdminPage() {
 
         {plan.active && (
           <div className={styles.acciones}>
-            <Button variant="secondary" size="sm" onClick={() => navegar(`/planes/${plan.id}`)}>
+            {/* El aria-label lleva el nombre: "Editar" a secas obliga al lector de
+                pantalla (y al E2E) a adivinar cual de las tres tarjetas es. */}
+            <Button
+              variant="secondary"
+              size="sm"
+              aria-label={`Editar ${plan.name}`}
+              onClick={() => navegar(`/planes/${plan.id}`)}
+            >
               Editar
             </Button>
-            <Button variant="danger" size="sm" onClick={() => setAArchivar(plan)}>
+            <Button
+              variant="danger"
+              size="sm"
+              aria-label={`Archivar ${plan.name}`}
+              onClick={() => setAArchivar(plan)}
+            >
               Archivar
             </Button>
           </div>
@@ -122,7 +152,7 @@ export function PlansAdminPage() {
       </p>
 
       {planes === null ? (
-        <div className={styles.lista} aria-busy="true" aria-label="Cargando planes">
+        <div className={styles.lista} role="status" aria-busy="true" aria-label="Cargando planes">
           {[0, 1, 2].map((i) => (
             <Card key={i}>
               <Skeleton height={40} />
@@ -146,7 +176,17 @@ export function PlansAdminPage() {
       )}
 
       {aArchivar !== null && (
-        <div className={styles.modalFondo} role="dialog" aria-modal="true" aria-labelledby="titulo-archivar">
+        <div
+          className={styles.modalFondo}
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="titulo-archivar"
+          // Clic en el velo = cancelar (solo el velo: los clics dentro de la Card no
+          // llegan aqui con target === currentTarget).
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setAArchivar(null)
+          }}
+        >
           <Card className={styles.modal}>
             <h2 className={styles.modalTitulo} id="titulo-archivar">
               ¿Archivar «{aArchivar.name}»?
@@ -158,7 +198,7 @@ export function PlansAdminPage() {
               afectados: mantienen su tarifa y pueden seguir simulando con ella.
             </p>
             <div className={styles.modalAcciones}>
-              <Button variant="ghost" onClick={() => setAArchivar(null)}>
+              <Button ref={botonCancelarRef} variant="ghost" onClick={() => setAArchivar(null)}>
                 Cancelar
               </Button>
               <Button variant="danger" loading={archivando} onClick={() => void archivar()}>

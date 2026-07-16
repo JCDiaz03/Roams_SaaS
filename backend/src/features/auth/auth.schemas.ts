@@ -28,3 +28,8 @@ export const loginSchema = {
 export const sessionSchema = {
   response: { 200: sesionResponseSchema },
 } as const
+
+/** Sin entrada y sin cuerpo de salida: el esquema declara exactamente eso. */
+export const logoutSchema = {
+  response: { 204: { type: 'null' } },
+} as const

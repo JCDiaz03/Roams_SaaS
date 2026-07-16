@@ -250,3 +250,17 @@ describe('paridad preview/persistencia — cinturon y tirantes', () => {
     }
   })
 })
+
+describe('GET /customers/{id}/simulations — total', () => {
+  it('el total es el de la COLECCION, no el de la pagina devuelta', async () => {
+    for (const n of [1, 2, 3]) await simular(entradas({ active_users: n }))
+
+    const r = await h.inject({
+      method: 'GET',
+      url: `/api/customers/${customerId(h.db, 'Nébula Cloud S.L.')}/simulations?limit=2`,
+    })
+
+    expect(r.json().simulations.length).toBe(2)
+    expect(r.json().total).toBe(3)
+  })
+})

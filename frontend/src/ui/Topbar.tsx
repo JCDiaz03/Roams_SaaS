@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useSession } from '../lib/session'
 import { useRatesContext } from '../lib/rates-context'
+import { Button } from './Button'
 import { Chip } from './Chip'
 import { CurrencySelect } from './CurrencySelect'
 import { ThemeToggle } from './ThemeToggle'
@@ -14,7 +15,7 @@ const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 
 export function Topbar() {
-  const { session, hasRole, logout, setCurrency, toggleTheme } = useSession()
+  const { session, theme, hasRole, logout, setCurrency, toggleTheme } = useSession()
   const rates = useRatesContext()
   const navegar = useNavigate()
 
@@ -88,13 +89,21 @@ export function Topbar() {
         </Chip>
       )}
 
+      {/* Sin tipos, la salida no puede ser F5: el fallo de GET /rates al entrar dejaba
+          el selector muerto TODA la sesion aunque la red volviera. */}
+      {rates.estado === 'error' && (
+        <Button variant="secondary" size="sm" onClick={rates.reintentar}>
+          Sin tipos de cambio · Reintentar
+        </Button>
+      )}
+
       <CurrencySelect
         value={session.currency}
         onChange={setCurrency}
         disabled={rates.estado !== 'listo'}
       />
 
-      <ThemeToggle theme={session.theme} onToggle={toggleTheme} />
+      <ThemeToggle theme={theme} onToggle={toggleTheme} />
 
       <div className={styles.usuario} ref={menuRef}>
         <button
@@ -102,7 +111,6 @@ export function Topbar() {
           className={styles.botonUsuario}
           onClick={() => setMenuAbierto((v) => !v)}
           aria-expanded={menuAbierto}
-          aria-haspopup="menu"
         >
           <span className={styles.nombreUsuario}>Hola, {session.nombre}</span>
           <span className={styles.avatar} aria-hidden="true">
@@ -113,12 +121,15 @@ export function Topbar() {
           <span className="sr-only">Menú de {session.nombre}</span>
         </button>
 
+        {/* Un grupo de botones a secas, SIN role="menu": ese rol promete navegacion por
+            flechas y foco gestionado que aqui no existe; para dos acciones, prometerlo
+            y no darlo es peor que no prometerlo. */}
         {menuAbierto && (
-          <div className={styles.menu} role="menu">
-            {/* hasRole('admin'), no una comparacion de strings. El literal "ADMIN" vive en
-                un solo sitio del frontend (lib/session.tsx). */}
+          <div className={styles.menu}>
+            {/* hasRole('admin'), no una comparacion de strings: el rol lo dicta el
+                servidor y el literal del usuario magico ya ni existe en el frontend. */}
             {hasRole('admin') && (
-              <button type="button" className={styles.itemMenu} role="menuitem" onClick={() => navegar('/planes')}>
+              <button type="button" className={styles.itemMenu} onClick={() => navegar('/planes')}>
                 <IconSettings />
                 Administración
               </button>
@@ -127,7 +138,6 @@ export function Topbar() {
             <button
               type="button"
               className={`${styles.itemMenu} ${styles.itemPeligro}`}
-              role="menuitem"
               onClick={logout}
             >
               <IconLogout />

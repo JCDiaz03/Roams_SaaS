@@ -13,7 +13,6 @@ export type Session = {
   rol: Rol
   currency: CurrencyCode
   currencySource: 'auto' | 'manual'
-  theme: Theme
 }
 
 /**
@@ -26,6 +25,13 @@ export type Session = {
  */
 type Api = {
   session: Session | null
+  /**
+   * El tema vive FUERA de la sesion: es del dispositivo, no de quien entra, y la
+   * pantalla de login (donde session es null) tambien tiene conmutador. Cuando era un
+   * campo de la sesion, el toggle del login creia que el tema era siempre 'light' y su
+   * etiqueta accesible prometia lo contrario de lo que hacia.
+   */
+  theme: Theme
   /** true mientras GET /auth/session decide si hay alguien (rehidratacion tras F5). */
   restaurando: boolean
   /** null = dentro. Un string = el mensaje de error que ve quien teclea. */
@@ -50,16 +56,15 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     return inicial
   })
 
-  /** La sesion local desde lo que dijo el servidor. Divisa y tema son del CLIENTE. */
+  /** La sesion local desde lo que dijo el servidor. La divisa es del CLIENTE. */
   const sesionDe = useCallback(
     (s: { nombre: string; rol: Rol }): Session => ({
       nombre: s.nombre,
       rol: s.rol,
       currency: 'EUR',
       currencySource: 'auto',
-      theme,
     }),
-    [theme],
+    [],
   )
 
   // Rehidratacion tras F5: el navegador conserva la cookie, asi que se pregunta "quien
@@ -133,14 +138,14 @@ export function SessionProvider({ children }: { children: ReactNode }) {
     setTheme((actual) => {
       const proximo = siguienteTema(actual)
       applyTheme(proximo)
-      setSession((s) => (s === null ? s : { ...s, theme: proximo }))
       return proximo
     })
   }, [])
 
   const api_ = useMemo<Api>(
     () => ({
-      session: session === null ? null : { ...session, theme },
+      session,
+      theme,
       restaurando,
       login,
       logout,

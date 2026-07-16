@@ -82,3 +82,12 @@ export function listSimulationsByCustomer(db: Db, customerId: number, limit: num
     )
     .all(customerId, limit) as SimulationRow[]
 }
+
+/** Cuantas simulaciones TIENE el cliente, sin el LIMIT: el `total` real de la coleccion. */
+export function countSimulationsByCustomer(db: Db, customerId: number): number {
+  return (
+    db.prepare('SELECT COUNT(*) AS n FROM simulations WHERE customer_id = ?').get(customerId) as {
+      n: number
+    }
+  ).n
+}

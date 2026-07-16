@@ -8,6 +8,15 @@ on:
     # se publica cuando se publica, no cuando hay commits (referencia 14.3).
     - cron: '30 6 * * 1'
 
+# El CI solo lee: sin esto, el GITHUB_TOKEN corre con los permisos por defecto del repo.
+permissions:
+  contents: read
+
+# Empujar dos veces seguidas cancela el run obsoleto en vez de pagarlo entero.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
     runs-on: ubuntu-latest
@@ -38,3 +47,11 @@ jobs:
       - run: npm ci
       - run: npx playwright install --with-deps chromium
       - run: npm run test:e2e
+      # La traza del fallo (trace: retain-on-failure) se escribe en test-results/: sin
+      # subirla, un E2E rojo en CI muere sin artefacto de diagnostico.
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-trazas
+          path: test-results/
+          retention-days: 7

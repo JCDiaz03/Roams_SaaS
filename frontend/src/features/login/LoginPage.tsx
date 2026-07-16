@@ -15,7 +15,7 @@ import styles from './LoginPage.module.css'
  * candados dramaticos ni escudos (diseno, ventana 1).
  */
 export function LoginPage() {
-  const { login, session, toggleTheme } = useSession()
+  const { login, theme, toggleTheme } = useSession()
 
   const [usuario, setUsuario] = useState('')
   const [password, setPassword] = useState('')
@@ -40,7 +40,7 @@ export function LoginPage() {
     <div className={styles.pantalla}>
       {/* El conmutador de tema esta tambien aqui: es la unica pantalla sin topbar, y
           quien prefiera oscuro no deberia tener que entrar antes para conseguirlo. */}
-      <ThemeToggle theme={session?.theme ?? 'light'} onToggle={toggleTheme} floating />
+      <ThemeToggle theme={theme} onToggle={toggleTheme} floating />
 
       <div className={styles.marca}>
         <span className={styles.logo}>

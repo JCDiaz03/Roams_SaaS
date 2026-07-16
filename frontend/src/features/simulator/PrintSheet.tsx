@@ -1,6 +1,7 @@
 // La hoja del presupuesto: solo existe en @media print. Diseno: ventana 4 · roadmap 5.4
 
-import { Fragment } from 'react'
+import { Fragment, useEffect } from 'react'
+import { createPortal } from 'react-dom'
 import type { CurrencyCode } from '@saas/pricing'
 import type { CustomerDetail, Simulation } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
@@ -29,14 +30,22 @@ type Props = {
  * lleva el importe en la divisa de FACTURACION (invariante 4) — la conversion es una
  * referencia efimera de pantalla y en un documento entregable seria una promesa falsa.
  *
- * En pantalla no existe (display: none); al imprimir, el resto de la app se oculta con
- * la regla global `.hoja-impresion` de global.css.
+ * En pantalla no existe (display: none). La hoja se monta por PORTAL fuera de #root y
+ * marca el body: la regla de impresion de global.css oculta #root con display -no con
+ * visibility, que conservaria el layout y regalaria paginas en blanco tras la hoja-
+ * SOLO cuando la hoja existe. Sin hoja (Ctrl+P en cualquier otra pantalla), la app se
+ * imprime tal cual en vez de salir un papel vacio.
  */
 export function PrintSheet({ cliente, sim, emisor }: Props) {
   const currency = sim.currency as CurrencyCode
   const facturadas = sim.breakdown.filter((b) => b.billed && b.tiers.length > 0)
 
-  return (
+  useEffect(() => {
+    document.body.classList.add('con-hoja-impresion')
+    return () => document.body.classList.remove('con-hoja-impresion')
+  }, [])
+
+  return createPortal(
     <section className={`hoja-impresion ${styles.hoja}`}>
       <header className={styles.cabecera}>
         <div className={styles.marca}>SaaS-O-Matic</div>
@@ -93,7 +102,9 @@ export function PrintSheet({ cliente, sim, emisor }: Props) {
             <td>{formatMinor(sim.base_minor, currency)}</td>
           </tr>
           <tr>
-            <td>Impuestos ({sim.tax_rate_bp / 100} %)</td>
+            {/* toLocaleString: un tipo con decimal (8,1 %) debe salir con coma, como
+                todos los demas numeros del documento. */}
+            <td>Impuestos ({(sim.tax_rate_bp / 100).toLocaleString('es-ES')} %)</td>
             <td>{formatMinor(sim.tax_minor, currency)}</td>
           </tr>
           <tr className={styles.total}>
@@ -113,6 +124,7 @@ export function PrintSheet({ cliente, sim, emisor }: Props) {
         Emitido por <strong>{emisor}</strong> el {fechaLarga(sim.created_at)} · Importes en{' '}
         {currency}, la divisa de facturación del plan · Presupuesto orientativo: no es una factura.
       </footer>
-    </section>
+    </section>,
+    document.body,
   )
 }

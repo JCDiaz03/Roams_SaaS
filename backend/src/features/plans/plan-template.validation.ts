@@ -1,6 +1,7 @@
 // Cortes crecientes, sin huecos ni solapes, ultimo tramo abierto. Spec: 5.4
 
 import { METRICS, isCurrencyCode, type Metric } from '@saas/pricing'
+import { TOPES_PLAN } from './plans.schemas'
 
 /** Un tramo tal y como llega de la plantilla: sin sort_order, que lo deriva el servidor. */
 export type PlantillaTier = {
@@ -24,6 +25,8 @@ export type Regla =
   | 'LAST_TIER_MUST_BE_OPEN'
   | 'OPEN_TIER_NOT_LAST'
   | 'PRICE_NEGATIVE'
+  | 'PRICE_TOO_HIGH'
+  | 'CUT_TOO_HIGH'
   | 'CURRENCY_NOT_SUPPORTED'
   | 'METRIC_NOT_SUPPORTED'
 
@@ -129,6 +132,27 @@ function validarBloque(metric: Metric, bloque: readonly PlantillaTier[]): Violac
         metric,
         index: i,
         message: `El precio del tramo ${i + 1} de «${etiqueta}» no puede ser negativo.`,
+      })
+    }
+
+    // Topes anti-overflow (plans.schemas.ts): el esquema los aplica en la API; aqui se
+    // aplican tambien porque el seed NO pasa por el esquema y el motor confia en que
+    // sus entradas no desbordan la aritmetica exacta de `number`.
+    if (tier.unit_price_minor > TOPES_PLAN.unitPriceMinor) {
+      violaciones.push({
+        rule: 'PRICE_TOO_HIGH',
+        metric,
+        index: i,
+        message: `El precio del tramo ${i + 1} de «${etiqueta}» supera el máximo admitido.`,
+      })
+    }
+
+    if (tier.up_to !== null && tier.up_to > TOPES_PLAN.upTo) {
+      violaciones.push({
+        rule: 'CUT_TOO_HIGH',
+        metric,
+        index: i,
+        message: `El corte del tramo ${i + 1} de «${etiqueta}» supera el máximo admitido.`,
       })
     }
 

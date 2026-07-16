@@ -29,6 +29,7 @@ async function main(): Promise<void> {
     // Credenciales de demostracion sobre sesion REAL: la estructura es la definitiva,
     // el proveedor es lo unico que se sustituye al conocer el IdP de la empresa.
     identityProvider: new MockIdentityProvider(),
+    trustProxy: config.trustProxy,
     logger: true,
   })
 

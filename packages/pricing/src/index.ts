@@ -10,7 +10,7 @@ export { quote } from './quote'
 export { computeBreakdown, baseMinorOf } from './engine'
 export { roundHalfUpDiv } from './rounding'
 
-export { CURRENCIES, CURRENCY_CODES, isCurrencyCode, minorUnitOf } from './currency'
+export { CURRENCIES, isCurrencyCode, minorUnitOf } from './currency'
 export type { CurrencyCode, MinorUnit } from './currency'
 
 export { METRICS } from './types'

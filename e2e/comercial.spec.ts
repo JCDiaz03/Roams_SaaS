@@ -64,7 +64,7 @@ test('cerrar sesion vuelve al login y la pantalla queda limpia', async ({ page }
   await entrar(page, 'María')
 
   await page.getByRole('button', { name: /Menú de María/ }).click()
-  await page.getByRole('menuitem', { name: 'Cerrar sesión' }).click()
+  await page.getByRole('button', { name: 'Cerrar sesión' }).click()
 
   await expect(page.getByRole('button', { name: 'Entrar' })).toBeVisible()
 })

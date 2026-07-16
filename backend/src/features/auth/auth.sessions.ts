@@ -27,10 +27,20 @@ export class SessionStore {
 
   /** Crea la sesion y devuelve su id: 256 bits aleatorios. El id no codifica nada. */
   create(identity: Identity): string {
-    // Map conserva el orden de insercion: la primera clave es la sesion mas antigua.
     if (this.sesiones.size >= MAX_SESIONES) {
-      const masVieja = this.sesiones.keys().next().value
-      if (masVieja !== undefined) this.sesiones.delete(masVieja)
+      // Primero caen las CADUCADAS (que solo se borran perezosamente en get(), asi que
+      // pueden estar ocupando hueco): expulsar una sesion viva mientras quedan muertas
+      // seria un logout silencioso gratuito.
+      const ahora = Date.now()
+      for (const [id, sesion] of this.sesiones) {
+        if (ahora - sesion.creadaEn > TTL_MS) this.sesiones.delete(id)
+      }
+
+      // Map conserva el orden de insercion: la primera clave es la sesion mas antigua.
+      if (this.sesiones.size >= MAX_SESIONES) {
+        const masVieja = this.sesiones.keys().next().value
+        if (masVieja !== undefined) this.sesiones.delete(masVieja)
+      }
     }
 
     const id = randomBytes(32).toString('base64url')

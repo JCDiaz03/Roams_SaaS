@@ -73,8 +73,9 @@ export function BreakdownTable({ resultado, currency }: Props) {
                   <td>{formatMinor(resultado.base_minor, currency)}</td>
                 </tr>
                 <tr>
-                  {/* El tipo viene en puntos basicos; aqui se pinta como porcentaje. */}
-                  <td>Impuestos ({resultado.tax_rate_bp / 100} %)</td>
+                  {/* El tipo viene en puntos basicos; se pinta como porcentaje y con
+                      toLocaleString: un 8,1 % debe llevar coma, como el resto. */}
+                  <td>Impuestos ({(resultado.tax_rate_bp / 100).toLocaleString('es-ES')} %)</td>
                   <td>{formatMinor(resultado.tax_minor, currency)}</td>
                 </tr>
                 <tr className={styles.total}>

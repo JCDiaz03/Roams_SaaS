@@ -91,6 +91,17 @@ export function registerErrorHandler(app: FastifyInstance): void {
       return reply.status(error.status).send(sobre(error.code, error.message, error.field, error.extra))
     }
 
+    // Errores del PROPIO Fastify con semantica de cliente: JSON malformado (400), cuerpo
+    // mayor que bodyLimit (413), Content-Type que no es JSON (415). Traen su statusCode
+    // 4xx y NO son "lo que nadie contemplo": sin esta rama se responderian como 500 y
+    // cualquier cliente podria llenar el log de errores falsos con un cuerpo roto.
+    if (typeof error.statusCode === 'number' && error.statusCode >= 400 && error.statusCode < 500) {
+      req.log.info({ code: error.code, url: req.url }, 'Peticion ilegible rechazada')
+      return reply
+        .status(error.statusCode)
+        .send(sobre('MALFORMED_REQUEST', 'No hemos podido leer la petición.'))
+    }
+
     // Aqui solo llega lo que nadie contemplo. Se loguea ENTERO -es la unica copia del
     // detalle- y al cliente le va un generico.
     req.log.error({ err: error, url: req.url }, 'Error no contemplado')

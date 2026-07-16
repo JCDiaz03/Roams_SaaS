@@ -2,7 +2,7 @@
 
 Herramienta interna para el equipo comercial: registrar clientes corporativos, simular su consumo (usuarios, almacenamiento, llamadas API) y obtener presupuestos mensuales de suscripción, visualizables en varias divisas.
 
-> **Estado: completo.** Motor de tarificación, validación fiscal (ES y PT), API, autenticación con sesión de servidor, las 5 pantallas y la administración de planes. **330 tests + 3 E2E**, verificado de punta a punta contra la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
+> **Estado: completo.** Motor de tarificación, validación fiscal (ES y PT), API, autenticación con sesión de servidor, las 5 pantallas y la administración de planes. **339 tests + 3 E2E**, verificado de punta a punta contra la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
 
 ## Arranque en local
 
@@ -15,12 +15,12 @@ npm run dev
 
 Y ya está: **http://localhost:5173**. Entra con cualquier usuario y la contraseña `1111`, o con el usuario `ADMIN` para ver la entrada de administración.
 
-No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y lo puebla en el primer arranque si el fichero `.db` no existe. Requiere **Node ≥ 22** (ver `.nvmrc`); no hace falta Docker ni herramientas de compilación.
+No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y lo puebla en el primer arranque si el fichero `.db` no existe. Requiere **Node ≥ 22** (`engines`); `.nvmrc` fija la **24**, que es la que usa el CI. No hace falta Docker ni herramientas de compilación.
 
 | Script (raíz) | Qué hace |
 |---|---|
 | `npm run dev` | Levanta backend (`:3000`) y frontend (`:5173`) a la vez |
-| `npm test` | Los 330 tests de los tres workspaces |
+| `npm test` | Los 339 tests de los tres workspaces |
 | `npm run seed` | Repuebla la base de datos (solo sobre una base vacía) |
 | `npm run test:e2e` | El smoke E2E (Playwright): arranca backend, build con CSP estricta y navegador, y recorre la app como un evaluador. Primera vez: `npx playwright install chromium` |
 | `npm run lint` · `npm run typecheck` | Lo mismo que ejecuta el CI |

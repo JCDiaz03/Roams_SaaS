@@ -128,7 +128,7 @@
 - ✅ Tipo `NIF` nuevo de punta a punta: `FiscalIdType`, `CHECK` de `customers` ampliado **en el mismo commit**, y la colisión de nombres que la referencia §7.1 predecía ("NIF" español vs portugués), disuelta por las claves espaciadas
 - ✅ Seed: PT con `tax_id_scheme = 'PT_NIF'` y **Lusitânia Dados Lda.** (NIF sintético `512345678`, sembrado sin normalizar) — el chip «NIF validado» y el hint resuelto, visibles desde el primer arranque
 - ✅ La prueba de la promesa: **ningún endpoint ni componente tocado**. Los tests de integración nuevos (alta PT válida/inválida, hint de `GET /countries`) pasan contra el código de siempre. Los tests que usaban `PT_NIF` como ejemplo de "esquema no registrado" migraron a `FR_SIREN` — exactamente el ciclo de vida que esos tests protegen
-- ✅ **235 tests** de backend (los 219 + 14 de batería PT + 2 de integración del alta), **330 en el repo** más los 3 E2E
+- ✅ **16 tests nuevos**: 14 de batería del validador + 2 de integración del alta portuguesa
 
 ### 5.4 Presupuesto imprimible ✅
 
@@ -174,6 +174,7 @@ Con días extra, la tentación es rellenarlos. Lo que se consideró y **no** ent
   - **Tope de 1 MB al cuerpo del proveedor de tipos**: el timeout acotaba el tiempo, no el volumen *dentro* de ese tiempo. El payload de un tercero no es de fiar (→ referencia §9)
   - **`nosniff` y `Referrer-Policy` en toda respuesta**, de la API y de Vite. La CSP no va ahí: es del documento HTML y la envía Vite (→ referencia §14.2)
 - ✅ En verde: **204 tests** de backend (los 202 de §3.2 más los 2 del recuerdo de fallo) + **34** de frontend; typecheck, lint y build limpios
+- ✅ **Auditoría de cierre con tres lentes en paralelo** (backend+pricing · frontend · config+CI+deriva docs↔código), cada hallazgo verificado contra el código antes de tocar nada: **4 altos corregidos y testeados** — topes anti-overflow del dinero del plan (→ [auditoría 04](./03-proceso/auditorias/04-dinero-sin-tope.md)), `MALFORMED_REQUEST` para peticiones ilegibles que respondían 500, la búsqueda de la topbar que se auto-revertía a los 250 ms, y la hoja de impresión que podía cruzar datos entre clientes — más ~25 medios y bajos aplicados; lo que se decidió NO tocar, razonado en la [sesión 14](./03-proceso/sesiones/14-auditoria-de-cierre.md). Eficiencia: **limpia en los tres informes**. Estado final: **339 tests + 3 E2E**
 
 ### Lo que queda fuera, y con qué cara
 

@@ -75,6 +75,9 @@ export default defineConfig({
   // entre 5173 y 3000 (referencia 14.1).
   server: {
     port: 5173,
+    // Si el puerto esta ocupado, fallar YA: saltar en silencio a 5174 rompe el probe de
+    // los E2E (120 s de timeout mudo) y las suposiciones de la CSP/proxy.
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',
@@ -89,6 +92,7 @@ export default defineConfig({
   // despliegue.
   preview: {
     port: 4173,
+    strictPort: true,
     proxy: {
       '/api': {
         target: 'http://localhost:3000',

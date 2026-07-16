@@ -16,9 +16,9 @@ import styles from './routes.module.css'
 /**
  * Sin sesion no hay pantallas: el login lo ocupa todo.
  *
- * Esto es UX, NO SEGURIDAD (referencia 8.3): la API no esta protegida y cualquiera puede
- * llamarla directamente. El guardia existe para que la aplicacion tenga sentido, no para
- * defender nada.
+ * Este guardia es UX SOBRE una autorizacion real (spec 07): la API exige sesion (401) y
+ * las rutas de admin exigen rol (403) EN EL BACKEND. Lo de aqui decide que se pinta, no
+ * que se puede hacer.
  */
 export function AppRoutes() {
   const { session, hasRole, restaurando } = useSession()
@@ -44,9 +44,9 @@ export function AppRoutes() {
           <Route path="/clientes/:id" element={<CustomerDetailPage />} />
           <Route path="/clientes/:id/simular" element={<SimulatorPage />} />
 
-          {/* Administracion. El gating es UX -que la app tenga sentido-, NO seguridad: la
-              API no esta protegida y un comercial que teclee la URL igualmente no rompe
-              nada que no pudiera romper con curl (referencia 8.3). */}
+          {/* Administracion. El gating visual decide que pantallas existen para quien;
+              la autorizacion de verdad vive en el backend (403 por rol, spec 07): un
+              comercial que teclee la URL vera pantallas cuyas mutaciones rebotan. */}
           {esAdmin && <Route path="/planes" element={<PlansAdminPage />} />}
           {esAdmin && <Route path="/planes/nuevo" element={<PlanTemplatePage />} />}
           {esAdmin && <Route path="/planes/:id" element={<PlanTemplatePage />} />}

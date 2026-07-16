@@ -9,6 +9,6 @@ export function ratesRoutes({ ratesService }: { ratesService: RatesService }) {
     // NO acepta ningun parametro, y es a proposito: es lo que ancla el "sin SSRF" del
     // 14.1. Ninguna entrada del usuario puede llegar a componer la URL saliente, porque
     // no hay ninguna entrada.
-    app.get('/rates', { schema: getRatesSchema }, async () => ratesService.get())
+    app.get('/rates', { schema: getRatesSchema }, async (req) => ratesService.get(req.log))
   }
 }

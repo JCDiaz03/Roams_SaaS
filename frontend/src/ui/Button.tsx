@@ -1,6 +1,6 @@
 // Boton pildora con icono. Diseno: 2.1
 
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import type { ButtonHTMLAttributes, ReactNode, Ref } from 'react'
 import styles from './Button.module.css'
 
 type Variant = 'primary' | 'secondary' | 'ghost' | 'danger'
@@ -14,6 +14,9 @@ type Props = ButtonHTMLAttributes<HTMLButtonElement> & {
   loading?: boolean
   icon?: ReactNode
   children: ReactNode
+  /** React 19: la ref viaja como prop normal hasta el <button> real (p. ej. para que un
+   *  modal enfoque Cancelar al abrir). */
+  ref?: Ref<HTMLButtonElement>
 }
 
 export function Button({

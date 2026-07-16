@@ -152,3 +152,23 @@ describe('pureza', () => {
     expect(tiers).toEqual(copia)
   })
 })
+
+describe('topes anti-overflow del dinero (plans.schemas.ts, TOPES_PLAN)', () => {
+  it('un precio por encima del tope -> PRICE_TOO_HIGH con su fila', () => {
+    // Sin el tope, un plan valido de precio 1e15 hace que el motor calcule por encima
+    // de 2^53: toda simulacion futura de sus clientes revienta con 500 o, en la zona
+    // intermedia, persiste importes IMPRECISOS que el CHECK de la tabla no caza.
+    const v = validarPlantilla(plantilla([USERS(null, 1_000_001)]))
+
+    expect(v.map((x) => x.rule)).toEqual(['PRICE_TOO_HIGH'])
+    expect(v[0]).toMatchObject({ metric: 'users', index: 0 })
+  })
+
+  it('un corte por encima del tope -> CUT_TOO_HIGH', () => {
+    expect(reglas(plantilla([USERS(1_000_000_001), USERS(null)]))).toContain('CUT_TOO_HIGH')
+  })
+
+  it('los valores EXACTOS del tope pasan: el limite es inclusivo', () => {
+    expect(validarPlantilla(plantilla([USERS(1_000_000_000, 1_000_000), USERS(null)]))).toEqual([])
+  })
+})

@@ -53,9 +53,11 @@ type Props = {
   onChange: (v: number) => void
   /** false = el plan no cobra por esta metrica. NO se oculta: se atenua (referencia 5.2). */
   billed: boolean
+  /** true durante el guardado: la respuesta re-sella con lo enviado (SimulatorPage). */
+  disabled?: boolean
 }
 
-export function MetricSliderCard({ metric, value, onChange, billed }: Props) {
+export function MetricSliderCard({ metric, value, onChange, billed, disabled = false }: Props) {
   const { label, hint, max } = META[metric]
 
   const cambiar = (bruto: string) => {
@@ -82,6 +84,7 @@ export function MetricSliderCard({ metric, value, onChange, billed }: Props) {
           value={value}
           min={0}
           max={max}
+          disabled={disabled}
           onChange={(e) => cambiar(e.target.value)}
           aria-label={`${label}, valor exacto`}
         />
@@ -93,6 +96,7 @@ export function MetricSliderCard({ metric, value, onChange, billed }: Props) {
         value={value}
         min={0}
         max={max}
+        disabled={disabled}
         onChange={(e) => cambiar(e.target.value)}
         aria-label={label}
       />

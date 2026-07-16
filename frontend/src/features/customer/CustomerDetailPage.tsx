@@ -28,6 +28,8 @@ export function CustomerDetailPage() {
   const rates = useRatesContext()
 
   const [datos, setDatos] = useState<Estado>({ estado: 'cargando' })
+  // Reintento en la SPA, como el buscador: navegar(0) recargaba la pagina entera.
+  const [intento, setIntento] = useState(0)
 
   useEffect(() => {
     let cancelado = false
@@ -49,7 +51,7 @@ export function CustomerDetailPage() {
     return () => {
       cancelado = true
     }
-  }, [id])
+  }, [id, intento])
 
   // Preseleccion de divisa por pais, SOLO si el comercial no ha elegido a mano. La regla
   // vive en la sesion (referencia 13); aqui solo se le dice cual seria.
@@ -59,7 +61,9 @@ export function CustomerDetailPage() {
 
   if (datos.estado === 'cargando') {
     return (
-      <div aria-busy="true" aria-label="Cargando cliente">
+      // role="status" es lo que hace que el aria-label se anuncie: sobre un div sin rol
+      // se ignora, y los esqueletos son aria-hidden a proposito (Skeleton.tsx).
+      <div role="status" aria-busy="true" aria-label="Cargando cliente">
         <Card>
           <div style={{ display: 'flex', gap: 16 }}>
             <Skeleton width={56} height={56} radius="var(--radius-panel)" />
@@ -90,7 +94,7 @@ export function CustomerDetailPage() {
       <Card>
         <div className={styles.vacio}>
           <p>No hemos podido cargar la ficha.</p>
-          <Button variant="secondary" onClick={() => navegar(0)}>
+          <Button variant="secondary" onClick={() => setIntento((i) => i + 1)}>
             Reintentar
           </Button>
         </div>

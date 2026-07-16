@@ -11,6 +11,12 @@ export const config = {
   port: Number(process.env['PORT'] ?? 3000),
   dbPath: process.env['DB_PATH'] ?? DB_POR_DEFECTO,
 
+  // Detras de un TLS terminator, el rate limit del login se llavea por la IP del proxy
+  // -10 intentos/minuto GLOBALES- salvo que Fastify lea X-Forwarded-For. Se activa por
+  // configuracion y NUNCA por defecto: sin proxy delante, esa cabecera la escribe
+  // cualquiera y confiar en ella seria un rate limit esquivable con un header.
+  trustProxy: process.env['TRUST_PROXY'] === '1',
+
   // La unica URL externa del sistema: FIJA y en configuracion del servidor. Ninguna
   // entrada del usuario compone URLs, y por eso no hay superficie de SSRF
   // (referencia 14.1). Si esto pasara a ser un PARAMETRO DE PETICION, esa frase dejaria

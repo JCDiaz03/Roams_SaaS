@@ -132,10 +132,43 @@ describe('POST /customers — errores', () => {
 
     expect(cuerpo).not.toMatch(/at \w+|\.ts:\d+|SQLITE|node_modules/i)
   })
+
+  it('JSON malformado -> 400 MALFORMED_REQUEST, no un 500', async () => {
+    // Un cuerpo roto es un error DEL CLIENTE: responderlo como 500 mentiria y dejaria
+    // que cualquiera llenara el log de errores falsos a voluntad.
+    const r = await h.inject({
+      method: 'POST',
+      url: '/api/customers',
+      headers: { 'content-type': 'application/json' },
+      payload: '{"company_name":',
+    })
+
+    expect(r.statusCode).toBe(400)
+    expect(r.json().error.code).toBe('MALFORMED_REQUEST')
+  })
+
+  it('cuerpo mayor que el bodyLimit -> 413, no un 500', async () => {
+    const r = await h.inject({
+      method: 'POST',
+      url: '/api/customers',
+      headers: { 'content-type': 'application/json' },
+      payload: JSON.stringify({ company_name: 'x'.repeat(70_000) }),
+    })
+
+    expect(r.statusCode).toBe(413)
+    expect(r.json().error.code).toBe('MALFORMED_REQUEST')
+  })
 })
 
 describe('GET /customers — buscador', () => {
   const buscar = (qs: string) => h.inject({ method: 'GET', url: `/api/customers${qs}` })
+
+  it('el total es el de la COLECCION, no el de la pagina devuelta', async () => {
+    const r = await buscar('?limit=2')
+
+    expect(r.json().customers.length).toBe(2)
+    expect(r.json().total).toBe(5)
+  })
 
   it('sin termino devuelve los recientes, NO un 400', async () => {
     const r = await buscar('')

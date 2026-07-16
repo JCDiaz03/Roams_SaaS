@@ -6,6 +6,24 @@ export const LIMITES = { name: 100, description: 500 } as const
 /** Anti-DoS: 30 tramos es holgadisimo para un plan real y acota el bucle del motor. */
 const MAX_TIERS = 30
 
+/**
+ * Topes del dinero del plan, y son ANTI-OVERFLOW, no de negocio: el peor producto
+ * posible del motor es precio maximo x cantidad maxima de api_calls (1e6 x 1e9 = 1e15),
+ * un orden por debajo de 2^53, donde `number` empieza a perder enteros. La suma de tres
+ * metricas mas el impuesto sigue cabiendo. Sin estos topes, un plan valido con precio
+ * 1e15 hacia reventar (500) toda simulacion futura de sus clientes — o peor, en la zona
+ * intermedia persistia importes IMPRECISOS en silencio, que el CHECK de la tabla no caza
+ * porque base, impuesto y total salen de la misma base imprecisa. Se comprueban aqui
+ * (400 en la API) Y en el validador de plantilla (el camino del seed), como los
+ * maxLength se duplican en los CHECK.
+ */
+export const TOPES_PLAN = {
+  /** 1_000_000 minor = 10.000,00 EUR por unidad: holgadisimo para cualquier SaaS. */
+  unitPriceMinor: 1_000_000,
+  /** El mismo orden que el tope mayor de las simulaciones (api_calls, 1e9). */
+  upTo: 1_000_000_000,
+} as const
+
 const tierSchema = {
   type: 'object',
   required: ['metric', 'up_to', 'unit_price_minor'],
@@ -14,8 +32,8 @@ const tierSchema = {
     metric: { type: 'string', enum: ['users', 'storage_gb', 'api_calls'] },
     // null = infinito. El esquema NO comprueba que solo el ultimo lo sea, ni que los
     // cortes crezcan: eso mira filas hermanas y vive en el validador de plantilla.
-    up_to: { type: ['integer', 'null'], minimum: 1 },
-    unit_price_minor: { type: 'integer', minimum: 0 },
+    up_to: { type: ['integer', 'null'], minimum: 1, maximum: TOPES_PLAN.upTo },
+    unit_price_minor: { type: 'integer', minimum: 0, maximum: TOPES_PLAN.unitPriceMinor },
   },
 } as const
 

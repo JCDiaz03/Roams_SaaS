@@ -3,6 +3,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { TaxProvider } from '../../domain/tax/tax-provider'
 import type { Db } from '../../infra/db'
+import { countSimulationsByCustomer } from './simulations.repo'
 import { historySchema, postSimulationSchema } from './simulations.schemas'
 import { crearSimulacion, historialDe, type EntradasSimulacion } from './simulations.service'
 
@@ -27,7 +28,8 @@ export function simulationsRoutes({ db, taxProvider }: Deps) {
       // Mismo tipo de elemento que la respuesta del POST, a proposito: la card del
       // historial y la recien guardada son el MISMO componente, y una divergencia de
       // forma aqui se paga en el frontend con dos mapeos que mantener sincronizados.
-      return { simulations, total: simulations.length }
+      // El total es el de la COLECCION, no el de la pagina.
+      return { simulations, total: countSimulationsByCustomer(db, id) }
     })
   }
 }

@@ -59,7 +59,7 @@ type SesionActiva = Identity & { creadaEn: number }
 |---|---|
 | `POST /auth/login` | `{ usuario, password }` → `200 { nombre, rol }` + `Set-Cookie`. Credenciales malas → `401 AUTH_INVALID_CREDENTIALS` con **mensaje único** ("usuario o contraseña"): no se revela cuál falló |
 | `GET /auth/session` | `200 { nombre, rol }` con sesión viva. Es la **rehidratación tras F5**: el frontend deja de perder la sesión al recargar, que era una carencia del mock |
-| `POST /auth/logout` | `204`, borra la sesión del servidor y expira la cookie |
+| `POST /auth/logout` | `204`, borra la sesión del servidor y expira la cookie. **Pública**, como el login: salir tiene que funcionar justo cuando la sesión ya murió sola |
 
 - Esquemas Fastify completos, como toda ruta: `maxLength` en `usuario` (60) y `password` (100), `additionalProperties: false`, y esquema `response` (la regla de la casa desde la revisión post-entrega).
 - **Rate limit en el login**: contador en memoria por IP, ~10 intentos/min → `429 AUTH_RATE_LIMITED`. No convierte `1111` en secreto (es público); existe para que la **estructura** quede bien construida — el día del IdP real, el freno a fuerza bruta ya está donde tiene que estar.
@@ -71,7 +71,7 @@ type SesionActiva = Identity & { creadaEn: number }
 
 El hook `onRequest` — la costura vacía desde el día 1, cuyo comentario decía "aquí se enchufará la validación real" — **se rellena**:
 
-1. **`POST /auth/login` es la única ruta pública.** Todo lo demás bajo `/api` exige sesión viva → `401 AUTH_REQUIRED`. Herramienta interna: no hay lecturas anónimas que justificar.
+1. **Las únicas rutas públicas son `POST /auth/login` y `POST /auth/logout`** (el logout, porque debe funcionar precisamente cuando la sesión ya no existe). Todo lo demás bajo `/api` exige sesión viva → `401 AUTH_REQUIRED`. Herramienta interna: no hay lecturas anónimas que justificar.
 2. **El rol se aplica donde vive el recurso, no en el cliente**: `POST/PUT/DELETE /plans` → `403 AUTH_FORBIDDEN` si el rol no es `admin`, declarado como **config de la ruta** (`{ requiereRol: 'admin' }`), no como `if` dentro del handler — visible en code review igual que el esquema.
 3. **`GET /plans?include_archived=true` con rol `sales` → `403`.** El parámetro se queda (el recurso es el mismo), pero la frase de `05-auth-mock.md` §5-1 — "el gating por rol es UX, no seguridad" — **deja de ser cierta y hay que actualizarla donde aparezca**: el comentario de `plans.routes.ts`, la referencia §8.3/§12 y el README. Dejar la frase vieja sería lo contrario de lo que este proyecto hace con su documentación.
 4. **CSRF**: `SameSite=Strict` + mismo origen por diseño (proxy de Vite, sin CORS) ya lo cierran en navegadores modernos; como cinturón, las mutaciones (`POST/PUT/DELETE`) que el navegador declara **`Sec-Fetch-Site: cross-site`** (o `same-site`) → `403`. Tres líneas, cero dependencias. **No se compara `Origin` contra `Host`**, y es una lección comprada: detrás de un proxy (el de Vite; cualquier TLS terminator) el `Host` llega reescrito y esa comparación rechaza a la propia aplicación — el smoke E2E lo cazó en su primer arranque. `Sec-Fetch-Site` lo calcula el navegador contra el origen que el usuario ve y sobrevive a cualquier proxy.

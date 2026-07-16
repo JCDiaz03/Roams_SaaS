@@ -147,6 +147,29 @@ export function searchCustomers(db: Db, termino: string | undefined, limit: numb
 }
 
 /**
+ * Cuantos clientes COINCIDEN, sin el LIMIT: es lo que hace que el `total` de la
+ * respuesta diga el tamaño de la coleccion y no el de la pagina. Con 300 coincidencias
+ * y limit=20, un total de 20 seria un contador mintiendo con nombre de verdad.
+ */
+export function countCustomers(db: Db, termino: string | undefined): number {
+  const recortado = termino?.trim() ?? ''
+
+  if (recortado === '') {
+    return (db.prepare('SELECT COUNT(*) AS n FROM customers').get() as { n: number }).n
+  }
+
+  return (
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM customers c
+          WHERE upper(c.company_name) LIKE upper(@patron) ESCAPE '\\'
+             OR upper(c.fiscal_id)    LIKE upper(@patron) ESCAPE '\\'`,
+      )
+      .get({ patron: `%${escapeLike(recortado)}%` }) as { n: number }
+  ).n
+}
+
+/**
  * El plan de un cliente CON SUS TRAMOS, este activo o archivado.
  *
  * El `active` NO se filtra, y es el punto entero: un cliente antiguo apunta a una version

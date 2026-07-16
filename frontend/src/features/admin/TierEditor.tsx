@@ -12,10 +12,23 @@ import styles from './TierEditor.module.css'
  *
  * No como number: un input numerico a medio escribir ("1" camino de "100") tendria que
  * representarse, y "" no es 0. El parseo a entero se hace UNA vez, al enviar.
+ *
+ * El `id` es SOLO la key de React, estable por fila: con el indice como key, quitar el
+ * tramo 2 con el foco en el 3 dejaba el foco editando la fila equivocada (React reutiliza
+ * nodos por posicion). No viaja al servidor.
  */
-export type TierBorrador = { upTo: string; price: string }
+export type TierBorrador = { id: number; upTo: string; price: string }
 
 export type BloqueBorrador = { activo: boolean; tramos: TierBorrador[] }
+
+let siguienteIdTramo = 0
+
+/** Una fila nueva de borrador con su key estable. */
+export const nuevoTramo = (upTo = '', price = ''): TierBorrador => ({
+  id: (siguienteIdTramo += 1),
+  upTo,
+  price,
+})
 
 export const UNIDAD: Record<Metric, string> = {
   users: 'usuarios',
@@ -37,10 +50,7 @@ const EN_FRASE: Record<Metric, string> = {
 
 export const bloqueVacio = (activo: boolean): BloqueBorrador => ({
   activo,
-  tramos: [
-    { upTo: '', price: '' },
-    { upTo: '', price: '' },
-  ],
+  tramos: [nuevoTramo(), nuevoTramo()],
 })
 
 type Props = {
@@ -60,7 +70,7 @@ export function TierEditor({ metric, bloque, onChange, violaciones, currency }: 
     onChange({ ...bloque, tramos: tramos.map((t, j) => (i === j ? { ...t, ...parche } : t)) })
 
   const anadir = () =>
-    onChange({ ...bloque, tramos: [...tramos.slice(0, -1), { upTo: '', price: '' }, tramos[tramos.length - 1] as TierBorrador] })
+    onChange({ ...bloque, tramos: [...tramos.slice(0, -1), nuevoTramo(), tramos[tramos.length - 1] as TierBorrador] })
 
   const quitar = (i: number) =>
     onChange({ ...bloque, tramos: tramos.filter((_, j) => j !== i) })
@@ -102,7 +112,7 @@ export function TierEditor({ metric, bloque, onChange, violaciones, currency }: 
             const error = errorDe(i)
 
             return (
-              <div className={styles.fila} key={i}>
+              <div className={styles.fila} key={t.id}>
                 {ultimo ? (
                   // El ultimo se muestra FIJO como "En adelante": el tramo abierto no es
                   // una opcion que el admin pueda desmarcar, es el que hace que no haya

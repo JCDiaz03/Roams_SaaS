@@ -23,12 +23,13 @@ test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuest
 
   // --- Administracion: editar = version nueva ------------------------------------------
   await page.getByRole('button', { name: /Menú de ADMIN/ }).click()
-  await page.getByRole('menuitem', { name: 'Administración' }).click()
+  await page.getByRole('button', { name: 'Administración' }).click()
   await expect(page.getByRole('heading', { name: 'Planes de precios' })).toBeVisible()
   await auditarAccesibilidad(page, 'admin-listado')
 
-  // El primero de los activos es Ágora (orden alfabetico con locale es).
-  await page.getByRole('button', { name: 'Editar' }).first().click()
+  // Por nombre accesible, no por posicion: un plan nuevo en el seed que ordene antes
+  // que Ágora haria que un .first() editara (mutara) el plan equivocado.
+  await page.getByRole('button', { name: 'Editar Plan Ágora' }).click()
   await expect(page.getByText('Los clientes actuales mantendrán su tarifa')).toBeVisible()
   await auditarAccesibilidad(page, 'admin-plantilla')
 

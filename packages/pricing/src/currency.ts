@@ -87,8 +87,6 @@ export const CURRENCIES = {
 /** El codigo ISO 4217. Se deriva de las claves: no hay una segunda lista que mantener. */
 export type CurrencyCode = keyof typeof CURRENCIES
 
-export const CURRENCY_CODES: readonly CurrencyCode[] = Object.keys(CURRENCIES) as CurrencyCode[]
-
 /**
  * Guarda para los datos que entran de fuera (la columna `currency` de un plan, el
  * `display_currency` de un pais, el payload de la API de tipos).

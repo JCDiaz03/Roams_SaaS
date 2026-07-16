@@ -3,7 +3,7 @@
 import type { FastifyInstance } from 'fastify'
 import type { CountriesCache } from '../../infra/countries.cache'
 import type { Db } from '../../infra/db'
-import { findPlanWithTiers, searchCustomers } from './customers.repo'
+import { countCustomers, findPlanWithTiers, searchCustomers } from './customers.repo'
 import { customerIdSchema, postCustomerSchema, searchCustomersSchema } from './customers.schemas'
 import { crearCliente, obtenerClienteOFallar, type AltaCliente } from './customers.service'
 
@@ -26,8 +26,9 @@ export function customersRoutes({ db, countries }: Deps) {
       const customers = searchCustomers(db, search, limit)
 
       // Sin resultados es 200 con lista vacia, NO un 404: la coleccion existe, esta
-      // vacia. Vacio y error son dos pantallas distintas (referencia 13.1).
-      return { customers, total: customers.length }
+      // vacia. Vacio y error son dos pantallas distintas (referencia 13.1). El total es
+      // el de la COLECCION (COUNT sin LIMIT), no el de la pagina devuelta.
+      return { customers, total: countCustomers(db, search) }
     })
 
     // --- Detalle ----------------------------------------------------------------------
