@@ -166,3 +166,21 @@ El único riesgo real es `better-sqlite3`, que compila binario nativo: si el eva
 **Consecuencias.** El riesgo §8.3-1 **se cierra**: el sistema pasa de "sin seguridad, declarado" a "seguridad real con credenciales de demostración, declarado" — la estructura (sesión, revocación, rate limit, enforcement) es la definitiva; el secreto de demostración no lo es y no se pretende. El diferido **se estrecha** a lo único incognoscible: implementar el puerto contra el sistema real. Se paga: las sesiones mueren al reiniciar el proceso (aceptado y declarado), y la frase "el gating por rol es UX, no seguridad" —escrita en tres sitios— deja de ser cierta y hay que actualizarla en todos, porque una documentación que sobrevive a su verdad es deuda de la peor clase.
 
 **Qué supersede del 0007 y qué no.** La costura del backend (el hook vacío) se rellena, que era su destino escrito. Lo que NO cambia: la derivación única de la sesión, `hasRole()` como única pregunta de los componentes, y cero tablas de usuario. El 0007 apostó a que sustituir el mock costaría un módulo; esta decisión es la comprobación de esa apuesta.
+
+---
+
+## 0010 — Smoke E2E con Playwright, contra el build real
+
+**Contexto.** La verificación de pantallas fue siempre manual —"conduciendo la app con Chrome" (`roams-roadmap.md` §3.3, §4)—: válida el día que se hizo, invisible en el siguiente push. Los arreglos de frontend de la revisión post-entrega salieron sin conducir, y la Fase 3 (§5.2) existe para cerrar esa clase de hueco.
+
+**Alternativas consideradas.**
+
+- **Seguir verificando a mano.** Gratis hoy, se paga en cada push, y no escala a un repo con CI: nadie re-conduce cinco pantallas por un refactor de CSS.
+- **Tests de componente (Testing Library/jsdom).** Ejercitan el componente y **no** el sistema: ni proxy, ni CSP, ni cookie `HttpOnly`, ni la serialización del backend — exactamente las fronteras donde vivían los últimos defectos. Complementarios en un equipo grande; aquí serían una tercera suite que mantener con peor señal.
+- **E2E exhaustivo** (cada pantalla, cada estado de error). Duplicaría los 219 tests de integración a través del canal más caro y frágil. Los estados finos ya tienen dueño (la suite de integración y los tests de UI que existan); el E2E paga cuando cruza TODO el sistema a la vez.
+- **Cypress.** Equivalente funcional; Playwright gana en lo concreto de este repo: `webServer` múltiple integrado (fixture + backend + preview en una config), trazas en el fallo, y nada que dependa de un servicio de pago.
+- **Smoke con Playwright.** Elegida.
+
+**Decisión.** Tres tests **en serie** (comparten una base sembrada y el de admin muta planes) contra el sistema ensamblado de verdad: backend real con base **en memoria** (cada ejecución arranca como un evaluador), build de producción servido por `vite preview` con la **CSP estricta**, y tipos de cambio desde un **fixture local** (`RATES_URL`, variable de entorno del servidor — no un parámetro de petición: el "sin SSRF" del §14.1 no se toca). Los dos recorridos son los de las verificaciones manuales de Fase 1 y Fase 2, más logout. Cada pantalla pasa por **axe-core** con umbral `serious`/`critical`, y "cero errores de consola" —el criterio de la verificación manual— es una aserción.
+
+**Consecuencias.** Se paga arranque (~20 s en local) y un navegador en CI (job aparte, para no retrasar la señal rápida de lint+test). **Rindió el primer día, dos veces**: cazó que el cinturón anti-CSRF (comparar `Origin` contra `Host`) rechazaba a la propia aplicación detrás del proxy —invisible para `app.inject`, que no atraviesa proxy alguno— y un fallo real de contraste AA que el test de tokens no podía ver (el atenuado componía opacidad sobre un color que ya era secundario). Es exactamente la clase de defecto que solo existe en el sistema ensamblado, que es la única razón de tener E2E.

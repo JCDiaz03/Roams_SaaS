@@ -10,6 +10,10 @@ coverage/
 .vite/
 vite.config.ts.timestamp-*
 
+# Artefactos de Playwright (los E2E de /e2e)
+test-results/
+playwright-report/
+
 # Base de datos local: se regenera sola en el primer arranque (referencia 2.1)
 *.db
 *.db-journal

@@ -102,21 +102,23 @@
 
 - ✅ Spec `01-specs/features/07-autenticacion.md` + ADR 0009: sesión de servidor en memoria vs JWT (revocable, cero secretos que gestionar, coherente con un solo proceso — el JWT stateless no aporta nada aquí y quita la revocación)
 - ✅ Puerto **`IdentityProvider`** — `authenticate(usuario, password) → { nombre, rol } | null`. La implementación de hoy **es el mock de siempre** (cualquier usuario + `1111`, `ADMIN` → admin), declarado; sin tabla `users` y, por tanto, sin hashing que decidir en falso
-- ✅ `POST /auth/login` (rate limit: 10/min por IP → 429) · `GET /auth/session` (rehidratación tras F5: la sesión ya sobrevive a un F5, que antes la perdía) · `POST /auth/logout` (revocación inmediata) · cookie `HttpOnly` + `SameSite=Strict` + `Path=/api`, caducidad absoluta de 12 h, tope de 1.000 sesiones. CSRF: mismo origen por diseño + comprobación de `Origin` en mutaciones
+- ✅ `POST /auth/login` (rate limit: 10/min por IP → 429) · `GET /auth/session` (rehidratación tras F5: la sesión ya sobrevive a un F5, que antes la perdía) · `POST /auth/logout` (revocación inmediata) · cookie `HttpOnly` + `SameSite=Strict` + `Path=/api`, caducidad absoluta de 12 h, tope de 1.000 sesiones. CSRF: mismo origen por diseño + rechazo de mutaciones declaradas cross-site (`Sec-Fetch-Site`; el intento inicial con `Origin`-vs-`Host` lo desmontó el E2E de §5.2: detrás del proxy el Host llega reescrito)
 - ✅ El hook `onRequest` — la costura vacía desde el día 1 — **relleno**: 401 sin sesión en toda la API salvo el login, y el rol en el backend con `requiereRol: 'admin'` declarado en la ruta: `POST/PUT/DELETE /plans` y `?include_archived=true` → 403
 - ✅ Frontend: `lib/session.tsx` pregunta a la API; `hasRole()` intacto (los componentes no se enteraron: la costura del 0007 funcionó); **el literal `"ADMIN"` desapareció de `frontend/src`** — su guardián comprueba cero apariciones y el del backend exactamente una, en el `MockIdentityProvider`. Un 401 en cualquier llamada devuelve al login
 - ✅ **15 tests de integración nuevos** (login y flags de cookie, 401/403 por rol, Origin ajeno, revocación, caducidad a las 12 h, rate limit, guardián) — 219 de backend en total, **314** en el repo
-- ✅ Verificado contra el servidor real por HTTP: sin sesión → 401 · login mal → mensaje único · `sales` + `include_archived` → 403 · `sales` + DELETE plan → 403 · admin → 200 · `Origin` ajeno → 403 · logout → la misma cookie deja de valer
+- ✅ Verificado contra el servidor real por HTTP: sin sesión → 401 · login mal → mensaje único · `sales` + `include_archived` → 403 · `sales` + DELETE plan → 403 · admin → 200 · mutación cross-site → 403 · logout → la misma cookie deja de valer
 - ✅ Docs: referencia §8 y §14.3 reescritos, contrato-api §1.6 + 4 códigos nuevos, README, la frase "el gating es UX, no seguridad" actualizada en sus tres sitios, recorte 2.1 estrechado, nota de superseded en `05-auth-mock.md`
 
-### 5.2 E2E con Playwright en CI — ⏳ *(~1 día)*
+### 5.2 E2E con Playwright en CI ✅
 
-> Las pantallas se verificaron conduciendo Chrome a mano (§3.3, §4): válido una vez, invisible en el siguiente push. Esto lo convierte en repetible.
+> Las pantallas se verificaron conduciendo Chrome a mano (§3.3, §4): válido una vez, invisible en el siguiente push. Esto lo convierte en repetible. → ADR 0010.
 
-- ⏳ Smoke comercial: login → buscar → ficha → simular (**15 usuarios = 169,40 €**) → guardar → cambiar divisa (marcada como referencia) → historial
-- ⏳ Smoke admin: editar plan → versión nueva activa → **la simulación guardada no cambia** y el cliente antiguo mantiene su tarifa
-- ⏳ Chequeo de accesibilidad automatizado (axe-core) en las pantallas críticas — hoy solo el contraste AA tiene test
-- ⏳ En CI contra la app real: backend + `npm run preview` con la **CSP estricta** — una violación de CSP también revienta aquí, no en un despliegue
+- ✅ Smoke comercial: login (sesión real) → buscar → ficha de **Fjord con su tarifa archivada** (10×12 + 5×7 = **184,45 €** con 19 % DE) → guardar → USD marcado como referencia con el facturado al lado → historial → logout. **"Cero errores de consola" es ahora una aserción**, no una frase de verificación manual
+- ✅ Smoke admin: simular a Nébula (**169,40 €**, el caso literal del enunciado) → editar Ágora → **v3 activa, 2 archivados** → la ficha de Nébula muestra «Mantiene su tarifa contratada» y su presupuesto **sigue diciendo 169,40 €**: snapshot + versionado recorridos por la UI real
+- ✅ axe-core en las 6 pantallas (umbral serious/critical) — **cazó un fallo real**: el atenuado de las métricas no facturadas componía opacidad sobre texto secundario y caía por debajo de AA; corregido en el CSS
+- ✅ Contra el sistema ensamblado de verdad: backend real con **base en memoria** (cada ejecución arranca como un evaluador), build servido por `preview` con la **CSP estricta**, y tipos desde un **fixture local** (`RATES_URL`): el smoke no depende de que un tercero esté vivo
+- ✅ Job `e2e` en el CI (chromium, separado para no retrasar la señal rápida de lint+test) y `npm run test:e2e` en local
+- ✅ **Rindió antes de estar terminado**: su primer arranque cazó que el cinturón anti-CSRF (`Origin` vs `Host`) rechazaba a la propia aplicación detrás del proxy — el defecto exacto que 219 tests de integración no pueden ver, porque `app.inject` no atraviesa ningún proxy. Se corrigió a `Sec-Fetch-Site` (→ §5.1)
 
 ### 5.3 Segundo validador fiscal: `PT_NIF` — ⏳ *(~media jornada)*
 

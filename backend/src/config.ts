@@ -13,7 +13,9 @@ export const config = {
 
   // La unica URL externa del sistema: FIJA y en configuracion del servidor. Ninguna
   // entrada del usuario compone URLs, y por eso no hay superficie de SSRF
-  // (referencia 14.1). Si esto pasara a ser un parametro, esa frase dejaria de ser
-  // cierta. Spec: features/04-tipos-de-cambio.md 5
-  ratesUrl: 'https://open.er-api.com/v6/latest/EUR',
+  // (referencia 14.1). Si esto pasara a ser un PARAMETRO DE PETICION, esa frase dejaria
+  // de ser cierta; la variable de entorno sigue siendo configuracion del servidor, y
+  // existe para que los E2E apunten a un fixture local en vez de depender de un tercero
+  // en CI (ADR 0010). Spec: features/04-tipos-de-cambio.md 5
+  ratesUrl: process.env['RATES_URL'] ?? 'https://open.er-api.com/v6/latest/EUR',
 } as const

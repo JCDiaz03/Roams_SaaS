@@ -23,3 +23,18 @@ jobs:
       - run: npm test
       # Referencia 14.3: cadena de suministro npm.
       - run: npm audit --audit-level=high
+
+  # El smoke E2E (ADR 0010): backend real con base en memoria + build servido con la
+  # CSP estricta + navegador de verdad. Job aparte: que un browser que tarda en
+  # instalarse no retrase la señal rapida de lint/test.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - run: npm ci
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e

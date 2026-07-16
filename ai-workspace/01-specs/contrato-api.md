@@ -515,7 +515,7 @@ Pone `active = 0`. **Nunca borra** (→ referencia §5.5).
 | `VALIDATION_ERROR` | 400 | El cuerpo no respeta el esquema declarado |
 | `AUTH_REQUIRED` | 401 | Sin sesión viva (toda ruta salvo el login la exige, §1.6) |
 | `AUTH_INVALID_CREDENTIALS` | 401 | El login falló. Mensaje único: no revela qué campo |
-| `AUTH_FORBIDDEN` | 403 | La sesión no tiene el rol que la ruta exige, o la mutación llega con `Origin` ajeno |
+| `AUTH_FORBIDDEN` | 403 | La sesión no tiene el rol que la ruta exige, o la mutación llega declarada cross-site (`Sec-Fetch-Site`) |
 | `AUTH_RATE_LIMITED` | 429 | Demasiados intentos de login desde la misma IP |
 | `FISCAL_ID_INVALID` | 422 | El validador del país rechaza el identificador |
 | `FISCAL_ID_DUPLICATE` | 409 | Ya existe un cliente con ese `fiscal_id` normalizado |

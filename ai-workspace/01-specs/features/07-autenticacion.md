@@ -74,7 +74,7 @@ El hook `onRequest` — la costura vacía desde el día 1, cuyo comentario decí
 1. **`POST /auth/login` es la única ruta pública.** Todo lo demás bajo `/api` exige sesión viva → `401 AUTH_REQUIRED`. Herramienta interna: no hay lecturas anónimas que justificar.
 2. **El rol se aplica donde vive el recurso, no en el cliente**: `POST/PUT/DELETE /plans` → `403 AUTH_FORBIDDEN` si el rol no es `admin`, declarado como **config de la ruta** (`{ requiereRol: 'admin' }`), no como `if` dentro del handler — visible en code review igual que el esquema.
 3. **`GET /plans?include_archived=true` con rol `sales` → `403`.** El parámetro se queda (el recurso es el mismo), pero la frase de `05-auth-mock.md` §5-1 — "el gating por rol es UX, no seguridad" — **deja de ser cierta y hay que actualizarla donde aparezca**: el comentario de `plans.routes.ts`, la referencia §8.3/§12 y el README. Dejar la frase vieja sería lo contrario de lo que este proyecto hace con su documentación.
-4. **CSRF**: `SameSite=Strict` + mismo origen por diseño (proxy de Vite, sin CORS) ya lo cierran en navegadores modernos; como cinturón, las mutaciones (`POST/PUT/DELETE`) comprueban que `Origin`, si viene, coincide con el host → si no, `403`. Tres líneas, cero dependencias.
+4. **CSRF**: `SameSite=Strict` + mismo origen por diseño (proxy de Vite, sin CORS) ya lo cierran en navegadores modernos; como cinturón, las mutaciones (`POST/PUT/DELETE`) que el navegador declara **`Sec-Fetch-Site: cross-site`** (o `same-site`) → `403`. Tres líneas, cero dependencias. **No se compara `Origin` contra `Host`**, y es una lección comprada: detrás de un proxy (el de Vite; cualquier TLS terminator) el `Host` llega reescrito y esa comparación rechaza a la propia aplicación — el smoke E2E lo cazó en su primer arranque. `Sec-Fetch-Site` lo calcula el navegador contra el origen que el usuario ve y sobrevive a cualquier proxy.
 
 **El frontend conserva su gating visual** (`hasRole('admin')` decide qué pantallas se pintan) — pero ahora es lo que siempre debió ser: UX sobre una autorización que existe de verdad debajo.
 
@@ -108,7 +108,7 @@ Integración contra la app real (`app.inject`), con un helper del harness que ab
 - **Enforcement**: sin cookie → `401` en un endpoint cualquiera no público. Con rol `sales` → `403` en `POST/PUT/DELETE /plans` **y** en `GET /plans?include_archived=true`; con `admin` → pasan. `GET /plans` a secas con `sales` → `200` (el selector del alta sigue funcionando).
 - **Ciclo**: logout → la misma cookie deja de valer (revocación inmediata, el test de la ventaja del ADR). Sesión con `creadaEn` de hace 13 h → `401`.
 - **Rate limit**: intento N+1 dentro del minuto → `429`; pasado el margen, vuelve a aceptar.
-- **CSRF**: mutación con `Origin` de otro host → `403`; sin `Origin` (curl, tests) → pasa.
+- **CSRF**: mutación con `Sec-Fetch-Site: cross-site` o `same-site` → `403`; con `same-origin` o sin cabecera (curl, tests) → pasa.
 - **Rehidratación**: `GET /auth/session` con cookie viva → `200 { nombre, rol }`; sin cookie → `401`.
 - **Guardián del literal** (migrado de `05-auth-mock.md` §6, con su mismo gotcha de quitar comentarios antes de buscar): `"ADMIN"` una vez en `backend/src`, **cero** en `frontend/src`.
 

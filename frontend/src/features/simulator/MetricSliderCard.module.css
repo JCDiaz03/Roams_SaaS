@@ -6,6 +6,16 @@
   opacity: 0.72;
 }
 
+/* Al 72 % de opacidad, el texto secundario (--color-text-2) cae por debajo del 4.5:1 de
+ * AA — lo cazo el axe del smoke E2E. Dentro de la tarjeta atenuada el hint sube a la
+ * tinta principal: el conjunto sigue leyendose como apagado (la opacidad hace su parte),
+ * pero cada texto se queda por encima del umbral. La metrica atenuada sigue siendo un
+ * control USABLE (se registra aunque no facture, referencia 5.2): no es decoracion que
+ * pueda permitirse ser ilegible. */
+.atenuada .hint {
+  color: var(--color-ink);
+}
+
 .cabecera {
   display: flex;
   align-items: center;

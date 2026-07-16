@@ -22,6 +22,7 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 | `npm run dev` | Levanta backend (`:3000`) y frontend (`:5173`) a la vez |
 | `npm test` | Los 314 tests de los tres workspaces |
 | `npm run seed` | Repuebla la base de datos (solo sobre una base vacía) |
+| `npm run test:e2e` | El smoke E2E (Playwright): arranca backend, build con CSP estricta y navegador, y recorre la app como un evaluador. Primera vez: `npx playwright install chromium` |
 | `npm run lint` · `npm run typecheck` | Lo mismo que ejecuta el CI |
 | `npm run build -w frontend` + `npm run preview -w frontend` | Sirve el build en `:4173` **con la CSP estricta**. Es lo más parecido a producción que hay aquí (ver abajo) |
 

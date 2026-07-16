@@ -29,10 +29,14 @@ const MUTACIONES = new Set(['POST', 'PUT', 'PATCH', 'DELETE'])
  *
  * Tres comprobaciones, en este orden:
  *
- *  1. Cinturon anti-CSRF: una mutacion cuyo Origin no es el propio host se rechaza. Los
- *     tirantes son SameSite=Strict y el mismo origen por diseño (proxy, sin CORS); las
- *     peticiones sin Origin (curl, tests, same-origin GET) pasan, porque el navegador
- *     moderno SIEMPRE manda Origin en las mutaciones cross-site.
+ *  1. Cinturon anti-CSRF: una mutacion que el navegador declara CROSS-SITE se rechaza.
+ *     Se mira `Sec-Fetch-Site` y NO se compara `Origin` contra `Host`, y el motivo es un
+ *     bug real que el smoke E2E cazo en su primer arranque: detras de un proxy (el de
+ *     Vite aqui; cualquier TLS terminator en un despliegue) el Host llega REESCRITO
+ *     (`changeOrigin`), y la comparacion rechazaba a la propia aplicacion. Sec-Fetch-Site
+ *     lo calcula el navegador contra el origen que el usuario ve, asi que sobrevive a
+ *     cualquier proxy. Sin cabecera (curl, tests, navegadores viejos) pasa: esto es el
+ *     cinturon; el tirante es SameSite=Strict.
  *  2. Sesion: todo lo que no sea publico exige sesion viva -> 401. Herramienta interna:
  *     no hay lecturas anonimas que justificar.
  *  3. Rol: si la ruta declara `requiereRol` y la sesion no lo tiene -> 403. El gating
@@ -43,20 +47,12 @@ export function registerAuth(app: FastifyInstance, deps: { sessions: SessionStor
   app.decorateRequest('identity', null)
 
   app.addHook('onRequest', async (req) => {
-    const origin = req.headers.origin
-    if (origin !== undefined && MUTACIONES.has(req.method)) {
-      let hostDeOrigin: string | null
-      try {
-        hostDeOrigin = new URL(origin).host
-      } catch {
-        // Un Origin imparseable (p. ej. el literal "null" de un contexto opaco) se trata
-        // como ajeno: rechazar es el unico comportamiento seguro.
-        hostDeOrigin = null
-      }
-
-      if (hostDeOrigin === null || hostDeOrigin !== req.headers.host) {
-        throw new AppError(403, 'AUTH_FORBIDDEN', 'La petición no viene de esta aplicación.')
-      }
+    // `same-site` (otro subdominio) tambien se rechaza: en una herramienta interna no
+    // hay ningun subdominio legitimo que deba mutar aqui. `same-origin`, `none` (gesto
+    // directo del usuario) y ausente, pasan.
+    const sitio = req.headers['sec-fetch-site']
+    if (MUTACIONES.has(req.method) && (sitio === 'cross-site' || sitio === 'same-site')) {
+      throw new AppError(403, 'AUTH_FORBIDDEN', 'La petición no viene de esta aplicación.')
     }
 
     // El not-found handler tambien pasa por aqui y no trae config de ruta.

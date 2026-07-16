@@ -15,12 +15,15 @@
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
     "test": "npm run test --workspaces --if-present",
+    "test:e2e": "playwright test",
     "lint": "eslint .",
     "typecheck": "npm run typecheck --workspaces --if-present",
     "seed": "npm run seed -w backend"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.12.1",
     "@eslint/js": "^9.19.0",
+    "@playwright/test": "^1.61.1",
     "concurrently": "^9.1.2",
     "eslint": "^9.19.0",
     "typescript": "^5.7.3",

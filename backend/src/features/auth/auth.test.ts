@@ -101,26 +101,34 @@ describe('enforcement: sesion y rol se aplican EN EL BACKEND', () => {
     expect(r.statusCode).toBe(403)
   })
 
-  it('una mutacion con Origin de OTRO host -> 403; con el propio, pasa', async () => {
-    // El cinturon anti-CSRF (spec 07, 5.4). Los tirantes (SameSite=Strict) no se pueden
-    // ejercitar con inject: esto fija el que si.
-    const ajena = await h.inject({
-      method: 'POST',
-      url: '/api/simulations',
-      headers: { origin: 'https://evil.example' },
-      payload: { customer_id: 1, active_users: 1, storage_gb: 0, api_calls: 0 },
-    })
-    expect(ajena.statusCode).toBe(403)
+  it('una mutacion declarada cross-site -> 403; same-origin o sin cabecera, pasa', async () => {
+    // El cinturon anti-CSRF (spec 07, 5.4) mira Sec-Fetch-Site, NO compara Origin contra
+    // Host: detras de un proxy el Host llega reescrito y esa comparacion rechazaba a la
+    // propia aplicacion (bug real, cazado por el smoke E2E en su primer arranque). Los
+    // tirantes (SameSite=Strict) no se pueden ejercitar con inject; esto fija el cinturon.
+    const cuerpo = { customer_id: 1, active_users: 1, storage_gb: 0, api_calls: 0 }
 
-    // El propio host se fija explicito en las dos cabeceras: lo que se comprueba es que
-    // COINCIDAN, no cual sea el default del inyector.
+    for (const sitio of ['cross-site', 'same-site']) {
+      const r = await h.inject({
+        method: 'POST',
+        url: '/api/simulations',
+        headers: { 'sec-fetch-site': sitio },
+        payload: cuerpo,
+      })
+      expect(r.statusCode).toBe(403)
+    }
+
     const propia = await h.inject({
       method: 'POST',
       url: '/api/simulations',
-      headers: { origin: 'http://app.example', host: 'app.example' },
-      payload: { customer_id: 1, active_users: 1, storage_gb: 0, api_calls: 0 },
+      headers: { 'sec-fetch-site': 'same-origin' },
+      payload: cuerpo,
     })
     expect(propia.statusCode).toBe(201)
+
+    // Sin cabecera (curl, tests): pasa. Es el cinturon, no la unica defensa.
+    const sinCabecera = await h.inject({ method: 'POST', url: '/api/simulations', payload: cuerpo })
+    expect(sinCabecera.statusCode).toBe(201)
   })
 })
 
