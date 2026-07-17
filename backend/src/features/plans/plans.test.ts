@@ -12,6 +12,7 @@ afterEach(async () => {
 })
 
 const get = (qs = '') => h.inject({ method: 'GET', url: `/api/plans${qs}` })
+const getUno = (id: number) => h.inject({ method: 'GET', url: `/api/plans/${id}` })
 const post = (payload: Record<string, unknown>) => h.inject({ method: 'POST', url: '/api/plans', payload })
 const put = (id: number, payload: Record<string, unknown>) =>
   h.inject({ method: 'PUT', url: `/api/plans/${id}`, payload })
@@ -55,6 +56,43 @@ describe('GET /plans', () => {
     expect(new Set(cuspide?.tiers.map((t) => t.metric))).toEqual(
       new Set(['users', 'storage_gb', 'api_calls']),
     )
+  })
+
+  it('GET /plans/{id}: un plan activo, con sus tramos', async () => {
+    const r = await getUno(planId(h.db, 'Plan Ágora', 2))
+
+    expect(r.statusCode).toBe(200)
+    expect(r.json()).toMatchObject({ name: 'Plan Ágora', version: 2, active: true })
+    expect(r.json().tiers).toHaveLength(3)
+  })
+
+  it('GET /plans/{id}: un plan ARCHIVADO responde 200 con rol sales — es el punto de la decision', async () => {
+    // Spec 08, 2: lo que exige admin es el LISTADO de archivados, no un plan concreto.
+    // Un comercial ya ve este plan entero embebido en la ficha de Fjord; endurecer esta
+    // ruta romperia ese enlace sin proteger nada. Si este test falla con 403, alguien
+    // "endurecio" la ruta sin pasar por la spec.
+    const sid = h.sessions.create({ nombre: 'Marta', rol: 'sales' })
+    const r = await h.app.inject({
+      method: 'GET',
+      url: `/api/plans/${planId(h.db, 'Plan Ágora', 1)}`,
+      cookies: { sid },
+    })
+
+    expect(r.statusCode).toBe(200)
+    expect(r.json()).toMatchObject({ name: 'Plan Ágora', version: 1, active: false })
+    expect(r.json().tiers[0].unit_price_minor).toBe(1200)
+  })
+
+  it('GET /plans/{id}: inexistente -> 404 PLAN_NOT_FOUND', async () => {
+    const r = await getUno(9999)
+    expect(r.statusCode).toBe(404)
+    expect(r.json().error.code).toBe('PLAN_NOT_FOUND')
+  })
+
+  it('GET /plans/{id}: sin sesion -> 401', async () => {
+    const r = await h.app.inject({ method: 'GET', url: `/api/plans/${planId(h.db, 'Plan Ágora', 2)}` })
+    expect(r.statusCode).toBe(401)
+    expect(r.json().error.code).toBe('AUTH_REQUIRED')
   })
 
   it('un parametro que no existe -> 400', async () => {

@@ -186,6 +186,10 @@ Con días extra, la tentación es rellenarlos. Lo que se consideró y **no** ent
 - **Lo evaluado y descartado para la Fase 3** — docker-compose, cruzada de divisas, FTS5, volume/flat, panel de impuestos… — está en §5.5: se consideró **otra vez** con el margen de plazo y se descartó otra vez, por las mismas razones.
 - **La CSP de desarrollo no defiende de un XSS** y se dice en el README en vez de dejar que parezca que sí (§3.4).
 
+## 6bis. Tanda del catálogo de planes ✅
+
+> Post-entrega, con hoja de ruta propia: **[`roams-roadmap_v2.md`](./roams-roadmap_v2.md)** (contexto, decisiones D1–D8, fases y estado). Este documento no la duplica; queda aquí el puntero porque este es el índice de estado del proyecto. En resumen: catálogo de planes visible para el comercial (detalle solo-lectura + sección del dashboard), valores base del cliente con simulación parametrizada, plan elegido en la simulación (`plan_id` opcional, ADR 0011) e historial que dice su plan.
+
 ## 7. Diferido (diseñado, no comprometido — solo documentación)
 
 - 🚫 **Conexión al sistema de identidad corporativo** (SSO/OIDC/LDAP): la Fase 3 construye la sesión, el enforcement en backend y el puerto `IdentityProvider` (→ §5.1); lo que sigue diferido es la implementación del puerto contra el sistema real, que se define cuando se conozca. El diferido se **estrechó**: antes era "auth real" entero
@@ -193,6 +197,8 @@ Con días extra, la tentación es rellenarlos. Lo que se consideró y **no** ent
 - 🚫 Pasarela de pagos (lock del tipo de cambio en el instante del cobro)
 - 🚫 Planes con divisa de facturación ≠ EUR (price localization; la columna `currency` ya existe)
 - 🚫 Modelos de tarificación `volume` / `flat` (el Strategy ya deja el hueco)
+- 🚫 Modelo **compromiso + excedente** (cantidad contratada + tarifa de exceso, estilo telefonía): evaluado en la tanda del catálogo de planes y diferido — el modelo actual es elástico por diseño; los `base_*` del cliente son la semilla del dato de compromiso (→ `03-proceso/recortes-conscientes.md` §2.9)
+- 🚫 Modelo **`flat` premium** ("ilimitado con sobrecoste"): lo ilimitado-incluido ya es expresable (métrica sin tramos = aporta 0); la cuota fija mensual espera al modelo `flat` (→ `03-proceso/recortes-conscientes.md` §2.10)
 - 🚫 Consulta de existencia real del fiscal_id (AEAT/VIES) — no-objetivo explícito de la v1
 - 🚫 Validadores fiscales del resto de países (`FR_SIREN`, `DE_USt`…): el registro ya los admite con una clase + una entrada + rellenar `tax_id_scheme`. La Fase 3 añade `PT_NIF` como demostración (→ §5.3); los demás siguen aquí
 - 🚫 `docker-compose`: sin dependencias de sistema que orquestar en v1 (SQLite es un fichero); útil cuando haya servicios reales (→ referencia §2.1)

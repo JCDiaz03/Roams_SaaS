@@ -55,10 +55,29 @@ type Props = {
   billed: boolean
   /** true durante el guardado: la respuesta re-sella con lo enviado (SimulatorPage). */
   disabled?: boolean
+  /**
+   * El valor base del cliente, como referencia visible junto al input (spec 09, 3.4).
+   * Solo llega en modo parametrizado; null/ausente = sin referencia que pintar.
+   */
+  baseValue?: number | null
+  /**
+   * Tope visual ampliado: si el valor inicial supera el max de META, el slider crece
+   * hasta el (spec 09, 3.4) — truncar seria cambiar en silencio el dato del cliente.
+   */
+  max?: number
 }
 
-export function MetricSliderCard({ metric, value, onChange, billed, disabled = false }: Props) {
-  const { label, hint, max } = META[metric]
+export function MetricSliderCard({
+  metric,
+  value,
+  onChange,
+  billed,
+  disabled = false,
+  baseValue = null,
+  max: maxProp,
+}: Props) {
+  const { label, hint } = META[metric]
+  const max = maxProp ?? META[metric].max
 
   const cambiar = (bruto: string) => {
     const n = Number(bruto)
@@ -78,16 +97,20 @@ export function MetricSliderCard({ metric, value, onChange, billed, disabled = f
         </div>
         {/* El input numerico y el slider son la MISMA entrada, sincronizados: quien sabe
             el numero exacto lo teclea, quien explora lo arrastra. */}
-        <input
-          type="number"
-          className={styles.numero}
-          value={value}
-          min={0}
-          max={max}
-          disabled={disabled}
-          onChange={(e) => cambiar(e.target.value)}
-          aria-label={`${label}, valor exacto`}
-        />
+        <div className={styles.entrada}>
+          <input
+            type="number"
+            className={styles.numero}
+            value={value}
+            min={0}
+            max={max}
+            disabled={disabled}
+            onChange={(e) => cambiar(e.target.value)}
+            aria-label={`${label}, valor exacto`}
+          />
+          {/* La referencia del modo parametrizado: de donde arranco este control. */}
+          {baseValue !== null && <strong className={styles.base}>base: {baseValue.toLocaleString('es-ES')}</strong>}
+        </div>
       </div>
 
       <input

@@ -49,6 +49,22 @@
   color: var(--color-text-2);
 }
 
+.entrada {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex: none;
+}
+
+/* La referencia del modo parametrizado, bajo el input y en negrita (spec 09, 3.4). */
+.base {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-ink);
+  font-variant-numeric: tabular-nums;
+}
+
 .numero {
   width: 108px;
   height: 38px;

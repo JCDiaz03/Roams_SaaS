@@ -3,6 +3,7 @@
 import { quote, type CurrencyCode, type Quantities, type QuoteResult } from '@saas/pricing'
 import type { TaxProvider } from '../../domain/tax/tax-provider'
 import type { Db } from '../../infra/db'
+import { AppError } from '../../plugins/error-handler'
 import { findPlanWithTiers } from '../customers/customers.repo'
 import { obtenerClienteOFallar } from '../customers/customers.service'
 import {
@@ -14,6 +15,8 @@ import {
 
 export type EntradasSimulacion = {
   customer_id: number
+  /** Opcional (ADR 0011): ausente = el plan del cliente; presente = activo o el contratado. */
+  plan_id?: number
   active_users: number
   storage_gb: number
   api_calls: number
@@ -23,6 +26,8 @@ export type SimulationView = {
   id: number
   customer_id: number
   plan_id: number
+  plan_name: string
+  plan_version: number
   inputs: { active_users: number; storage_gb: number; api_calls: number }
   currency: string
   base_minor: number
@@ -55,15 +60,32 @@ export function crearSimulacion(
   // 1. El cliente. No existe -> 404.
   const cliente = obtenerClienteOFallar(db, entradas.customer_id)
 
-  // 2. El plan sale DEL CLIENTE, nunca del cuerpo: es lo que garantiza que se cotiza con
-  //    la tarifa contratada.
-  // 3. Y se carga este ACTIVO O ARCHIVADO. Un plan archivado NO es un error aqui
-  //    (referencia 5.5): un cliente antiguo cotiza con su version, y ese es justo el caso
-  //    que el versionado existe para proteger. Un PLAN_ARCHIVED copiado del alta romperia
-  //    el diseno entero en silencio.
-  const plan = findPlanWithTiers(db, cliente.plan_id)
+  // 2. El plan: el elegido si viene en el cuerpo (ADR 0011), el del cliente si no. El
+  //    camino sin plan_id es el de siempre, intacto.
+  const planIdEfectivo = entradas.plan_id ?? cliente.plan_id
+  const plan = findPlanWithTiers(db, planIdEfectivo)
+
   if (plan === undefined) {
+    if (entradas.plan_id !== undefined) {
+      // Referencia dentro del cuerpo -> 422, no 404 (contrato-api.md 5).
+      throw new AppError(422, 'PLAN_NOT_FOUND', 'El plan elegido no existe.', 'plan_id')
+    }
     throw new Error(`El cliente ${cliente.id} apunta al plan ${cliente.plan_id}, que no existe.`)
+  }
+
+  // 3. La regla activo-o-contratado (spec 09, 4.1). El plan DEL CLIENTE se acepta activo
+  //    o archivado: un cliente antiguo cotiza con su version, que es justo lo que el
+  //    versionado protege (referencia 5.5). Lo que no se puede es elegir una tarifa
+  //    archivada AJENA: esa ya no se ofrece. La comparacion es contra cliente.plan_id, no
+  //    contra "vino en el cuerpo": enviar explicitamente el contratado archivado tambien
+  //    es legitimo.
+  if (!plan.active && plan.id !== cliente.plan_id) {
+    throw new AppError(
+      422,
+      'PLAN_ARCHIVED',
+      'Ese plan ya no se ofrece. Elige uno activo o la tarifa contratada del cliente.',
+      'plan_id',
+    )
   }
 
   // 4. El tipo, via el puerto. Sin IO, sin `if` por pais.
@@ -106,7 +128,7 @@ export function crearSimulacion(
     total_minor: resultado.total_minor,
   })
 
-  return vista(fila, resultado)
+  return vista(fila, resultado, { name: plan.name, version: plan.version })
 }
 
 /**
@@ -131,7 +153,9 @@ export function historialDe(db: Db, customerId: number, limit: number): Simulati
       currency: snapshot.plan.currency as CurrencyCode,
     })
 
-    return vista(fila, resultado)
+    // El nombre y la version tambien salen del snapshot: versionar el plan por debajo no
+    // cambia lo que una simulacion vieja declara (spec 09, 5.1).
+    return vista(fila, resultado, { name: snapshot.plan.name, version: snapshot.plan.version })
   })
 }
 
@@ -146,11 +170,17 @@ export function historialDe(db: Db, customerId: number, limit: number): Simulati
  * ya esta en `breakdown`; exponerlo seria filtrar una estructura de persistencia al
  * contrato.
  */
-function vista(fila: SimulationRow, resultado: QuoteResult): SimulationView {
+function vista(
+  fila: SimulationRow,
+  resultado: QuoteResult,
+  plan: { name: string; version: number },
+): SimulationView {
   return {
     id: fila.id,
     customer_id: fila.customer_id,
     plan_id: fila.plan_id,
+    plan_name: plan.name,
+    plan_version: plan.version,
     inputs: {
       active_users: fila.active_users,
       storage_gb: fila.storage_gb,

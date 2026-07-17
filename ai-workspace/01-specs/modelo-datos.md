@@ -117,12 +117,18 @@ CREATE TABLE customers (
   email         TEXT NOT NULL,
   country       TEXT NOT NULL REFERENCES countries(code) ON DELETE RESTRICT,
   plan_id       INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
+  base_users      INTEGER,                   -- valores base de consumo (→ features/09 §3); NULL = no registrado
+  base_storage_gb INTEGER,
+  base_api_calls  INTEGER,
   created_at    TEXT NOT NULL,
   CHECK (fiscal_id_type IN ('DNI', 'NIE', 'CIF', 'NIF', 'unvalidated')),
   CHECK (fiscal_id = upper(fiscal_id)),
   CHECK (length(company_name) BETWEEN 1 AND 200),
   CHECK (length(fiscal_id) BETWEEN 1 AND 20),
-  CHECK (length(email) <= 254)
+  CHECK (length(email) <= 254),
+  CHECK (base_users      IS NULL OR (base_users      BETWEEN 0 AND 1000000)),
+  CHECK (base_storage_gb IS NULL OR (base_storage_gb BETWEEN 0 AND 10000000)),
+  CHECK (base_api_calls  IS NULL OR (base_api_calls  BETWEEN 0 AND 1000000000))
 ) STRICT;
 
 CREATE INDEX idx_customers_company_name ON customers(company_name COLLATE NOCASE);
@@ -132,6 +138,8 @@ CREATE INDEX idx_customers_company_name ON customers(company_name COLLATE NOCASE
 - **`fiscal_id` es UNIQUE global, no por país.** Es lo que fija la referencia §7.4 y su motivo (un duplicado accidental es mucho más probable que una colisión real). *Gotcha conocido y aceptado*: dos países podrían emitir la misma cadena; el día que ocurra, la migración es `UNIQUE (country, fiscal_id)` y el mensaje "esta empresa ya existe" pasa a ser por país. No se adelanta porque hoy costaría un índice más ancho para un caso que no se ha visto.
 - **`UNIQUE` crea su propio índice**, así que `fiscal_id` no necesita un `CREATE INDEX` aparte (la referencia §11.1 pide índice en los dos campos del buscador; en `fiscal_id` ya lo da el UNIQUE).
 - **Honestidad sobre el índice de `company_name`**: el buscador usa `LIKE '%term%'` y **un comodín inicial impide usar el índice** — SQLite hará scan completo. El índice se mantiene igual porque sirve al orden y a las búsquedas por prefijo, y porque el coste es nulo a esta escala (miles de filas). Lo que **no** se hace es fingir que el índice resuelve el `LIKE`: si la tabla creciera a millones, la respuesta es FTS5, no otro índice B-tree. → detalle en `features/03-buscador-y-detalle.md`.
+- **Los `base_*` son un preajuste de UI persistido, no una entrada de cálculo**: el motor solo ve las cantidades de `POST /simulations` (→ `features/09-simulacion-parametrizada-y-plan-elegido.md` §2). `NULL` significa "no registrado" y es un valor de primera clase. Sus `CHECK` duplican a propósito los topes del esquema Fastify, que son los mismos de `simulations` — misma magnitud física, misma cota.
+- **Mini-migración de columnas aditivas** (→ ADR 0012): estas tres columnas se añaden también con `ALTER TABLE ... ADD COLUMN` idempotente en el arranque (consultando `pragma table_info`), porque el `schema.sql` solo corre sobre una base nueva y un `.db` existente de desarrollo debe seguir arrancando tras un `git pull`. `schema.sql` y los `ALTER` se tocan **juntos, en el mismo commit**.
 - `fiscal_id_type` incluye `'unvalidated'` como valor de primera clase: es el resultado que devuelve `PassThroughValidator` (→ referencia §7.3), no un hueco. `'NIF'` es el **portugués** (`PT_NIF`, → `features/02-validacion-fiscal-y-alta-cliente.md` §3.3); no colisiona con España porque el validador español devuelve el tipo concreto (DNI/NIE/CIF). Añadir un tipo = ampliar este `CHECK` en el mismo commit que el validador.
 
 ### 2.5 `simulations` (→ referencia §11.2)
@@ -272,13 +280,13 @@ Todos: `currency = 'EUR'`, `pricing_model = 'graduated'`.
 
 Sin clientes, el evaluador entra al dashboard y ve el estado vacío: el buscador, las cards y el historial —tres de las cuatro vistas obligatorias del enunciado— solo se pueden juzgar dando de alta datos a mano primero. Cinco filas lo arreglan.
 
-| `company_name` | `fiscal_id` | `fiscal_id_type` | `country` | `plan` |
-|---|---|---|---|---|
-| Nébula Cloud S.L. | `B12345674` | `CIF` | `ES` | Ágora **v2** |
-| Meridian Data Ltd. | `GB428291` | `unvalidated` | `GB` | Cúspide v1 |
-| Talleres Duero | `12345678Z` | `DNI` | `ES` | Bitácora v1 |
-| Lusitânia Dados Lda. | `512345678` | `NIF` | `PT` | Bitácora v1 |
-| Fjord Systems AS | `NO993110` | `unvalidated` | `DE` | Ágora **v1 (archivada)** |
+| `company_name` | `fiscal_id` | `fiscal_id_type` | `country` | `plan` | valores base |
+|---|---|---|---|---|---|
+| Nébula Cloud S.L. | `B12345674` | `CIF` | `ES` | Ágora **v2** | `base_users: 15` |
+| Meridian Data Ltd. | `GB428291` | `unvalidated` | `GB` | Cúspide v1 | `base_users: 40`, `base_storage_gb: 750`, `base_api_calls: 120000` |
+| Talleres Duero | `12345678Z` | `DNI` | `ES` | Bitácora v1 | — |
+| Lusitânia Dados Lda. | `512345678` | `NIF` | `PT` | Bitácora v1 | — |
+| Fjord Systems AS | `NO993110` | `unvalidated` | `DE` | Ágora **v1 (archivada)** | — |
 
 Cada uno cubre un caso que si no habría que provocar a mano:
 
@@ -288,6 +296,7 @@ Cada uno cubre un caso que si no habría que provocar a mano:
 - **`Lusitânia` es el segundo validador del registro visible desde el primer arranque**: su ficha enseña el chip «NIF validado» sin que ningún componente sepa que Portugal existe. El NIF es **sintético con control correcto**: `5,1,2,3,4,5,6,7` ponderados 9..2 suman 157; 157 mod 11 = 3; 11 − 3 = **8**. ✓ Se siembra sin normalizar (`"512 345 678"`), como Nébula.
 - **`Meridian` y `Fjord` son `unvalidated`**: pasan por `PassThroughValidator`. `Meridian` aporta además una divisa de presentación ≠ EUR (GBP) desde el primer arranque.
 - **`Fjord` apunta a la versión archivada** (→ §3.2).
+- **`Nébula` y `Meridian` llevan valores base** para que la simulación parametrizada sea visible desde el primer arranque: Nébula el caso literal del enunciado (`base_users: 15` → el botón «parametrizada» precarga 15 usuarios = 169,40 €) y Meridian los tres campos sobre el plan multi-métrica. Los otros tres quedan a `NULL` a propósito: la ficha sin valores base (con el botón «parametrizada» oculto) también es una vista que hay que poder ver.
 - **El seed no crea simulaciones.** El estado vacío del historial es una vista que hay que poder ver (→ `diseño-frontend.md`, ventana 3), y crear la primera simulación es justo el flujo que el evaluador va a recorrer.
 
 **El seed es un camino de escritura y pasa por el mismo validador que `POST /customers`**: normaliza, resuelve el validador por el esquema del país y le pregunta el tipo. Un seed que introduce datos que el sistema rechazaría es una bomba de relojería, y así nadie tiene que recalcular a mano un dígito de control nunca más.

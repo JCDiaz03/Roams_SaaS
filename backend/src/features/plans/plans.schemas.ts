@@ -116,6 +116,21 @@ export const deletePlanSchema = {
   response: { 200: planResponseSchema },
 } as const
 
+/**
+ * GET /plans/{id}: detalle de un plan, archivado incluido y SIN rol (spec 08, 2). Lo que
+ * exige admin es el LISTADO de archivados (el inventario), no un plan concreto cuyo id ya
+ * conoces: ese viaja entero embebido en la ficha de cualquier cliente antiguo.
+ */
+export const getPlanSchema = {
+  params: {
+    type: 'object',
+    required: ['id'],
+    additionalProperties: false,
+    properties: { id: { type: 'integer', minimum: 1 } },
+  },
+  response: { 200: planResponseSchema },
+} as const
+
 export const listPlansSchema = {
   querystring: {
     type: 'object',

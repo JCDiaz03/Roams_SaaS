@@ -180,3 +180,21 @@ Lo que sí apareció fueron **tres objetivos táctiles por debajo de los 24 px**
 Las **migas de pan** se quedan por debajo de 24 px a propósito: WCAG 2.5.8 exime explícitamente los objetivos *inline* —los que están en una línea de texto y cuyo tamaño lo fija el `line-height`—, y agrandarlos rompería el texto.
 
 Una desviación más, en la ventana 7: **la vista previa en vivo usa `quote()` de `@saas/pricing`**, el mismo motor que el backend, y no una tercera implementación como en el prototipo. Muestra la tarifa **sin impuesto**, porque ahí se enseña el precio del plan y no un presupuesto a un cliente concreto — el impuesto depende del país de cada uno.
+
+---
+
+## 8. Ampliaciones: el catálogo de planes `(en construcción)`
+
+> Specs → `features/08-catalogo-de-planes-visible.md` y `features/09-simulacion-parametrizada-y-plan-elegido.md`; hoja de ruta → `../roams-roadmap_v2.md`. Estas piezas no tienen prototipo de Claude Design: se componen con las primitivas y patrones ya implementados (§2.4), sin lenguaje visual nuevo.
+
+### Ventana 8 — Detalle de plan (solo lectura, cualquier usuario)
+
+- **Propósito**: que el comercial pueda responder "¿qué ofrece este plan y a qué precio?" sin pedirle la pantalla a un admin.
+- **Estructura**: cabecera con nombre + chips (versión, estado, métricas, divisa); **tabla de tramos por métrica** (patrón 2.4.5, el mismo formato del desglose del simulador: "hasta N → precio/unidad", el último "En adelante"); callout si está archivado (*"Este plan ya no se ofrece a clientes nuevos. Los clientes que lo tienen mantienen su tarifa."*); botón «Editar» solo para admin y solo si está activo.
+- **Se llega** desde el chip del plan en la ficha de cliente (ahora enlace), desde la sección del dashboard y desde el selector del simulador.
+
+### Cambios en ventanas existentes
+
+- **Ventana 2 (Dashboard)**: bajo la lista de resultados, sección colapsable **«Planes activos (N)»** con cards compactas de plan (nombre, versión, métricas, divisa) → Ventana 8. Colapsada por defecto: el buscador de clientes sigue siendo el protagonista.
+- **Ventana 3 (Detalle de cliente)**: la tarjeta grande se organiza en tres bloques — datos de empresa · **valores base de consumo** (usuarios/GB/llamadas habituales, con "—" si no hay dato y edición en línea) · el callout de tarifa contratada. La botonera pasa a **«+ Nueva simulación parametrizada»** (solo si hay algún valor base) y **«+ Nueva simulación libre»**. Las cards del historial ganan un chip con el **plan de cada simulación** (`{plan} · vN`) y el botón **«Usar como base»**.
+- **Ventana 4 (Simulador)**: entre las migas y las dos columnas, la **barra de plan**: «Plan activo:» + chip del plan en uso (tono distinto si no es el contratado) + cambiar (desplegable de planes activos) + «Volver al contratado». En modo parametrizado, junto al input numérico de cada métrica con valor base, la referencia **«base: N»** en negrita. Bajo el resultado, **sugerencias**: *"Con {plan} saldría {total}"* + «Probar», solo si hay un plan activo más barato en la misma divisa. La hoja de impresión pasa a declarar el plan de la simulación sellada.

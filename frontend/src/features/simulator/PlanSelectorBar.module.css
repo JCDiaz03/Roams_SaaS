@@ -1,0 +1,44 @@
+.barra {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding: 10px 14px;
+  margin-bottom: 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+}
+
+.etiqueta {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-2);
+}
+
+.selector {
+  /* >= 24px de objetivo tactil, como el selector de divisa (7.1 del diseno). */
+  height: 32px;
+  padding: 0 8px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-field);
+  cursor: pointer;
+}
+.selector:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+
+.enlace {
+  font-size: 12.5px;
+  color: var(--color-text-2);
+  margin-left: auto;
+}
+.enlace:hover {
+  color: var(--color-primary);
+}

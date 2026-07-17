@@ -68,7 +68,11 @@ export function PrintSheet({ cliente, sim, emisor }: Props) {
         </div>
         <div>
           <dt>Plan</dt>
-          <dd>{cliente.plan.name}</dd>
+          {/* De la SIMULACION sellada, no del cliente: con el plan elegido (ADR 0011),
+              cliente.plan.name seria la tarifa equivocada en el papel. */}
+          <dd>
+            {sim.plan_name} · v{sim.plan_version}
+          </dd>
         </div>
       </dl>
 

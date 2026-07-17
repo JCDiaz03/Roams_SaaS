@@ -1,9 +1,12 @@
-// Historial de simulaciones en cards responsive. Diseno: 4
+// Historial de simulaciones en cards responsive. Diseno: 4, 8
 
+import { useNavigate } from 'react-router-dom'
 import type { CurrencyCode } from '@saas/pricing'
 import type { Simulation } from '../../lib/api-client'
 import { convertMinor, formatMinor } from '../../lib/currency-format'
+import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { Chip } from '../../ui/Chip'
 import styles from './SimulationHistoryCard.module.css'
 
 const fecha = (iso: string) =>
@@ -17,6 +20,8 @@ type Props = {
 }
 
 export function SimulationHistoryCard({ sim, display, rates }: Props) {
+  const navegar = useNavigate()
+
   // La conversion es presentacion pura y se hace aqui, con lo que devolvio GET /rates. El
   // importe de facturacion (sim.total_minor, en sim.currency) NO cambia jamas.
   const convertido =
@@ -26,9 +31,26 @@ export function SimulationHistoryCard({ sim, display, rates }: Props) {
 
   const hayConversion = convertido !== null
 
+  // LEE las entradas de la simulacion para crear OTRA; la guardada no se toca jamas
+  // (spec 09, 5.3). El plan viaja en la URL y el simulador lo preselecciona solo si
+  // sigue activo o es el contratado.
+  const usarComoBase = () =>
+    navegar(
+      `/clientes/${sim.customer_id}/simular?users=${sim.inputs.active_users}` +
+        `&storage_gb=${sim.inputs.storage_gb}&api_calls=${sim.inputs.api_calls}&plan=${sim.plan_id}`,
+    )
+
   return (
     <Card className={styles.tarjeta}>
-      <div className={styles.fecha}>{fecha(sim.created_at)}</div>
+      <div className={styles.cabecera}>
+        <div className={styles.fecha}>{fecha(sim.created_at)}</div>
+        {/* Con el plan elegido en juego (ADR 0011), "¿con que tarifa era este numero?" ya
+            no tiene una respuesta unica por cliente: la card la dice. Del snapshot, asi
+            que versionar el plan no la cambia (spec 09, 5.1-5.2). */}
+        <Chip tone="brand">
+          {sim.plan_name} · v{sim.plan_version}
+        </Chip>
+      </div>
 
       {/* Filas de especificacion del patron Roams: valor destacado + label pequeno. */}
       <div className={styles.entradas}>
@@ -62,6 +84,17 @@ export function SimulationHistoryCard({ sim, display, rates }: Props) {
             <>impuestos incluidos</>
           )}
         </div>
+      </div>
+
+      <div className={styles.acciones}>
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={`Usar la simulación del ${fecha(sim.created_at)} como base`}
+          onClick={usarComoBase}
+        >
+          Usar como base
+        </Button>
       </div>
     </Card>
   )

@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import type { Metric } from '@saas/pricing'
 import { api, type Plan } from '../../lib/api-client'
+import { ETIQUETA_METRICA, metricasDe } from '../../lib/plan-format'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
@@ -11,16 +11,6 @@ import { Skeleton } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
 import { IconPlus } from '../../ui/icons'
 import styles from './PlansAdminPage.module.css'
-
-const ETIQUETA: Record<Metric, string> = {
-  users: 'Usuarios',
-  storage_gb: 'Almacenamiento',
-  api_calls: 'Llamadas API',
-}
-
-function metricasDe(plan: Plan): Metric[] {
-  return [...new Set(plan.tiers.map((t) => t.metric))]
-}
 
 export function PlansAdminPage() {
   const navegar = useNavigate()
@@ -104,7 +94,7 @@ export function PlansAdminPage() {
           <div className={styles.chips}>
             {metricasDe(plan).map((m) => (
               <Chip key={m} tone="brand">
-                {ETIQUETA[m]}
+                {ETIQUETA_METRICA[m]}
               </Chip>
             ))}
             <Chip>{plan.currency}</Chip>
@@ -119,7 +109,7 @@ export function PlansAdminPage() {
               variant="secondary"
               size="sm"
               aria-label={`Editar ${plan.name}`}
-              onClick={() => navegar(`/planes/${plan.id}`)}
+              onClick={() => navegar(`/planes/${plan.id}/editar`)}
             >
               Editar
             </Button>

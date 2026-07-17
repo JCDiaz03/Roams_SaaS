@@ -12,6 +12,7 @@ import { Chip } from '../../ui/Chip'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
 import { IconCheck, IconPlus } from '../../ui/icons'
 import { colorAvatar, iniciales } from '../../ui/avatar'
+import { BaseValuesBlock } from './BaseValuesBlock'
 import { SimulationHistoryCard } from './SimulationHistoryCard'
 import styles from './CustomerDetailPage.module.css'
 
@@ -105,6 +106,9 @@ export function CustomerDetailPage() {
   const { cliente, historial } = datos
   const [fondo, tinta] = colorAvatar(cliente.id)
   const validado = cliente.fiscal_id_type !== 'unvalidated'
+  // Sin ningun valor base, "parametrizada" no significa nada: el boton no aparece.
+  const hayBase =
+    cliente.base_users !== null || cliente.base_storage_gb !== null || cliente.base_api_calls !== null
 
   return (
     <>
@@ -134,7 +138,16 @@ export function CustomerDetailPage() {
               ) : (
                 <Chip>Sin validar</Chip>
               )}
-              <Chip tone="brand">{cliente.plan.name}</Chip>
+              {/* El chip del plan ENLAZA a su detalle (spec 08): un Link con el chip
+                  dentro, no un chip con onClick — asi tabula, anuncia destino y admite
+                  abrir en pestana nueva. */}
+              <Link
+                to={`/planes/${cliente.plan.id}`}
+                className={styles.enlacePlan}
+                aria-label={`Ver el ${cliente.plan.name}`}
+              >
+                <Chip tone="brand">{cliente.plan.name}</Chip>
+              </Link>
             </div>
 
             <div className={styles.meta}>
@@ -149,10 +162,34 @@ export function CustomerDetailPage() {
             </div>
           </div>
 
-          <Button icon={<IconPlus />} onClick={() => navegar(`/clientes/${cliente.id}/simular`)}>
-            Nueva simulación
-          </Button>
+          <div className={styles.botonera}>
+            {/* Parametrizada solo si hay algun valor base (spec 09, 3.3): arranca del
+                consumo habitual. La libre es el boton de siempre, renombrado. */}
+            {hayBase && (
+              <Button
+                icon={<IconPlus />}
+                onClick={() => navegar(`/clientes/${cliente.id}/simular?base=1`)}
+              >
+                Nueva simulación parametrizada
+              </Button>
+            )}
+            <Button
+              variant={hayBase ? 'secondary' : 'primary'}
+              icon={<IconPlus />}
+              onClick={() => navegar(`/clientes/${cliente.id}/simular`)}
+            >
+              Nueva simulación libre
+            </Button>
+          </div>
         </div>
+
+        {/* Segundo bloque de la card (diseno 8): los valores base, editables en linea. */}
+        <BaseValuesBlock
+          cliente={cliente}
+          onActualizado={(bases) =>
+            setDatos((d) => (d.estado === 'listo' ? { ...d, cliente: { ...d.cliente, ...bases } } : d))
+          }
+        />
 
         {/* El plan archivado se traduce a lenguaje de comercial. NADA de "versión
             archivada" ni de jerga de versionado (referencia 5.5): lo que el comercial

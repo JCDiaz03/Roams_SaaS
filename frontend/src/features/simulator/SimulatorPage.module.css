@@ -1,3 +1,33 @@
+.sugerencias {
+  margin-top: 12px;
+}
+
+.sugerenciasTitulo {
+  margin: 0 0 8px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-2);
+}
+
+.sugerenciasLista {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.sugerenciasLista li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+}
+.sugerenciasLista strong {
+  font-weight: 600;
+}
+
 .migas {
   display: flex;
   align-items: center;

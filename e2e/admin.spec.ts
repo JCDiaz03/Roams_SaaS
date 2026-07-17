@@ -12,9 +12,12 @@ test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuest
   await entrar(page, 'ADMIN')
 
   // --- Primero, un presupuesto guardado que el versionado NO debe tocar ----------------
+  // Nebula viene sembrada con base_users: 15 -> la PARAMETRIZADA arranca con el caso
+  // literal del enunciado ya puesto (spec 09, 3.4), sin teclearlo.
   await abrirFicha(page, 'nébula', 'Nébula Cloud S.L.')
-  await page.getByRole('button', { name: 'Nueva simulación' }).click()
-  await page.getByLabel('Usuarios activos, valor exacto').fill('15')
+  await page.getByRole('button', { name: 'Nueva simulación parametrizada' }).click()
+  await expect(page.getByLabel('Usuarios activos, valor exacto')).toHaveValue('15')
+  await expect(page.getByText('base: 15')).toBeVisible()
 
   // El caso literal del enunciado: 10x10 + 5x8 = 140 EUR + 21 % = 169,40 EUR.
   await expect(page.getByText(/169,40/).first()).toBeVisible()
@@ -30,6 +33,8 @@ test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuest
   // Por nombre accesible, no por posicion: un plan nuevo en el seed que ordene antes
   // que Ágora haria que un .first() editara (mutara) el plan equivocado.
   await page.getByRole('button', { name: 'Editar Plan Ágora' }).click()
+  // La decision D1 clavada en URL: el editor vive en /editar; la URL corta es el detalle.
+  await expect(page).toHaveURL(/\/planes\/\d+\/editar$/)
   await expect(page.getByText('Los clientes actuales mantendrán su tarifa')).toBeVisible()
   await auditarAccesibilidad(page, 'admin-plantilla')
 
@@ -55,6 +60,9 @@ test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuest
   // ...y el presupuesto guardado sigue diciendo LO MISMO: snapshot + versionado (5.5, 11.2).
   await expect(page.getByText('1 presupuesto')).toBeVisible()
   await expect(page.getByText(/169,40/).first()).toBeVisible()
+  // Y sigue declarando SU version (v2), no la v3 recien creada: el nombre tambien sale
+  // del snapshot (spec 09, 5.1).
+  await expect(page.getByText('Plan Ágora · v2')).toBeVisible()
 
   expect(inesperados(consola)).toEqual([])
 })

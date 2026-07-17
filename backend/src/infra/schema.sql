@@ -94,6 +94,13 @@ CREATE TABLE IF NOT EXISTS customers (
   email          TEXT NOT NULL,
   country        TEXT NOT NULL REFERENCES countries(code) ON DELETE RESTRICT,
   plan_id        INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
+  -- Valores base de consumo: un preajuste de la simulacion parametrizada que JAMAS entra
+  -- en un calculo del backend (spec 09, 2). NULL = no registrado, valor de primera clase.
+  -- Se anaden tambien via ensureColumn() en migrate.ts para bases existentes (ADR 0012):
+  -- esta definicion y aquella se tocan JUNTAS, en el mismo commit.
+  base_users      INTEGER,
+  base_storage_gb INTEGER,
+  base_api_calls  INTEGER,
   created_at     TEXT NOT NULL,
   CHECK (fiscal_id_type IN ('DNI', 'NIE', 'CIF', 'NIF', 'unvalidated')),
   -- Red de la normalizacion: si algun camino de escritura olvidara normalizar, la fila
@@ -105,7 +112,12 @@ CREATE TABLE IF NOT EXISTS customers (
   -- otro camino.
   CHECK (length(company_name) BETWEEN 1 AND 200),
   CHECK (length(fiscal_id) BETWEEN 1 AND 20),
-  CHECK (length(email) <= 254)
+  CHECK (length(email) <= 254),
+  -- Los mismos topes que el esquema de POST /simulations (TOPES): misma magnitud fisica,
+  -- misma cota. Duplicados a proposito, como los length() de arriba.
+  CHECK (base_users      IS NULL OR (base_users      BETWEEN 0 AND 1000000)),
+  CHECK (base_storage_gb IS NULL OR (base_storage_gb BETWEEN 0 AND 10000000)),
+  CHECK (base_api_calls  IS NULL OR (base_api_calls  BETWEEN 0 AND 1000000000))
 ) STRICT;
 
 -- UNIQUE ya crea el indice de fiscal_id; el buscador ataca esos dos campos.

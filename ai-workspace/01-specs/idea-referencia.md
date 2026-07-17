@@ -372,7 +372,7 @@ Alternativas descartadas: preview solo-frontend (violaría el invariante #1: el 
 ### 11.1 Tablas
 
 - **`countries`**: `code` (ISO 3166-1 alfa-2, PK), `name`, `tax_id_scheme` (NULL = sin validación), `display_currency` (solo presentación) — → §6.1
-- **`customers`**: `id`, `company_name`, `fiscal_id` (**UNIQUE**, forma normalizada → §7.4), `fiscal_id_type` (resultado de la validación: DNI/NIE/CIF/NIF-PT/`unvalidated`), `email`, `country` (FK → `countries.code`), `plan_id` (FK), `created_at`
+- **`customers`**: `id`, `company_name`, `fiscal_id` (**UNIQUE**, forma normalizada → §7.4), `fiscal_id_type` (resultado de la validación: DNI/NIE/CIF/NIF-PT/`unvalidated`), `email`, `country` (FK → `countries.code`), `plan_id` (FK), `base_users`/`base_storage_gb`/`base_api_calls` (NULLABLE — valores base de consumo, un preajuste de la simulación parametrizada que **jamás entra en un cálculo del backend** → `features/09-simulacion-parametrizada-y-plan-elegido.md`), `created_at`
 - **`plans`**: `id`, `name`, `version`, `description`, `pricing_model` (`graduated`), `currency` (ISO, ∈ `Currency`), `active`, `created_at`
 - **`plan_tiers`**: `id`, `plan_id` (FK), `metric` (`users`|`storage_gb`|`api_calls`|...), `up_to` (NULL = ∞), `unit_price_minor`, `sort_order`
 - **`tax_rates`**: PK `(country, vigente_desde)`, `country` (FK → `countries.code`), `rate_bp` — vigente = mayor `vigente_desde` ≤ hoy (§6.2)
@@ -391,8 +391,8 @@ Como los planes son datos editables (con panel admin, editables **en caliente**)
 ## 12. API REST
 
 **Requeridos por el enunciado**
-- `POST /customers` — Alta. Valida `fiscal_id` **antes de guardar** si `country == ES` (§7).
-- `POST /simulations` — Registra simulación de coste mensual: calcula tramos + impuesto y persiste con snapshot (§10, §11.2).
+- `POST /customers` — Alta. Valida `fiscal_id` **antes de guardar** si `country == ES` (§7). Acepta los `base_*` opcionales.
+- `POST /simulations` — Registra simulación de coste mensual: calcula tramos + impuesto y persiste con snapshot (§10, §11.2). `plan_id` **opcional**: ausente = el plan del cliente (activo o archivado); presente = ese plan, que debe estar activo salvo que sea el contratado (→ ADR 0011). El impuesto es siempre el del país del cliente.
 
 **Necesarios para el frontend**
 - `GET /countries` — Países soportados: código, nombre, `display_currency` y **`fiscal_id: { validated, hint }` ya resuelto por el validador del país** (§7.2). El desplegable y el hint del alta se pintan de aquí, sin ningún `if (país)` en el cliente.
@@ -400,6 +400,8 @@ Como los planes son datos editables (con panel admin, editables **en caliente**)
 - `GET /customers/{id}` — Detalle. **Embebe el plan del cliente con sus tramos** (aunque esté archivado — un cliente puede apuntar a una versión antigua, §5.5) **y el `tax_rate_bp` de su país**: todo lo que el preview local necesita en una sola petición (§10).
 - `GET /customers/{id}/simulations` — Historial (cards).
 - `GET /plans` — Planes **activos** con sus tramos: listados y alta de clientes. Acepta **`?include_archived=true`** para el panel de administración (Ventana 6) — parámetro y no endpoint aparte porque el recurso es el mismo; el parámetro exige rol admin **de verdad** (403, §8.3). El plan de un cliente concreto se obtiene por su detalle, no por aquí.
+- `GET /plans/{id}` — Detalle de un plan con sus tramos, **archivado incluido y sin rol**: un comercial ya ve planes archivados embebidos en la ficha de sus clientes; lo que exige admin es el listado de archivados, no un plan concreto (→ `features/08-catalogo-de-planes-visible.md`).
+- `PATCH /customers/{id}` — Edición **acotada a los valores base** (`base_*`); los datos fiscales siguen sin poderse tocar por la API (→ `features/09-simulacion-parametrizada-y-plan-elegido.md` §3).
 - `GET /rates` — Proxy de divisas (§9).
 
 **Admin**
@@ -420,7 +422,7 @@ Perfil no técnico → prioridad a la claridad. Diseño de pantallas → `diseñ
 - **Login** (§8) + saludo "Hola {nombre}" + paneles admin condicionados por `hasRole('admin')`.
 - **Buscador** por nombre de empresa o identificador fiscal (con *debounce*).
 - **Cards responsive**: datos del cliente + historial de simulaciones.
-- **Simulador**: slider/controles por métrica con preview en tiempo real (§10) y conversión a la divisa seleccionada.
+- **Simulador**: slider/controles por métrica con preview en tiempo real (§10) y conversión a la divisa seleccionada. Con **barra de plan** (cotizar con un plan activo distinto del contratado, y volver a él), **sugerencias de planes más baratos** calculadas en local con el mismo `quote()`, y **modo parametrizado** que arranca de los valores base del cliente (→ `features/09-simulacion-parametrizada-y-plan-elegido.md`).
 - **Selector de divisa**: consume `GET /rates`; el cambio es **solo visual** (§4.1) y el importe convertido se marca siempre como **referencia**, no divisa de facturación. **Preselección — la elección manual manda**: la sesión guarda `{ currency, source: 'auto' | 'manual' }`; arranca en EUR con `source: 'auto'`; al entrar en la ficha de un cliente se preselecciona su `display_currency` (§6.1) **solo si `source === 'auto'`**; en cuanto el comercial elige una divisa a mano, `source` pasa a `'manual'` y nada la vuelve a cambiar en toda la sesión.
 - **Desglose visible**: mostrar "10 usuarios × 10 € + 5 × 8 €" en vez de un total opaco. Un comercial tiene que poder **explicar el número al cliente por teléfono**.
 

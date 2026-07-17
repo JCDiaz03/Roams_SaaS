@@ -1,0 +1,110 @@
+.migas {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--color-text-2);
+  margin-bottom: 16px;
+}
+.migas a {
+  color: var(--color-text-2);
+}
+.migas a:hover {
+  color: var(--color-primary);
+}
+.migas strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.datos {
+  flex: 1;
+  min-width: 0;
+}
+
+.nombre {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+}
+
+.chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 10px;
+}
+
+.descripcion {
+  margin: 0;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
+.seccion {
+  margin-top: 20px;
+}
+
+.tituloSeccion {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.tabla th {
+  text-align: left;
+  font-weight: 600;
+  color: var(--color-text-2);
+  font-size: 12px;
+  padding: 4px 0 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+.tabla td {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.tabla tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Los importes, alineados a la derecha y tabulares: columnas de numeros que se comparan. */
+.precio {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.pie {
+  margin: 16px 0 0;
+  font-size: 12.5px;
+  color: var(--color-text-2);
+}
+
+.vacio {
+  text-align: center;
+  padding: 36px 20px;
+}
+.vacio p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
+@media (max-width: 640px) {
+  .cabecera {
+    flex-direction: column;
+  }
+}

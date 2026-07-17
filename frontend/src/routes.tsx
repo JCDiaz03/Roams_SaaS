@@ -1,4 +1,4 @@
-// Las 7 ventanas; admin condicionado por hasRole(admin). Diseno: 3
+// Las 8 ventanas; admin condicionado por hasRole(admin). Diseno: 3, 8
 
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { PlanTemplatePage } from './features/admin/PlanTemplatePage'
@@ -6,6 +6,7 @@ import { PlansAdminPage } from './features/admin/PlansAdminPage'
 import { CustomerDetailPage } from './features/customer/CustomerDetailPage'
 import { NewCustomerPage } from './features/customer/NewCustomerPage'
 import { LoginPage } from './features/login/LoginPage'
+import { PlanDetailPage } from './features/plans/PlanDetailPage'
 import { DashboardPage } from './features/search/DashboardPage'
 import { SimulatorPage } from './features/simulator/SimulatorPage'
 import { RatesProvider } from './lib/rates-context'
@@ -44,12 +45,18 @@ export function AppRoutes() {
           <Route path="/clientes/:id" element={<CustomerDetailPage />} />
           <Route path="/clientes/:id/simular" element={<SimulatorPage />} />
 
+          {/* El detalle de plan es de CUALQUIER sesion (spec 08): el catalogo es
+              informacion de venta, no de administracion. La URL corta ensena; la de
+              /editar edita. React Router prioriza "nuevo" sobre ":id" por ranking de
+              segmento estatico. */}
+          <Route path="/planes/:id" element={<PlanDetailPage />} />
+
           {/* Administracion. El gating visual decide que pantallas existen para quien;
               la autorizacion de verdad vive en el backend (403 por rol, spec 07): un
               comercial que teclee la URL vera pantallas cuyas mutaciones rebotan. */}
           {esAdmin && <Route path="/planes" element={<PlansAdminPage />} />}
           {esAdmin && <Route path="/planes/nuevo" element={<PlanTemplatePage />} />}
-          {esAdmin && <Route path="/planes/:id" element={<PlanTemplatePage />} />}
+          {esAdmin && <Route path="/planes/:id/editar" element={<PlanTemplatePage />} />}
 
           {/* Cualquier otra cosa al buscador: una SPA no debe dejar a nadie en blanco. */}
           <Route path="*" element={<Navigate to="/" replace />} />

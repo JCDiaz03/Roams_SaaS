@@ -113,13 +113,6 @@ describe('POST /simulations — errores', () => {
     expect(r.json().error.field).toBe('total_minor')
   })
 
-  it('el plan_id NO se acepta: se deriva del cliente', async () => {
-    // Si entrara por el cuerpo, el frontend podria cotizar a un cliente con un plan que
-    // no es el suyo, que es justo lo que el versionado protege.
-    const r = await simular(entradas({ plan_id: planId(h.db, 'Plan Cúspide', 1) }))
-    expect(r.statusCode).toBe(400)
-  })
-
   it('cantidades negativas -> 400', async () => {
     expect((await simular(entradas({ active_users: -1 }))).statusCode).toBe(400)
   })
@@ -130,6 +123,75 @@ describe('POST /simulations — errores', () => {
 
   it('cantidad decimal -> 400', async () => {
     expect((await simular(entradas({ active_users: 1.5 }))).statusCode).toBe(400)
+  })
+})
+
+describe('POST /simulations — plan_id opcional (ADR 0011)', () => {
+  // Sustituye al guardian "el plan_id NO se acepta": la prohibicion protegia que nadie
+  // cotizara con una tarifa que ya no se ofrece, y esta bateria comprueba que la regla
+  // activo-o-contratado preserva EXACTAMENTE esa proteccion.
+
+  it('sin plan_id se deriva del cliente: el camino de siempre, intacto', async () => {
+    const r = await simular(entradas())
+    expect(r.statusCode).toBe(201)
+    expect(r.json().plan_id).toBe(planId(h.db, 'Plan Ágora', 2))
+  })
+
+  it('un plan ACTIVO ajeno -> 201, cotizado con SUS tramos y el impuesto del cliente', async () => {
+    // Nebula (ES, 21 %) cotizada con Cuspide: users 15x900 = 13500. El tax_rate_bp sigue
+    // siendo el del PAIS DEL CLIENTE, se cotice con el plan que se cotice (spec 09, 2).
+    const cuspide = planId(h.db, 'Plan Cúspide', 1)
+    const r = await simular(entradas({ plan_id: cuspide }))
+
+    expect(r.statusCode).toBe(201)
+    expect(r.json()).toMatchObject({
+      plan_id: cuspide,
+      plan_name: 'Plan Cúspide',
+      base_minor: 13_500,
+      tax_rate_bp: 2100,
+    })
+  })
+
+  it('un plan ARCHIVADO ajeno -> 422 PLAN_ARCHIVED: esa tarifa ya no se ofrece', async () => {
+    // Nebula intentando cotizar con Agora v1 (el archivado de Fjord). Es lo que la
+    // prohibicion original protegia, y sigue protegido.
+    const r = await simular(entradas({ plan_id: planId(h.db, 'Plan Ágora', 1) }))
+
+    expect(r.statusCode).toBe(422)
+    expect(r.json().error).toMatchObject({ code: 'PLAN_ARCHIVED', field: 'plan_id' })
+  })
+
+  it('el contratado ARCHIVADO enviado explicitamente -> 201: es su tarifa', async () => {
+    // Fjord enviando su propio plan archivado en el cuerpo. La regla compara contra
+    // cliente.plan_id, no contra "vino en el cuerpo".
+    const agoraV1 = planId(h.db, 'Plan Ágora', 1)
+    const r = await simular({
+      customer_id: customerId(h.db, 'Fjord Systems AS'),
+      plan_id: agoraV1,
+      active_users: 15,
+      storage_gb: 0,
+      api_calls: 0,
+    })
+
+    expect(r.statusCode).toBe(201)
+    expect(r.json().base_minor).toBe(15_500)
+  })
+
+  it('plan_id inexistente -> 422 PLAN_NOT_FOUND, no 404: es una referencia del cuerpo', async () => {
+    const r = await simular(entradas({ plan_id: 9999 }))
+    expect(r.statusCode).toBe(422)
+    expect(r.json().error).toMatchObject({ code: 'PLAN_NOT_FOUND', field: 'plan_id' })
+  })
+
+  it('el snapshot captura el plan ELEGIDO, no el contratado', async () => {
+    const cuspide = planId(h.db, 'Plan Cúspide', 1)
+    await simular(entradas({ plan_id: cuspide }))
+
+    const { pricing_snapshot } = h.db
+      .prepare('SELECT pricing_snapshot FROM simulations ORDER BY id DESC LIMIT 1')
+      .get() as { pricing_snapshot: string }
+
+    expect(JSON.parse(pricing_snapshot).plan).toMatchObject({ id: cuspide, name: 'Plan Cúspide' })
   })
 })
 
@@ -214,6 +276,28 @@ describe('GET /customers/{id}/simulations — historial', () => {
     expect(delHistorial.total_minor).toBe(creada.total_minor)
     expect(delHistorial.breakdown).toEqual(creada.breakdown)
     expect(delHistorial.base_minor).toBe(14_000)
+  })
+
+  it('EL NOMBRE DEL PLAN tambien sale del snapshot: versionar no renombra el pasado', async () => {
+    // Extension del test anterior a la presentacion (spec 09, 5.1): se guarda una
+    // simulacion, el plan se versiona por debajo (v2 -> v3), y la simulacion vieja sigue
+    // declarando su v2.
+    const id = customerId(h.db, 'Nébula Cloud S.L.')
+    await simular(entradas())
+
+    const versionado = await h.inject({
+      method: 'PUT',
+      url: `/api/plans/${planId(h.db, 'Plan Ágora', 2)}`,
+      payload: {
+        name: 'Plan Ágora',
+        currency: 'EUR',
+        tiers: [{ metric: 'users', up_to: null, unit_price_minor: 100 }],
+      },
+    })
+    expect(versionado.statusCode).toBe(201)
+
+    const vieja = (await historial(id)).json().simulations[0]
+    expect(vieja).toMatchObject({ plan_name: 'Plan Ágora', plan_version: 2 })
   })
 })
 

@@ -184,3 +184,37 @@ El único riesgo real es `better-sqlite3`, que compila binario nativo: si el eva
 **Decisión.** Tres tests **en serie** (comparten una base sembrada y el de admin muta planes) contra el sistema ensamblado de verdad: backend real con base **en memoria** (cada ejecución arranca como un evaluador), build de producción servido por `vite preview` con la **CSP estricta**, y tipos de cambio desde un **fixture local** (`RATES_URL`, variable de entorno del servidor — no un parámetro de petición: el "sin SSRF" del §14.1 no se toca). Los dos recorridos son los de las verificaciones manuales de Fase 1 y Fase 2, más logout. Cada pantalla pasa por **axe-core** con umbral `serious`/`critical`, y "cero errores de consola" —el criterio de la verificación manual— es una aserción.
 
 **Consecuencias.** Se paga arranque (~20 s en local) y un navegador en CI (job aparte, para no retrasar la señal rápida de lint+test). **Rindió el primer día, dos veces**: cazó que el cinturón anti-CSRF (comparar `Origin` contra `Host`) rechazaba a la propia aplicación detrás del proxy —invisible para `app.inject`, que no atraviesa proxy alguno— y un fallo real de contraste AA que el test de tokens no podía ver (el atenuado componía opacidad sobre un color que ya era secundario). Es exactamente la clase de defecto que solo existe en el sistema ensamblado, que es la única razón de tener E2E.
+
+---
+
+## 0011 — `POST /simulations` acepta `plan_id` opcional (supersede una regla del contrato original)
+
+**Contexto.** Tanda del catálogo de planes (→ `../roams-roadmap_v2.md`): el comercial debe poder cotizar a un cliente con un plan distinto del contratado — un what-if que, si se guarda, se guarda con ese plan — y ver sugerencias de planes más baratos. El contrato original decía lo contrario, en negrita y con un test guardián: *"el `plan_id` no se envía: se deriva del cliente"*. Revertir una decisión que un test vigila exige un ADR, no un commit que pase de puntillas.
+
+**Qué protegía la regla original.** Dos cosas distintas, y conviene separarlas: (1) que el frontend no pudiera cotizar a un cliente con **una tarifa que ya no se ofrece** — el versionado protege el contrato presente; y (2) una superficie de entrada mínima. La (1) es negocio y no se negocia; la (2) es un coste que se paga cuando el negocio pide lo contrario, que es ahora.
+
+**Alternativas consideradas.**
+
+- **Mantener la prohibición y cambiar el plan del cliente antes de simular** (un `PUT` de reasignación). Convierte un what-if en una mutación del contrato del cliente: para *probar* una tarifa habría que *cambiar* al cliente de plan y deshacerlo después. Peor en todos los ejes, y además abre la edición de cliente, que nadie ha pedido.
+- **Endpoint aparte (`POST /simulations/what-if`)**. El recurso es el mismo y el resultado se persiste igual; dos endpoints para una diferencia de un campo es el mismo error que habría sido separar `GET /plans` y `GET /plans-archivados`.
+- **`plan_id` opcional con la regla activo-o-contratado.** Elegida.
+
+**Decisión.** `plan_id` opcional en el cuerpo. Ausente → el plan del cliente, activo o archivado (el camino de siempre, intacto). Presente → debe existir (`422 PLAN_NOT_FOUND`) y estar **activo salvo que sea el contratado del cliente** (`422 PLAN_ARCHIVED`). El `tax_rate_bp` sigue siendo siempre el del país del cliente. Contrato → `../01-specs/contrato-api.md` §2.2; spec → `../01-specs/features/09-simulacion-parametrizada-y-plan-elegido.md` §4.
+
+**Consecuencias.** La protección (1) queda **exactamente igual de cubierta**: nadie puede cotizar con una tarifa archivada ajena — la regla activo-o-contratado es la misma que aplica el alta, extendida con la excepción que el historial del cliente exige. El guardián **se reescribe, no se borra**: pasa de "un `plan_id` en el cuerpo es un 400" a la batería completa de la regla nueva (ausente = contratado; activo ajeno = 201 con sus tramos; archivado ajeno = 422; contratado archivado = 201; inexistente = 422). El snapshot no cambia: siempre capturó "el plan con el que se cotizó"; lo que cambia es que ese plan puede ser elegido. Y la pantalla gana una obligación: con el plan elegido en juego, el historial tiene que decir con qué plan se cotizó cada número (`plan_name`/`plan_version`, desde el snapshot).
+
+---
+
+## 0012 — Columnas aditivas con `ALTER TABLE` idempotente en el arranque (supersede parcialmente "migrar solo si el `.db` no existe")
+
+**Contexto.** Los valores base del cliente (→ spec 09 §3) añaden tres columnas a `customers`. Hasta hoy el esquema solo corría sobre una base nueva (`ensureDatabase()`: si el `.db` existe, no se toca), lo que era correcto porque el esquema nunca había cambiado. La primera columna nueva del proyecto obliga a decidir qué pasa con un `.db` existente.
+
+**Alternativas consideradas.**
+
+- **Documentar "borra el `.db` y rearranca".** Coste cero de código y rompe el criterio del README (levantar sin fricciones): tras un `git pull`, la app **casca al arrancar** con un error de SQL que no explica nada, y el evaluador o el compañero pierde los datos que hubiera creado a mano. Un camino documentado que empieza por destruir datos no es un camino.
+- **Un sistema de migraciones con versiones** (tabla `schema_migrations`, ficheros numerados). La solución de libro, y sobredimensionada para la primera migración de la historia del proyecto, que además es puramente aditiva. Ceremonia hoy; entra el día que haya una migración que no sea `ADD COLUMN`.
+- **`ALTER TABLE ... ADD COLUMN` idempotente en el arranque.** Elegida.
+
+**Decisión.** Un helper `ensureColumn(db, tabla, columna, ddl)` que consulta `pragma table_info` y añade la columna solo si falta; `migrate()` corre **siempre** al arrancar (el seed sigue condicionado a base-nueva). Las columnas van **también** en `schema.sql`, que sigue siendo la única fuente para bases nuevas; ambos se tocan en el mismo commit. SQLite admite `ADD COLUMN` con `CHECK` de la propia columna en tablas `STRICT` si la columna es `NULLABLE`, que es el caso.
+
+**Consecuencias.** Un `.db` de desarrollo sobrevive a un `git pull` con datos intactos, y una base nueva sigue naciendo del `schema.sql` de siempre — dos caminos, un test que ejercita ambos (base con DDL viejo gana las columnas; segunda pasada inocua). El límite declarado: esto cubre **columnas aditivas nullable**, nada más. Una migración que renombre, cambie tipos o mueva datos no cabe aquí y será el día del sistema de migraciones de verdad — este helper no debe crecer hasta convertirse en uno por acumulación.

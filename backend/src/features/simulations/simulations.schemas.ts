@@ -27,6 +27,8 @@ const simulationResponseSchema = {
     'id',
     'customer_id',
     'plan_id',
+    'plan_name',
+    'plan_version',
     'inputs',
     'currency',
     'base_minor',
@@ -40,6 +42,11 @@ const simulationResponseSchema = {
     id: { type: 'integer' },
     customer_id: { type: 'integer' },
     plan_id: { type: 'integer' },
+    // Del pricing_snapshot, nunca del plan actual: versionar un plan no cambia el nombre
+    // que declara una simulacion vieja (spec 09, 5.1). Planos y no un objeto plan{}
+    // porque plan_id ya vive plano en la raiz y anidar duplicaria el id.
+    plan_name: { type: 'string' },
+    plan_version: { type: 'integer' },
     inputs: {
       type: 'object',
       required: ['active_users', 'storage_gb', 'api_calls'],
@@ -92,12 +99,16 @@ export const postSimulationSchema = {
     // ignore: es que NO EXISTE el campo, y additionalProperties lo convierte en un 400.
     // Es lo que hace el invariante verificable con un test.
     //
-    // El plan_id TAMPOCO se acepta: se deriva del cliente. Si entrara por el cuerpo, el
-    // frontend podria cotizar a un cliente con un plan que no es el suyo, y el plan del
-    // cliente es justo lo que el versionado protege (referencia 5.5).
+    // El plan_id es OPCIONAL (ADR 0011): ausente = el plan del cliente, activo o
+    // archivado, el camino de siempre. Presente = ese plan, que debe existir y estar
+    // activo salvo que sea el contratado — la regla que preserva lo que la prohibicion
+    // original protegia: nadie cotiza con una tarifa archivada AJENA (referencia 5.5).
+    // Un plan_id es una entrada (una referencia que el backend resuelve y valida), no un
+    // importe: el invariante 1 no se mueve.
     additionalProperties: false,
     properties: {
       customer_id: { type: 'integer', minimum: 1 },
+      plan_id: { type: 'integer', minimum: 1 },
       active_users: { type: 'integer', minimum: 0, maximum: TOPES.activeUsers },
       storage_gb: { type: 'integer', minimum: 0, maximum: TOPES.storageGb },
       api_calls: { type: 'integer', minimum: 0, maximum: TOPES.apiCalls },

@@ -54,7 +54,25 @@ El criterio que gobierna toda la lista es el mismo que rechaza los puertos de m�
 
 **Qué se pierde**: nada — el enunciado pide *graduated* y es lo que hay.
 **Por qué se aplaza**: no hay un plan que los necesite. Implementar dos estrategias sin un caso de uso es escribir código para un futuro imaginado.
-**Coste de hacerlo**: el Strategy sobre `pricing_model` deja el hueco (→ referencia §5.3). Sería una estrategia nueva **y** ampliar el `CHECK (pricing_model IN ('graduated'))` de la tabla, en el mismo commit — el `CHECK` con un solo valor está ahí a propósito, para que no se pueda sembrar un modelo que nadie sabe calcular (→ `../01-specs/modelo-datos.md` §2.3).
+**Coste de hacerlo**: el Strategy sobre `pricing_model` deja el hueco (→ referencia §5.3). Sería una estrategia nueva **y** ampliar el `CHECK (pricing_model IN ('graduated'))` de la tabla, en el mismo commit — el `CHECK` con un solo valor está ahí a propósito, para que no se pueda sembrar un modelo que nadie sabe calcular (→ `../01-specs/modelo-datos.md` §2.3). Dos casos de uso concretos de estos modelos se evaluaron y difirieron en la tanda del catálogo de planes: →§2.9 y §2.10.
+
+### 2.9 Modelo compromiso + excedente ("contratas X, el exceso se cobra aparte")
+
+> Evaluado en la tanda del catálogo de planes (→ `../roams-roadmap_v2.md` §5) a raíz de la pregunta del usuario: *"si la empresa contrata un plan con X empleados y se incorporan más, ¿les cobramos un extra o sigue el algoritmo incremental?"*.
+
+**Qué se pierde**: no se puede expresar el modelo comercial estilo telefonía — una cantidad comprometida a precio cerrado y el exceso a tarifa de excedente.
+**Por qué se aplaza**: el modelo actual es **elástico por diseño y esa es su gracia**: no existe "cantidad contratada" — un cliente contrata un plan (una tabla de tramos), cada simulación tarifica el uso real, y "pasarse" no significa nada porque no hay límite del que pasarse. Es el modelo AWS: pagas lo que usas con precio marginal decreciente. El compromiso+excedente es un modelo comercial *distinto*, no una mejora del actual, y nadie lo ha pedido para un plan concreto.
+**Coste de hacerlo**: dos piezas — (a) la **cantidad comprometida** como dato del contrato del cliente (los `base_*` de la spec 09 son la semilla natural: la columna ya existe con la semántica "consumo habitual"; faltaría la semántica contractual), y (b) un `pricing_model` nuevo en `@saas/pricing` con su estrategia, su validación de plantilla y ampliar el `CHECK` (→ §2.5). Toca el motor, que es lo mejor testeado del repo: merece tanda propia con spec propia.
+**Cuándo deja de ser aceptable**: cuando comercial quiera vender un plan con precio cerrado por volumen comprometido y hoy tenga que fingirlo con tramos.
+
+### 2.10 Modelo `flat` premium ("ilimitado con sobrecoste")
+
+> Mismo origen que §2.9: *"un plan premium con GB/llamadas ilimitados — nosotros absorbemos la demanda elástica — pagando un sobrecoste"*.
+
+**Qué se pierde**: la mitad del plan premium. La otra mitad **ya es expresable hoy**: "GB/API ilimitados incluidos" = métrica sin tramos, que se registra en la simulación y aporta 0 (→ referencia §5.2). Lo inexpresable es el **sobrecoste fijo mensual**: un tramo siempre es precio × unidad, y una cuota independiente del uso es el modelo `flat` diferido en §2.5.
+**Por qué se aplaza**: ninguna feature de la tanda lo necesita, y no existe aún el plan que lo pida. Sería la pieza barata de los dos modelos (§2.9 es la cara), pero barata no es gratis: estrategia nueva + `CHECK` + plantilla de admin + validación.
+**Coste de hacerlo**: la estrategia `flat` de §2.5 con un caso de uso ya escrito: plan premium = cuota `flat` + tramos de `users` + resto de métricas sin tramos.
+**Cuándo deja de ser aceptable**: el día que se firme el primer plan premium y haya que documentar su sobrecoste en un campo `description` porque el sistema no sabe cobrarlo.
 
 ### 2.6 Validadores fiscales de otros países (`FR_SIREN`, `DE_USt`…)
 

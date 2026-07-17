@@ -54,6 +54,21 @@
   margin-bottom: 10px;
 }
 
+/* El enlace del chip del plan: el chip ya es la pieza visual; el enlace solo aporta
+   navegacion, foco visible y cursor. */
+.enlacePlan {
+  text-decoration: none;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+}
+.enlacePlan:hover {
+  filter: brightness(0.96);
+}
+.enlacePlan:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
 .meta {
   display: flex;
   gap: 20px;
@@ -115,8 +130,19 @@
   color: var(--color-text-2);
 }
 
+.botonera {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: none;
+}
+
 @media (max-width: 640px) {
   .cabecera {
     flex-direction: column;
+  }
+  .botonera {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }

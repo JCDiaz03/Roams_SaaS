@@ -5,9 +5,22 @@
   height: 100%;
 }
 
+.cabecera {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .fecha {
   font-size: 11.5px;
   color: var(--color-text-2);
+}
+
+.acciones {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .entradas {

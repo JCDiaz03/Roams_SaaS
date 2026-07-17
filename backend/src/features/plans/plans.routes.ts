@@ -4,10 +4,11 @@ import type { FastifyInstance } from 'fastify'
 import type { Db } from '../../infra/db'
 import { AppError } from '../../plugins/error-handler'
 import type { Plantilla } from './plan-template.validation'
-import { listPlans } from './plans.repo'
+import { findPlanById, listPlans } from './plans.repo'
 import {
   createPlanSchema,
   deletePlanSchema,
+  getPlanSchema,
   listPlansSchema,
   updatePlanSchema,
 } from './plans.schemas'
@@ -31,6 +32,21 @@ export function plansRoutes({ db }: { db: Db }) {
       }
 
       return { plans: listPlans(db, include_archived) }
+    })
+
+    // Detalle de un plan, ARCHIVADO INCLUIDO y sin rol (spec 08, 2): lo que exige admin
+    // es el listado de archivados, no un plan concreto — ese ya viaja entero embebido en
+    // la ficha de cualquier cliente antiguo. Endurecer esto con rol romperia el enlace
+    // desde la ficha de Fjord sin proteger nada que no viaje ya.
+    app.get('/plans/:id', { schema: getPlanSchema }, async (req) => {
+      const { id } = req.params as { id: number }
+
+      const plan = findPlanById(db, id)
+      if (plan === undefined) {
+        // 404 y no 422: aqui el plan ES el recurso de la URL (contrato-api.md 5).
+        throw new AppError(404, 'PLAN_NOT_FOUND', 'Ese plan no existe.')
+      }
+      return plan
     })
 
     app.post('/plans', { schema: createPlanSchema, config: { requiereRol: 'admin' } }, async (req, reply) => {

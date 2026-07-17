@@ -10,7 +10,9 @@ import {
   findCustomerById,
   findPlanWithTiers,
   insertCustomer,
+  updateCustomerBases,
   type CustomerRow,
+  type ValoresBase,
 } from './customers.repo'
 
 export type AltaCliente = {
@@ -19,6 +21,9 @@ export type AltaCliente = {
   email: string
   country: string
   plan_id: number
+  base_users?: number | null | undefined
+  base_storage_gb?: number | null | undefined
+  base_api_calls?: number | null | undefined
 }
 
 /**
@@ -86,6 +91,9 @@ export function crearCliente(db: Db, countries: CountriesCache, datos: AltaClien
       email: datos.email,
       country: datos.country,
       plan_id: datos.plan_id,
+      base_users: datos.base_users,
+      base_storage_gb: datos.base_storage_gb,
+      base_api_calls: datos.base_api_calls,
     })
   } catch (e) {
     if (!esUniqueDeFiscalId(e)) throw e
@@ -126,4 +134,20 @@ export function obtenerClienteOFallar(db: Db, id: number): CustomerRow {
     throw new AppError(404, 'CUSTOMER_NOT_FOUND', 'No encontramos a ese cliente.')
   }
   return cliente
+}
+
+/**
+ * Edicion acotada a los valores base (spec 09, 3.2). El esquema ya garantiza que
+ * `cambios` solo trae esas tres claves; el repo ademas construye el SET desde su propia
+ * lista blanca. Ninguna otra edicion de cliente existe.
+ */
+export function editarValoresBase(db: Db, id: number, cambios: ValoresBase): CustomerRow {
+  obtenerClienteOFallar(db, id)
+
+  const actualizado = updateCustomerBases(db, id, cambios)
+  if (actualizado === undefined) {
+    // Inalcanzable: acabamos de comprobar que existe y no hay borrado fisico.
+    throw new Error(`El cliente ${id} desaparecio durante la actualizacion.`)
+  }
+  return actualizado
 }

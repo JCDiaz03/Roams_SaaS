@@ -225,6 +225,78 @@ describe('GET /customers — buscador', () => {
   })
 })
 
+describe('valores base — alta y PATCH (spec 09, 3)', () => {
+  const patch = (id: number, payload: unknown) =>
+    h.inject({ method: 'PATCH', url: `/api/customers/${id}`, payload: payload as Record<string, unknown> })
+
+  it('el alta acepta los base_* opcionales y los devuelve', async () => {
+    const r = await post(alta({ base_users: 25, base_storage_gb: 100 }))
+
+    expect(r.statusCode).toBe(201)
+    expect(r.json()).toMatchObject({ base_users: 25, base_storage_gb: 100, base_api_calls: null })
+  })
+
+  it('sin base_* en el alta, vuelven como null: "no registrado" es un valor', async () => {
+    const r = await post(alta())
+    expect(r.json()).toMatchObject({ base_users: null, base_storage_gb: null, base_api_calls: null })
+  })
+
+  it('un base por encima del tope -> 400, el mismo tope que POST /simulations', async () => {
+    const r = await post(alta({ base_users: 1_000_001 }))
+    expect(r.statusCode).toBe(400)
+    expect(r.json().error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('el PATCH actualiza SOLO lo enviado', async () => {
+    // Nebula viene sembrada con base_users: 15; tocarle el almacenamiento no lo mueve.
+    const id = customerId(h.db, 'Nébula Cloud S.L.')
+    const r = await patch(id, { base_storage_gb: 40 })
+
+    expect(r.statusCode).toBe(200)
+    expect(r.json()).toMatchObject({ base_users: 15, base_storage_gb: 40, base_api_calls: null })
+  })
+
+  it('null borra el valor', async () => {
+    const id = customerId(h.db, 'Nébula Cloud S.L.')
+    const r = await patch(id, { base_users: null })
+
+    expect(r.statusCode).toBe(200)
+    expect(r.json().base_users).toBeNull()
+  })
+
+  it('cuerpo vacio -> 400: un PATCH que no toca nada es un error del cliente', async () => {
+    expect((await patch(customerId(h.db, 'Nébula Cloud S.L.'), {})).statusCode).toBe(400)
+  })
+
+  it('EL GUARDIAN: company_name en el PATCH -> 400, la edicion fiscal NO se abrio', async () => {
+    // El PATCH esta acotado a los tres valores base. Si este test falla, alguien abrio
+    // la edicion de datos fiscales sin pasar por la spec (09, 3.2).
+    const r = await patch(customerId(h.db, 'Nébula Cloud S.L.'), {
+      company_name: 'Otro Nombre SL',
+      base_users: 1,
+    })
+
+    expect(r.statusCode).toBe(400)
+    expect(r.json().error.field).toBe('company_name')
+  })
+
+  it('un tope tambien rige en el PATCH', async () => {
+    const r = await patch(customerId(h.db, 'Nébula Cloud S.L.'), { base_api_calls: 1_000_000_001 })
+    expect(r.statusCode).toBe(400)
+  })
+
+  it('cliente inexistente -> 404', async () => {
+    const r = await patch(9999, { base_users: 1 })
+    expect(r.statusCode).toBe(404)
+    expect(r.json().error.code).toBe('CUSTOMER_NOT_FOUND')
+  })
+
+  it('el buscador NO expone los base_*: el listado se mantiene ligero (contrato 3.3)', async () => {
+    const r = await h.inject({ method: 'GET', url: '/api/customers?search=Nébula' })
+    expect(r.json().customers[0]).not.toHaveProperty('base_users')
+  })
+})
+
 describe('GET /customers/{id} — detalle', () => {
   const detalle = (id: number) => h.inject({ method: 'GET', url: `/api/customers/${id}` })
 
@@ -238,6 +310,9 @@ describe('GET /customers/{id} — detalle', () => {
     expect(body.country).toMatchObject({ code: 'ES', name: 'España', display_currency: 'EUR' })
     expect(body.plan.tiers).toHaveLength(3)
     expect(body.plan).toMatchObject({ name: 'Plan Ágora', version: 2, active: true })
+    // Los valores base del seed viajan en el detalle: la ficha y el simulador
+    // parametrizado los leen de aqui.
+    expect(body).toMatchObject({ base_users: 15, base_storage_gb: null, base_api_calls: null })
   })
 
   it('EL CLIENTE CON PLAN ARCHIVADO trae su plan igual, con sus tramos viejos', async () => {

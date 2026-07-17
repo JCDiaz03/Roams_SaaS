@@ -45,7 +45,33 @@ export type CustomerDetail = {
   email: string
   country: { code: string; name: string; display_currency: CurrencyCode }
   tax_rate_bp: number
+  /** Valores base de consumo (spec 09, 3). null = no registrado, valor de primera clase. */
+  base_users: number | null
+  base_storage_gb: number | null
+  base_api_calls: number | null
   plan: Plan
+  created_at: string
+}
+
+/** Lo unico que el PATCH de cliente puede tocar (spec 09, 3.2). null borra el valor. */
+export type ValoresBase = {
+  base_users?: number | null
+  base_storage_gb?: number | null
+  base_api_calls?: number | null
+}
+
+/** La respuesta del PATCH: el cliente PLANO (country como string, sin plan embebido). */
+export type CustomerFlat = {
+  id: number
+  company_name: string
+  fiscal_id: string
+  fiscal_id_type: string
+  email: string
+  country: string
+  plan_id: number
+  base_users: number | null
+  base_storage_gb: number | null
+  base_api_calls: number | null
   created_at: string
 }
 
@@ -53,6 +79,9 @@ export type Simulation = {
   id: number
   customer_id: number
   plan_id: number
+  /** Del pricing_snapshot: versionar un plan no renombra una simulacion vieja (spec 09, 5.1). */
+  plan_name: string
+  plan_version: number
   inputs: { active_users: number; storage_gb: number; api_calls: number }
   currency: CurrencyCode
   base_minor: number
@@ -181,6 +210,9 @@ export const api = {
       (r) => r.plans,
     ),
 
+  /** Detalle de un plan, archivado incluido y sin rol (spec 08, 2). */
+  plan: (id: number) => pedir<Plan>(`/plans/${id}`),
+
   searchCustomers: (search: string, signal?: AbortSignal) =>
     pedir<{ customers: CustomerListItem[]; total: number }>(
       `/customers?search=${encodeURIComponent(search)}`,
@@ -200,12 +232,22 @@ export const api = {
     email: string
     country: string
     plan_id: number
+    base_users?: number
+    base_storage_gb?: number
+    base_api_calls?: number
   }) => pedir<{ id: number }>('/customers', { method: 'POST', body: JSON.stringify(body) }),
 
+  /** Edicion ACOTADA a los valores base: ninguna otra edicion de cliente existe (spec 09, 3.2). */
+  updateCustomerBases: (id: number, body: ValoresBase) =>
+    pedir<CustomerFlat>(`/customers/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
   // SOLO ENTRADAS, jamas importes (invariante 1). El backend recalcula desde cero y su
-  // numero manda; si difiere del preview, la UI pinta el suyo (referencia 10).
+  // numero manda; si difiere del preview, la UI pinta el suyo (referencia 10). El
+  // plan_id es opcional (ADR 0011): solo viaja cuando se cotiza con un plan distinto del
+  // contratado, y es una referencia, no un importe.
   createSimulation: (body: {
     customer_id: number
+    plan_id?: number
     active_users: number
     storage_gb: number
     api_calls: number

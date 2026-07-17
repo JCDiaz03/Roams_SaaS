@@ -113,6 +113,11 @@ La **verificación de credenciales** sigue detrás del puerto `IdentityProvider`
 | `email` | string | `format: 'email'`, `maxLength: 254`, requerido |
 | `country` | string | `pattern: '^[A-Z]{2}$'`, requerido |
 | `plan_id` | integer | `minimum: 1`, requerido |
+| `base_users` | integer | `minimum: 0`, `maximum: 1000000`, **opcional** |
+| `base_storage_gb` | integer | `minimum: 0`, `maximum: 10000000`, **opcional** |
+| `base_api_calls` | integer | `minimum: 0`, `maximum: 1000000000`, **opcional** |
+
+Los `base_*` son los **valores base de consumo** del cliente (→ `features/09-simulacion-parametrizada-y-plan-elegido.md` §3): un preajuste de la simulación parametrizada, no una entrada de cálculo. Sus topes son los de `POST /simulations` — misma magnitud física, misma cota. Se editan después vía `PATCH /customers/{id}` (§3.8).
 
 `fiscal_id` se acepta **tal y como lo teclea el humano** (con espacios, guiones, minúsculas): la normalización es responsabilidad del servidor (→ referencia §7.4), no del formulario. Un contrato que exigiera la forma normalizada estaría delegando la regla al cliente y obligaría a reimplementarla allí.
 
@@ -127,9 +132,14 @@ La **verificación de credenciales** sigue detrás del puerto `IdentityProvider`
   "email": "compras@nebula.example",
   "country": "ES",
   "plan_id": 1,
+  "base_users": 15,
+  "base_storage_gb": null,
+  "base_api_calls": null,
   "created_at": "2026-07-15T10:30:00Z"
 }
 ```
+
+Los `base_*` no enviados vuelven como `null` — "no registrado" es un valor de primera clase, no una ausencia.
 
 Devuelve el `fiscal_id` **normalizado**: el cliente escribió `"b-1234 5674"` y debe ver en pantalla lo que quedó guardado. `Location: /api/customers/1`.
 
@@ -175,8 +185,9 @@ Es la única extensión del sobre de error, y está justificada: sin ella el fro
 | `active_users` | integer | `minimum: 0`, `maximum: 1000000`, requerido |
 | `storage_gb` | integer | `minimum: 0`, `maximum: 10000000`, requerido |
 | `api_calls` | integer | `minimum: 0`, `maximum: 1000000000`, requerido |
+| `plan_id` | integer | `minimum: 1`, **opcional** (→ ADR 0011) |
 
-**El `plan_id` no se envía**: se deriva del cliente. Si lo aceptara, el frontend podría cotizar a un cliente con un plan que no es el suyo — y el plan del cliente es precisamente lo que el versionado protege (→ referencia §5.5).
+**`plan_id` ausente** → se cotiza con el plan del cliente, activo o archivado: el comportamiento de siempre. **Presente** → se cotiza con ese plan, con dos reglas: debe existir y debe estar **activo salvo que sea el contratado del cliente**. La excepción preserva lo que la regla original («el plan_id no se acepta») protegía: la tarifa contratada de un cliente antiguo se sigue cotizando; una tarifa archivada *ajena* — retirada del mercado — no. El `tax_rate_bp` es siempre el del país del cliente, se cotice con el plan que se cotice.
 
 Los `maximum` son topes anti-DoS con la misma lógica que `maxLength` (→ referencia §7.5): sin ellos, `active_users: 1e15` es una petición válida que el motor recorrería. Son deliberadamente holgados: no son reglas de negocio, son el borde de lo físicamente sensato.
 
@@ -187,6 +198,8 @@ Los `maximum` son topes anti-DoS con la misma lógica que `maxLength` (→ refer
   "id": 7,
   "customer_id": 1,
   "plan_id": 1,
+  "plan_name": "Plan A",
+  "plan_version": 1,
   "inputs": { "active_users": 15, "storage_gb": 40, "api_calls": 250000 },
   "currency": "EUR",
   "base_minor": 14000,
@@ -215,16 +228,19 @@ Ese es el caso literal del enunciado: 15 usuarios → `10×1000 + 5×800 = 14000
 
 - **`breakdown` no se persiste**: es una proyección del cálculo, derivable del `pricing_snapshot` y las entradas. Se devuelve porque la pantalla lo exige ("10 usuarios × 10 € + 5 × 8 €" → referencia §13) y porque el desglose que enseña el servidor debe ser **el del número que el servidor calculó**, no una reconstrucción del cliente.
 - **`billed: false` con `subtotal_minor: 0`** es el contrato de "métrica que este plan no factura" (→ referencia §5.2). La métrica **aparece igual**: es lo que permite a la UI atenuar la tarjeta en vez de ocultarla, sin ningún `if` sobre el plan en el cliente.
+- **`plan_name` y `plan_version` salen del `pricing_snapshot`**, nunca del plan actual: versionar un plan no cambia el nombre que declara una simulación vieja. Van planos (no un objeto `plan{}`) porque `plan_id` ya vive plano en la raíz y anidar duplicaría el id.
 - **`pricing_snapshot` no se devuelve.** Es interno: sirve para explicar el pasado, y lo que la pantalla necesita explicar ya está en `breakdown`. Exponerlo sería filtrar una estructura de persistencia al contrato.
 
 **Errores**
 
-| Código HTTP | `code` | Cuándo |
-|---|---|---|
-| `400` | `VALIDATION_ERROR` | Forma del cuerpo |
-| `404` | `CUSTOMER_NOT_FOUND` | El cliente no existe |
+| Código HTTP | `code` | `field` | Cuándo |
+|---|---|---|---|
+| `400` | `VALIDATION_ERROR` | — | Forma del cuerpo |
+| `404` | `CUSTOMER_NOT_FOUND` | — | El cliente no existe |
+| `422` | `PLAN_NOT_FOUND` | `plan_id` | El `plan_id` del cuerpo no existe |
+| `422` | `PLAN_ARCHIVED` | `plan_id` | El `plan_id` del cuerpo está archivado **y no es el contratado del cliente** |
 
-No hay error de "plan archivado" aquí: un cliente con plan archivado **debe poder simular** con su tarifa contratada (→ referencia §5.5, el versionado protege el contrato presente). Es exactamente el caso que un `PLAN_ARCHIVED` copiado del alta rompería en silencio.
+Sin `plan_id` en el cuerpo **no existe el caso "plan archivado"**: un cliente con plan archivado debe poder simular con su tarifa contratada (→ referencia §5.5, el versionado protege el contrato presente). El `422 PLAN_ARCHIVED` solo aparece al elegir explícitamente una tarifa retirada ajena.
 
 ---
 
@@ -314,6 +330,9 @@ Sin resultados → `200` con `customers: []` y `total: 0`. **Vacío no es error*
   "email": "compras@nebula.example",
   "country": { "code": "ES", "name": "España", "display_currency": "EUR" },
   "tax_rate_bp": 2100,
+  "base_users": 15,
+  "base_storage_gb": null,
+  "base_api_calls": null,
   "plan": {
     "id": 1,
     "name": "Plan A",
@@ -335,6 +354,7 @@ Sin resultados → `200` con `customers: []` y `total: 0`. **Vacío no es error*
 - **El plan se embebe con sus tramos aunque esté archivado** (`active: false`). No es una excepción: es el caso normal de un cliente antiguo (→ referencia §5.5). La UI lo traduce a "Mantiene su tarifa contratada", sin jerga de versionado.
 - **`tax_rate_bp` es del país del cliente**, resuelto de la caché. Sin él, el preview no puede pintar el impuesto y habría que pedirlo aparte.
 - **`country` se expande a objeto** aquí (y es un string en el listado): el detalle necesita el nombre y la divisa de presentación para preseleccionar el selector (→ referencia §13); el listado solo pinta un chip.
+- **Los `base_*` viajan en el detalle y NO en el listado** (`GET /customers?search=`): los necesitan la ficha y el simulador parametrizado; la card del buscador no pinta ninguno, y el listado se mantiene ligero a propósito.
 
 | Código HTTP | `code` |
 |---|---|
@@ -411,6 +431,43 @@ Proxy con caché de servidor sobre `open.er-api.com` (→ referencia §9).
 | `503` | `RATES_UNAVAILABLE` | La API externa falla **y no hay ningún tipo cacheado** (primer arranque sin red) |
 
 Ese `503` es el único caso sin salida: no hay número viejo que enseñar. La UI cae a EUR con aviso visible (→ referencia §13.1).
+
+### 3.7 `GET /plans/{id}`
+
+→ spec: `features/08-catalogo-de-planes-visible.md`
+
+Detalle de un plan con sus tramos. Sesión obligatoria, **sin rol admin**, y devuelve el plan **aunque esté archivado**: un comercial ya ve planes archivados enteros embebidos en la ficha de sus clientes (§3.3); lo que exige admin es el *listado* de archivados (§3.5), que es inventario de administración — un dato distinto de un plan concreto cuyo id ya conoces.
+
+**Respuesta `200`**: misma forma que el elemento de `GET /plans`.
+
+| Código HTTP | `code` |
+|---|---|
+| `404` | `PLAN_NOT_FOUND` |
+
+### 3.8 `PATCH /customers/{id}` — valores base
+
+→ spec: `features/09-simulacion-parametrizada-y-plan-elegido.md` §3
+
+**Acotado a los tres valores base.** No es una edición de cliente: los datos fiscales (nombre, `fiscal_id`, país, email, plan) siguen sin poderse tocar por la API, y el `additionalProperties: false` lo hace verificable — `company_name` en este cuerpo es un `400`, no un campo ignorado.
+
+**Petición** — los tres opcionales, al menos uno (`minProperties: 1`); `null` borra el valor:
+
+```json
+{ "base_users": 40, "base_api_calls": null }
+```
+
+| Campo | Tipo | Restricciones |
+|---|---|---|
+| `base_users` | integer \| null | `minimum: 0`, `maximum: 1000000` |
+| `base_storage_gb` | integer \| null | `minimum: 0`, `maximum: 10000000` |
+| `base_api_calls` | integer \| null | `minimum: 0`, `maximum: 1000000000` |
+
+**Respuesta `200`**: el cliente actualizado, misma forma que la respuesta de `POST /customers`.
+
+| Código HTTP | `code` |
+|---|---|
+| `400` | `VALIDATION_ERROR` |
+| `404` | `CUSTOMER_NOT_FOUND` |
 
 ---
 
@@ -525,7 +582,7 @@ Pone `active = 0`. **Nunca borra** (→ referencia §5.5).
 | `COUNTRY_NOT_SUPPORTED` | 422 | El país no tiene fila en `countries` |
 | `CUSTOMER_NOT_FOUND` | 404 | — |
 | `PLAN_NOT_FOUND` | 404 / 422 | 404 si es el recurso de la URL; 422 si es una referencia dentro del cuerpo |
-| `PLAN_ARCHIVED` | 422 | No se puede dar de alta un cliente en un plan archivado |
+| `PLAN_ARCHIVED` | 422 | No se puede dar de alta un cliente en un plan archivado, ni cotizar con un plan archivado que no sea el contratado del cliente (§2.2) |
 | `PLAN_ALREADY_ARCHIVED` | 422 | No se puede archivar ni versionar lo ya archivado |
 | `PLAN_NAME_TAKEN` | 409 | Ya hay un plan activo con ese nombre |
 | `PLAN_TEMPLATE_INVALID` | 422 | La plantilla de tramos es incoherente (lleva `violations`) |

@@ -1,11 +1,21 @@
-// POST /customers, GET /customers?search=, GET /customers/{id}. Spec: 12
+// POST /customers, GET /customers?search=, GET /customers/{id}, PATCH /customers/{id}. Spec: 12
 
 import type { FastifyInstance } from 'fastify'
 import type { CountriesCache } from '../../infra/countries.cache'
 import type { Db } from '../../infra/db'
-import { countCustomers, findPlanWithTiers, searchCustomers } from './customers.repo'
-import { customerIdSchema, postCustomerSchema, searchCustomersSchema } from './customers.schemas'
-import { crearCliente, obtenerClienteOFallar, type AltaCliente } from './customers.service'
+import { countCustomers, findPlanWithTiers, searchCustomers, type ValoresBase } from './customers.repo'
+import {
+  customerIdSchema,
+  patchCustomerBasesSchema,
+  postCustomerSchema,
+  searchCustomersSchema,
+} from './customers.schemas'
+import {
+  crearCliente,
+  editarValoresBase,
+  obtenerClienteOFallar,
+  type AltaCliente,
+} from './customers.service'
 
 type Deps = { db: Db; countries: CountriesCache }
 
@@ -62,12 +72,27 @@ export function customersRoutes({ db, countries }: Deps) {
         country: { code: pais.code, name: pais.name, display_currency: pais.displayCurrency },
         // Sin esto el preview no puede pintar el impuesto y habria que pedirlo aparte.
         tax_rate_bp: pais.rateBp,
+        // La ficha y el simulador parametrizado los necesitan; el listado no los lleva.
+        base_users: cliente.base_users,
+        base_storage_gb: cliente.base_storage_gb,
+        base_api_calls: cliente.base_api_calls,
         // El plan va embebido CON SUS TRAMOS aunque este archivado: es el caso normal de
         // un cliente antiguo, no una excepcion (referencia 5.5). La UI lo traduce a
         // "Mantiene su tarifa contratada", sin jerga de versionado.
         plan,
         created_at: cliente.created_at,
       }
+    })
+
+    // --- Valores base -----------------------------------------------------------------
+    //
+    // Edicion acotada a los tres valores base (spec 09, 3.2): los datos fiscales siguen
+    // sin poderse tocar por la API, y el additionalProperties del esquema lo hace
+    // verificable. Sesion obligatoria (hook global), sin rol: es dato de trabajo del
+    // comercial, no de administracion.
+    app.patch('/customers/:id', { schema: patchCustomerBasesSchema }, async (req) => {
+      const { id } = req.params as { id: number }
+      return editarValoresBase(db, id, req.body as ValoresBase)
     })
   }
 }

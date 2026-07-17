@@ -196,6 +196,14 @@ type SeedCustomer = {
   planName: string
   /** La VERSION concreta del plan. Un cliente apunta a una fila, no a un nombre (5.5). */
   planVersion: number
+  /**
+   * Valores base de consumo (spec 09, 3): preajuste de la simulacion parametrizada.
+   * Opcionales a proposito: la ficha SIN valores base (boton "parametrizada" oculto)
+   * tambien es una vista que hay que poder ver.
+   */
+  baseUsers?: number
+  baseStorageGb?: number
+  baseApiCalls?: number
 }
 
 /**
@@ -222,6 +230,9 @@ const CUSTOMERS: readonly SeedCustomer[] = [
     country: 'ES',
     planName: 'Plan Ágora',
     planVersion: 2,
+    // El caso literal del enunciado como valor base: el boton "parametrizada" precarga
+    // 15 usuarios = 140 EUR + 21 % = 169,40 EUR desde el primer arranque.
+    baseUsers: 15,
   },
   {
     // Existe para que 'unvalidated' y una divisa de presentacion != EUR aparezcan en la
@@ -232,6 +243,11 @@ const CUSTOMERS: readonly SeedCustomer[] = [
     country: 'GB',
     planName: 'Plan Cúspide',
     planVersion: 1,
+    // Los tres valores base sobre el plan multi-metrica: la parametrizada con los tres
+    // campos precargados, visible sin dar de alta nada.
+    baseUsers: 40,
+    baseStorageGb: 750,
+    baseApiCalls: 120_000,
   },
   {
     // Un DNI entre tantos CIF: el validador espanol despacha por formato, y aqui se ve.
@@ -298,8 +314,9 @@ export function seed(db: Db): void {
     'INSERT INTO tax_rates (country, vigente_desde, rate_bp) VALUES (?, ?, ?)',
   )
   const insertCustomer = db.prepare(
-    `INSERT INTO customers (company_name, fiscal_id, fiscal_id_type, email, country, plan_id, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO customers (company_name, fiscal_id, fiscal_id_type, email, country, plan_id,
+                            base_users, base_storage_gb, base_api_calls, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
 
   db.transaction(() => {
@@ -369,7 +386,18 @@ export function seed(db: Db): void {
         )
       }
 
-      insertCustomer.run(c.companyName, fiscalId, type, c.email, c.country, planId, ahora)
+      insertCustomer.run(
+        c.companyName,
+        fiscalId,
+        type,
+        c.email,
+        c.country,
+        planId,
+        c.baseUsers ?? null,
+        c.baseStorageGb ?? null,
+        c.baseApiCalls ?? null,
+        ahora,
+      )
     }
   })()
 }
@@ -386,8 +414,12 @@ export function ensureDatabase(path: string): Db {
   const esPrimeraVez = !existsSync(path)
   const db = openDb(path)
 
+  // migrate() corre SIEMPRE, no solo la primera vez: crea el esquema si falta y añade
+  // las columnas aditivas que un git pull haya traído (ADR 0012). El seed sí queda
+  // condicionado a primera vez: sembrar exige base vacía; migrar no.
+  migrate(db)
+
   if (esPrimeraVez) {
-    migrate(db)
     seed(db)
   }
 

@@ -11,7 +11,17 @@ export type CustomerRow = {
   email: string
   country: string
   plan_id: number
+  base_users: number | null
+  base_storage_gb: number | null
+  base_api_calls: number | null
   created_at: string
+}
+
+/** Los tres valores base, y SOLO ellos: es todo lo que el PATCH puede tocar (spec 09, 3.2). */
+export type ValoresBase = {
+  base_users?: number | null | undefined
+  base_storage_gb?: number | null | undefined
+  base_api_calls?: number | null | undefined
 }
 
 export type CustomerListItem = {
@@ -60,18 +70,50 @@ export function insertCustomer(
     email: string
     country: string
     plan_id: number
+    base_users?: number | null | undefined
+    base_storage_gb?: number | null | undefined
+    base_api_calls?: number | null | undefined
   },
 ): CustomerRow {
   const { lastInsertRowid } = db
     .prepare(
-      `INSERT INTO customers (company_name, fiscal_id, fiscal_id_type, email, country, plan_id, created_at)
-       VALUES (@company_name, @fiscal_id, @fiscal_id_type, @email, @country, @plan_id, @created_at)`,
+      `INSERT INTO customers (company_name, fiscal_id, fiscal_id_type, email, country, plan_id,
+                              base_users, base_storage_gb, base_api_calls, created_at)
+       VALUES (@company_name, @fiscal_id, @fiscal_id_type, @email, @country, @plan_id,
+               @base_users, @base_storage_gb, @base_api_calls, @created_at)`,
     )
-    .run({ ...datos, created_at: new Date().toISOString() })
+    .run({
+      ...datos,
+      base_users: datos.base_users ?? null,
+      base_storage_gb: datos.base_storage_gb ?? null,
+      base_api_calls: datos.base_api_calls ?? null,
+      created_at: new Date().toISOString(),
+    })
 
   const fila = findCustomerById(db, Number(lastInsertRowid))
   if (fila === undefined) throw new Error('El cliente recien insertado no se encuentra.')
   return fila
+}
+
+/**
+ * Actualiza SOLO los valores base presentes en `cambios` (ausente = no tocar;
+ * null = borrar). El SET se construye desde una lista blanca fija de tres columnas,
+ * JAMAS desde las claves del objeto: aunque el esquema ya rechaza campos ajenos, un SQL
+ * compuesto desde entrada externa es una frontera que no se cruza (referencia 14.2).
+ */
+export function updateCustomerBases(db: Db, id: number, cambios: ValoresBase): CustomerRow | undefined {
+  const COLUMNAS = ['base_users', 'base_storage_gb', 'base_api_calls'] as const
+
+  const presentes = COLUMNAS.filter((c) => cambios[c] !== undefined)
+  if (presentes.length > 0) {
+    const set = presentes.map((c) => `${c} = @${c}`).join(', ')
+    const valores: Record<string, number | null> = { id }
+    for (const c of presentes) valores[c] = cambios[c] ?? null
+
+    db.prepare(`UPDATE customers SET ${set} WHERE id = @id`).run(valores)
+  }
+
+  return findCustomerById(db, id)
 }
 
 export function findCustomerById(db: Db, id: number): CustomerRow | undefined {

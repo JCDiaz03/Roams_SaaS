@@ -25,7 +25,12 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
   await auditarAccesibilidad(page, 'ficha')
 
   // --- Simular con SU tarifa (la archivada: 10x12 + 5x7 = 155 EUR + 19 % DE) ----------
-  await page.getByRole('button', { name: 'Nueva simulación' }).click()
+  // Fjord no tiene valores base: solo existe la simulacion libre (spec 09, 3.3).
+  await page.getByRole('button', { name: 'Nueva simulación libre' }).click()
+
+  // La barra de plan declara que se cotiza con la tarifa contratada (spec 09, 4.2).
+  await expect(page.getByText('Tarifa contratada')).toBeVisible()
+
   await page.getByLabel('Usuarios activos, valor exacto').fill('15')
 
   // El preview es local (quote() compartido) y debe dar el numero del gate: 184,45 EUR.
@@ -55,6 +60,14 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
   await page.getByRole('navigation', { name: 'Migas de pan' }).getByRole('link', { name: 'Fjord Systems AS' }).click()
   await expect(page.getByText('1 presupuesto')).toBeVisible()
   await expect(page.getByText(/184,45/).first()).toBeVisible()
+
+  // La card dice CON QUE PLAN se cotizo (spec 09, 5.2): el archivado de Fjord, v1.
+  await expect(page.getByText('Plan Ágora · v1')).toBeVisible()
+
+  // --- «Usar como base»: el simulador arranca con las entradas de la guardada ----------
+  await page.getByRole('button', { name: /Usar la simulación del/ }).click()
+  await expect(page.getByLabel('Usuarios activos, valor exacto')).toHaveValue('15')
+  await expect(page.getByText('Tarifa contratada')).toBeVisible()
 
   // --- Cero errores de consola (salvo el 401 esperado del contrato) --------------------
   expect(inesperados(consola)).toEqual([])

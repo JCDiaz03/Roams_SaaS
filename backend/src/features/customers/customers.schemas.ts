@@ -7,6 +7,7 @@
 // camino de escritura.
 
 import { planResponseSchema } from '../plans/plans.schemas'
+import { TOPES } from '../simulations/simulations.schemas'
 
 /** Los topes de texto. Los mismos que los CHECK de la tabla (modelo-datos.md 2.4). */
 export const LIMITES = {
@@ -14,6 +15,18 @@ export const LIMITES = {
   fiscalId: 20,
   email: 254,
   search: 100,
+} as const
+
+/**
+ * Los valores base de consumo (spec 09, 3): misma magnitud fisica que las entradas de
+ * POST /simulations, misma cota — por eso los topes se IMPORTAN de alli en vez de
+ * duplicarse. Un tope que divergiera permitiria guardar una base que la simulacion
+ * rechazaria.
+ */
+const basePropiedades = {
+  base_users: { type: ['integer', 'null'], minimum: 0, maximum: TOPES.activeUsers },
+  base_storage_gb: { type: ['integer', 'null'], minimum: 0, maximum: TOPES.storageGb },
+  base_api_calls: { type: ['integer', 'null'], minimum: 0, maximum: TOPES.apiCalls },
 } as const
 
 /**
@@ -31,6 +44,9 @@ const customerResponseSchema = {
     'email',
     'country',
     'plan_id',
+    'base_users',
+    'base_storage_gb',
+    'base_api_calls',
     'created_at',
   ],
   properties: {
@@ -42,6 +58,10 @@ const customerResponseSchema = {
     email: { type: 'string' },
     country: { type: 'string' },
     plan_id: { type: 'integer' },
+    // "No registrado" es null, un valor de primera clase — por eso van en required.
+    base_users: { type: ['integer', 'null'] },
+    base_storage_gb: { type: ['integer', 'null'] },
+    base_api_calls: { type: ['integer', 'null'] },
     created_at: { type: 'string' },
   },
 } as const
@@ -63,9 +83,34 @@ export const postCustomerSchema = {
       email: { type: 'string', format: 'email', maxLength: LIMITES.email },
       country: { type: 'string', pattern: '^[A-Z]{2}$' },
       plan_id: { type: 'integer', minimum: 1 },
+      // Opcionales en el alta; en el body no tiene sentido enviar null (para "sin valor"
+      // basta omitirlos), pero se admite por simetria con el PATCH.
+      ...basePropiedades,
     },
   },
   response: { 201: customerResponseSchema },
+} as const
+
+/**
+ * PATCH /customers/{id}, acotado EXCLUSIVAMENTE a los valores base (spec 09, 3.2). No es
+ * una edicion de cliente: los datos fiscales siguen sin poderse tocar por la API, y el
+ * additionalProperties lo hace verificable — un company_name en este cuerpo es un 400,
+ * no un campo ignorado. `null` borra el valor; minProperties exige tocar al menos uno.
+ */
+export const patchCustomerBasesSchema = {
+  params: {
+    type: 'object',
+    required: ['id'],
+    additionalProperties: false,
+    properties: { id: { type: 'integer', minimum: 1 } },
+  },
+  body: {
+    type: 'object',
+    additionalProperties: false,
+    minProperties: 1,
+    properties: basePropiedades,
+  },
+  response: { 200: customerResponseSchema },
 } as const
 
 export const searchCustomersSchema = {
@@ -142,6 +187,9 @@ export const customerIdSchema = {
         'email',
         'country',
         'tax_rate_bp',
+        'base_users',
+        'base_storage_gb',
+        'base_api_calls',
         'plan',
         'created_at',
       ],
@@ -161,6 +209,11 @@ export const customerIdSchema = {
           },
         },
         tax_rate_bp: { type: 'integer' },
+        // Viajan en el detalle y NO en el listado: los necesitan la ficha y el simulador
+        // parametrizado; la card del buscador no pinta ninguno (contrato 3.3).
+        base_users: { type: ['integer', 'null'] },
+        base_storage_gb: { type: ['integer', 'null'] },
+        base_api_calls: { type: ['integer', 'null'] },
         // Embebido CON SUS TRAMOS, activo o archivado: todo lo que el preview local
         // necesita en una sola peticion (referencia 10).
         plan: planResponseSchema,

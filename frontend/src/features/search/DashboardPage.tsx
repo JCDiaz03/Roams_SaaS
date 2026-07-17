@@ -8,6 +8,7 @@ import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
 import { IconPlus, IconSearch } from '../../ui/icons'
+import { ActivePlansSection } from './ActivePlansSection'
 import { CustomerResultCard } from './CustomerResultCard'
 import styles from './DashboardPage.module.css'
 
@@ -164,6 +165,10 @@ export function DashboardPage() {
           ))}
         </div>
       )}
+
+      {/* El catalogo, colapsado bajo los resultados (spec 08, 5): consulta ocasional que
+          no debe robarle protagonismo al buscador, la vista obligatoria del enunciado. */}
+      <ActivePlansSection />
     </>
   )
 }
