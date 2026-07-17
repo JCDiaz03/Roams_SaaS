@@ -112,8 +112,15 @@ export const deletePlanSchema = {
     additionalProperties: false,
     properties: { id: { type: 'integer', minimum: 1 } },
   },
-  // Devuelve el plan archivado: la UI actualiza el badge sin segunda peticion.
-  response: { 200: planResponseSchema },
+  // Devuelve el plan + `removed`: true = se elimino DE VERDAD (jamas usado, ADR 0013);
+  // false = se archivo, como siempre. La UI decide el toast con esto, no adivinando.
+  response: {
+    200: {
+      ...planResponseSchema,
+      required: [...planResponseSchema.required, 'removed'],
+      properties: { ...planResponseSchema.properties, removed: { type: 'boolean' } },
+    },
+  },
 } as const
 
 /**

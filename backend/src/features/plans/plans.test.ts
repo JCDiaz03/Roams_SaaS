@@ -345,7 +345,7 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
     expect(alta.json().error.code).toBe('PLAN_ARCHIVED')
   })
 
-  it('archivar dos veces -> 422', async () => {
+  it('archivar dos veces un plan USADO -> 422', async () => {
     const v2 = planId(h.db, 'Plan Ágora', 2)
     await del(v2)
     expect((await del(v2)).statusCode).toBe(422)
@@ -353,6 +353,67 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
 
   it('plan inexistente -> 404', async () => {
     expect((await del(9999)).statusCode).toBe(404)
+  })
+})
+
+describe('DELETE /plans/{id} — el plan JAMAS USADO se elimina de verdad (ADR 0013)', () => {
+  it('cero clientes y cero simulaciones -> la fila y sus tramos desaparecen', async () => {
+    // El plan que un admin creo por error: conservarlo para siempre no protege nada.
+    const creado = (await post(plantilla({ name: 'Plan Errata' }))).json() as { id: number }
+
+    const r = await del(creado.id)
+    expect(r.statusCode).toBe(200)
+    expect(r.json().removed).toBe(true)
+
+    expect(h.db.prepare('SELECT 1 FROM plans WHERE id = ?').get(creado.id)).toBeUndefined()
+    expect(h.db.prepare('SELECT 1 FROM plan_tiers WHERE plan_id = ?').get(creado.id)).toBeUndefined()
+
+    // Ni siquiera en el listado de archivados: eliminado significa eliminado.
+    const { plans } = (await get('?include_archived=true')).json() as { plans: { name: string }[] }
+    expect(plans.map((p) => p.name)).not.toContain('Plan Errata')
+  })
+
+  it('con clientes suscritos NO se elimina: se archiva, como siempre', async () => {
+    // Bitacora tiene clientes del seed. La respuesta lo dice con `removed`, no adivinando.
+    const r = await del(planId(h.db, 'Plan Bitácora', 1))
+
+    expect(r.statusCode).toBe(200)
+    expect(r.json().removed).toBe(false)
+    expect(h.db.prepare('SELECT active FROM plans WHERE id = ?').get(planId(h.db, 'Plan Bitácora', 1))).toEqual({ active: 0 })
+  })
+
+  it('con SOLO simulaciones (sin clientes) tampoco se elimina: el snapshot vive, pero la FK no', async () => {
+    // Una simulacion guarda plan_id ademas del snapshot (modelo-datos 2.5): la fila del
+    // plan tiene que seguir viva aunque ningun cliente este suscrito a el.
+    const creado = (await post(plantilla({ name: 'Plan Cotizado' }))).json() as { id: number }
+    const sim = await h.inject({
+      method: 'POST',
+      url: '/api/simulations',
+      payload: {
+        customer_id: customerId(h.db, 'Nébula Cloud S.L.'),
+        plan_id: creado.id,
+        active_users: 5,
+        storage_gb: 0,
+        api_calls: 0,
+      },
+    })
+    expect(sim.statusCode).toBe(201)
+
+    const r = await del(creado.id)
+    expect(r.json().removed).toBe(false)
+    expect(h.db.prepare('SELECT 1 FROM plans WHERE id = ?').get(creado.id)).toBeDefined()
+  })
+
+  it('un ARCHIVADO jamas usado tambien se elimina: "quitalo de en medio" tiene cumplimiento', async () => {
+    // Versionar deja una v1 archivada; si nadie llego a contratarla ni cotizar con ella,
+    // el DELETE la borra en vez del 422 de "ya archivado" (que es para el caso usado).
+    const v1 = (await post(plantilla({ name: 'Plan Efimero' }))).json() as { id: number }
+    await put(v1.id, plantilla({ name: 'Plan Efimero' }))
+
+    const r = await del(v1.id)
+    expect(r.statusCode).toBe(200)
+    expect(r.json().removed).toBe(true)
+    expect(h.db.prepare('SELECT 1 FROM plans WHERE id = ?').get(v1.id)).toBeUndefined()
   })
 })
 

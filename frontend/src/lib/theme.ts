@@ -15,9 +15,14 @@ export function applyTheme(theme: Theme): void {
   document.documentElement.setAttribute(ATRIBUTO, theme)
 }
 
-/** El tema inicial: lo que el sistema operativo del comercial ya prefiere. */
+/**
+ * El tema inicial: CLARO, siempre (decision de producto de la tanda de retoques). La
+ * herramienta arranca con su cara por defecto y quien prefiera oscuro lo conmuta —
+ * tambien desde el login. Antes se leia prefers-color-scheme del sistema; se cambio a
+ * peticion del usuario: el modo claro es el lenguaje visual principal (diseno 2.1).
+ */
 export function preferredTheme(): Theme {
-  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+  return 'light'
 }
 
 export function toggleTheme(actual: Theme): Theme {

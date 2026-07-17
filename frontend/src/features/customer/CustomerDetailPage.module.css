@@ -62,7 +62,9 @@
   display: inline-flex;
 }
 .enlacePlan:hover {
-  filter: brightness(0.96);
+  /* Opacidad y no brightness: brightness(0.96) oscurece, que en tema claro se ve y en
+     oscuro apaga el chip en la direccion equivocada. La opacidad funciona en ambos. */
+  opacity: 0.82;
 }
 .enlacePlan:focus-visible {
   outline: 2px solid var(--color-primary);
@@ -120,6 +122,22 @@
   }
 }
 
+/* Las archivadas, colapsadas: el patron de los planes archivados del panel admin. */
+.archivadas {
+  margin-top: 14px;
+}
+.resumenArchivadas {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-ink);
+  padding: 6px 0;
+  margin-bottom: 6px;
+}
+.resumenArchivadas:hover {
+  color: var(--color-primary-strong);
+}
+
 .vacio {
   text-align: center;
   padding: 36px 20px;
@@ -128,6 +146,12 @@
   margin: 0 0 16px;
   font-size: 13px;
   color: var(--color-text-2);
+}
+
+/* Aire entre el bloque de valores base y el aviso de tarifa: pegados parecian un solo
+   bloque y el aviso perdia su entidad. */
+.avisoTarifa {
+  margin-top: 16px;
 }
 
 .botonera {

@@ -218,3 +218,21 @@ El único riesgo real es `better-sqlite3`, que compila binario nativo: si el eva
 **Decisión.** Un helper `ensureColumn(db, tabla, columna, ddl)` que consulta `pragma table_info` y añade la columna solo si falta; `migrate()` corre **siempre** al arrancar (el seed sigue condicionado a base-nueva). Las columnas van **también** en `schema.sql`, que sigue siendo la única fuente para bases nuevas; ambos se tocan en el mismo commit. SQLite admite `ADD COLUMN` con `CHECK` de la propia columna en tablas `STRICT` si la columna es `NULLABLE`, que es el caso.
 
 **Consecuencias.** Un `.db` de desarrollo sobrevive a un `git pull` con datos intactos, y una base nueva sigue naciendo del `schema.sql` de siempre — dos caminos, un test que ejercita ambos (base con DDL viejo gana las columnas; segunda pasada inocua). El límite declarado: esto cubre **columnas aditivas nullable**, nada más. Una migración que renombre, cambie tipos o mueva datos no cabe aquí y será el día del sistema de migraciones de verdad — este helper no debe crecer hasta convertirse en uno por acumulación.
+
+---
+
+## 0013 — Borrado físico del plan JAMÁS usado (supersede parcialmente el "nunca borrado físico" de 0006)
+
+**Contexto.** El usuario pregunta: *"¿se podría eliminar un plan que ha creado un admin si no hay ningún cliente suscrito?"* — el caso del plan creado por error, que hoy solo puede archivarse y se queda para siempre en el panel. La regla vigente ("nunca borrado físico", 0006, repetida en `CLAUDE.md` como rechazable) es absoluta; hay que decidir si el caso la refuta o la confirma.
+
+**Qué protege la regla original.** Dos cosas: la **integridad referencial** (clientes y simulaciones apuntan a la fila) y los **presupuestos ya emitidos** (un precio publicado tiene que seguir explicándose). Un plan con **cero clientes y cero simulaciones** no tiene ni la una ni los otros: conservarlo no protege nada — solo acumula ruido en el panel de administración.
+
+**Alternativas consideradas.**
+
+- **Mantener el archivado universal.** Coste real: los errores de admin se acumulan para siempre en el listado de archivados, y "quítalo de en medio" no tiene cumplimiento posible. La regla se sostiene por uniformidad, no por lo que protege.
+- **Un endpoint aparte (`DELETE /plans/{id}/definitivo`).** Obliga a la pantalla a saber si el plan está usado para elegir verbo — y la pantalla no lo sabe ni debe saberlo.
+- **El mismo `DELETE`, con la condición decidida por el servidor.** Elegida.
+
+**Decisión.** `DELETE /plans/{id}`: si el plan tiene **cero clientes Y cero simulaciones** que lo referencien, se elimina físicamente (fila y tramos, en transacción); si no, se archiva como siempre. La respuesta lleva `removed: boolean` para que la UI cuente lo que pasó sin adivinar. La condición incluye las simulaciones a propósito: aunque el snapshot explica el número por sí solo, la fila de la simulación guarda `plan_id` con FK — y esas FK `ON DELETE RESTRICT` quedan además como red si algún camino llegara al borrado sin comprobar. Un **archivado** jamás usado también se elimina (el 422 de "ya archivado" queda para el caso usado, donde borrar dos veces no significa nada).
+
+**Consecuencias.** `CLAUDE.md` y la referencia §5.5 se matizan: lo que se rechaza es el borrado físico de un plan **usado**; el jamás usado es el caso donde la regla no protegía nada. Cuatro tests fijan la frontera: sin uso → desaparece (ni en `include_archived`); con clientes → archiva; con solo simulaciones → archiva; archivado sin uso → desaparece. El riesgo aceptado: un plan activo que un comercial llegó a VER en el selector puede desaparecer sin rastro si nadie lo usó — es exactamente el caso del error de tecleo, y el rastro de un error no es un contrato.

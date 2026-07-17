@@ -1,0 +1,97 @@
+.titulo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 4px;
+}
+
+.subtitulo {
+  margin: 0 0 18px;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
+.bloque {
+  margin-bottom: 16px;
+}
+
+.tituloBloque {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
+.perfil {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px 24px;
+  margin: 0 0 14px;
+}
+.perfil dt {
+  font-size: 12px;
+  color: var(--color-text-2);
+  margin-bottom: 2px;
+}
+.perfil dd {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+/* A ancho completo de la tarjeta: el max-width en ch dejaba el parrafo cortado a media
+ * card, que era lo que se veia mal. */
+.ayuda {
+  margin: 0 0 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-2);
+}
+
+/* Los tres campos reparten el ancho de la tarjeta (y se apilan al estrechar). */
+.campos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--color-text-2);
+}
+.campo span {
+  font-weight: 600;
+}
+.campo input {
+  width: 100%;
+  padding: 9px 10px;
+  font: inherit;
+  color: var(--color-ink);
+  background: var(--color-surface-2);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-field);
+  font-variant-numeric: tabular-nums;
+}
+.campo input:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 1px;
+}
+.campo small {
+  font-size: 12px;
+  color: var(--color-text-3);
+}
+
+/* Las acciones tambien reparten el ancho, alineadas con la rejilla de campos. */
+.acciones {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.acciones > * {
+  flex: 1;
+  min-width: 200px;
+}

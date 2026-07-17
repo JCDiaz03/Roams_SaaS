@@ -48,7 +48,7 @@ Cercana, ordenada y luminosa. Mucho blanco, tarjetas redondeadas con sombra suav
 
 ### 2.3 Tema oscuro (obligatorio)
 
-- Conmutador **sol/luna en la topbar**, visible en todas las ventanas incluida la de login. Implementación: atributo `data-theme` en la raíz + intercambio de variables. La preferencia vive en el estado de sesión (nunca en localStorage en prototipos de artifact).
+- Conmutador **sol/luna en la topbar**, visible en todas las ventanas incluida la de login. Implementación: atributo `data-theme` en la raíz + intercambio de variables. La preferencia vive en el estado de sesión (nunca en localStorage en prototipos de artifact). **El tema inicial es el claro, siempre** (decisión de producto): el modo claro es el lenguaje visual principal, y quien prefiera oscuro lo conmuta desde cualquier pantalla.
 - Derivación: `--color-bg` → azul-gris muy oscuro (≈ `#141425`), `--color-surface` → un paso más claro (≈ `#1E1E32`), `--color-ink` → blanco roto, bordes sutiles **sustituyen a las sombras** como mecanismo de elevación. El fucsia primario se mantiene (subir ligeramente la luminosidad si hace falta contraste sobre oscuro).
 - Requisito duro: **contraste AA en ambos temas**, incluidos los estados deshabilitados y los badges.
 - Toda pantalla se entrega **en ambos temas**.
@@ -192,6 +192,12 @@ Una desviación más, en la ventana 7: **la vista previa en vivo usa `quote()` d
 - **Propósito**: que el comercial pueda responder "¿qué ofrece este plan y a qué precio?" sin pedirle la pantalla a un admin.
 - **Estructura**: cabecera con nombre + chips (versión, estado, métricas, divisa); **tabla de tramos por métrica** (patrón 2.4.5, el mismo formato del desglose del simulador: "hasta N → precio/unidad", el último "En adelante"); callout si está archivado (*"Este plan ya no se ofrece a clientes nuevos. Los clientes que lo tienen mantienen su tarifa."*); botón «Editar» solo para admin y solo si está activo.
 - **Se llega** desde el chip del plan en la ficha de cliente (ahora enlace), desde la sección del dashboard y desde el selector del simulador.
+
+### Ventana 9 — Ajustes (cualquier usuario) `(spec 10)`
+
+- **Propósito**: perfil de demostración (solo lectura, declarado con callout) y los **límites del simulador**: hasta dónde llega el arrastre de cada slider, ajustable por sesión para que los planes pequeños (2–20 GB) no exijan puntería sobre una ranura de 3.000.
+- **Estructura**: dos cards — perfil como lista de definición; límites como tres campos numéricos con su rango visible («entre 70 y 1.000.000»), Guardar y Restaurar. Entrada en el menú de usuario con el engranaje; «Administración» pasa al icono de deslizadores.
+- **Regla**: los límites son presentación. El input numérico sigue aceptando valores exactos y el backend aplica sus propios topes.
 
 ### Cambios en ventanas existentes
 

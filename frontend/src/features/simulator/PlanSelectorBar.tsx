@@ -1,6 +1,6 @@
 // Barra de plan del simulador: cotizar con otro plan y volver al contratado. Spec: 09, 4.2
 
-import { Link } from 'react-router-dom'
+import { Link, useLocation } from 'react-router-dom'
 import type { Plan } from '../../lib/api-client'
 import { Button } from '../../ui/Button'
 import { Chip } from '../../ui/Chip'
@@ -24,6 +24,7 @@ type Props = {
  * teclado y lector de pantalla gratis.
  */
 export function PlanSelectorBar({ contratado, enUso, activos, disabled, onElegir }: Props) {
+  const location = useLocation()
   const esContratado = enUso.id === contratado.id
 
   // El contratado siempre es elegible (aunque este archivado: es su tarifa); los demas,
@@ -75,7 +76,13 @@ export function PlanSelectorBar({ contratado, enUso, activos, disabled, onElegir
         </Button>
       )}
 
-      <Link className={styles.enlace} to={`/planes/${enUso.id}`}>
+      <Link
+        className={styles.enlace}
+        to={`/planes/${enUso.id}`}
+        // Con la query incluida: volver desde el detalle no debe perder ni las
+        // cantidades precargadas ni el plan elegido de la URL.
+        state={{ desde: { path: location.pathname + location.search, label: 'Simulador' } }}
+      >
         Ver detalle
       </Link>
     </div>

@@ -12,7 +12,7 @@ import {
   listPlansSchema,
   updatePlanSchema,
 } from './plans.schemas'
-import { archivar, crearPlan, versionarPlan } from './plans.service'
+import { archivarOEliminar, crearPlan, versionarPlan } from './plans.service'
 
 // PROTEGIDAS DE VERDAD desde la spec 07: las mutaciones declaran `requiereRol: 'admin'`
 // en su config -visible en code review, como el esquema- y el hook de auth las corta con
@@ -66,16 +66,18 @@ export function plansRoutes({ db }: { db: Db }) {
       return reply.status(201).header('Location', `/api/plans/${nuevo.id}`).send(nuevo)
     })
 
-    // DELETE archiva, no borra. Es una desviacion CONSCIENTE de la semantica HTTP y es la
-    // correcta aqui: el verbo describe la intencion del admin ("quitar este plan de
-    // circulacion") y el sistema la cumple de la unica forma que no rompe integridad
-    // referencial ni presupuestos ya enviados (contrato-api.md 4.3).
+    // DELETE archiva... salvo el plan JAMAS USADO, que se elimina de verdad (ADR 0013):
+    // cero clientes y cero simulaciones = nada que proteger, y conservar el plan que un
+    // admin creo por error solo acumula ruido. Para el usado, la regla de siempre: el
+    // verbo describe la intencion ("quitar de circulacion") y el sistema la cumple sin
+    // romper integridad ni presupuestos enviados (contrato-api.md 4.3). La condicion la
+    // decide EL SERVIDOR: la pantalla no sabe quien usa que.
     //
-    // Devuelve 200 con el plan, no 204: la UI actualiza el badge de estado con lo
-    // devuelto, sin una segunda peticion.
+    // Devuelve 200 con el plan + `removed`, no 204: la UI actualiza el badge (o quita la
+    // fila) con lo devuelto, sin una segunda peticion.
     app.delete('/plans/:id', { schema: deletePlanSchema, config: { requiereRol: 'admin' } }, async (req) => {
       const { id } = req.params as { id: number }
-      return archivar(db, id)
+      return archivarOEliminar(db, id)
     })
   }
 }

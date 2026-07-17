@@ -32,6 +32,13 @@ const COLUMNAS_ADITIVAS: readonly { tabla: string; columna: string; ddl: string 
     columna: 'base_api_calls',
     ddl: 'INTEGER CHECK (base_api_calls IS NULL OR (base_api_calls BETWEEN 0 AND 1000000000))',
   },
+  // Archivado de simulaciones (spec 09, 5.5): estado de vista, no de negocio. NOT NULL
+  // con DEFAULT es legal en un ADD COLUMN porque el default rellena las filas viejas.
+  {
+    tabla: 'simulations',
+    columna: 'archived',
+    ddl: 'INTEGER NOT NULL DEFAULT 0 CHECK (archived IN (0, 1))',
+  },
 ]
 
 /**

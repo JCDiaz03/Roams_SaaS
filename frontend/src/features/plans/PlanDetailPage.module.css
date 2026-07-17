@@ -48,6 +48,18 @@
   color: var(--color-text-2);
 }
 
+.acciones {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  flex: none;
+}
+
+/* Aire entre la descripcion y el aviso de archivado. */
+.aviso {
+  margin-top: 16px;
+}
+
 .seccion {
   margin-top: 20px;
 }

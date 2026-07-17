@@ -43,7 +43,7 @@
 }
 
 .filaCabecera span {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-2);
 }
@@ -108,7 +108,7 @@
 .error {
   grid-column: 1 / -1;
   margin: 0;
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--color-danger);
 }
 

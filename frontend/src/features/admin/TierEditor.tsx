@@ -61,9 +61,11 @@ type Props = {
   violaciones: Violacion[]
   /** La divisa DEL PLAN: el precio se teclea en sus unidades mayores. */
   currency: CurrencyCode
+  /** true tras un envio con huecos: cada campo VACIO se bordea en rojo (PlanTemplatePage). */
+  resaltarVacios: boolean
 }
 
-export function TierEditor({ metric, bloque, onChange, violaciones, currency }: Props) {
+export function TierEditor({ metric, bloque, onChange, violaciones, currency, resaltarVacios }: Props) {
   const { activo, tramos } = bloque
 
   const parchear = (i: number, parche: Partial<TierBorrador>) =>
@@ -120,7 +122,7 @@ export function TierEditor({ metric, bloque, onChange, violaciones, currency }: 
                   <div className={styles.enAdelante}>En adelante (∞)</div>
                 ) : (
                   <input
-                    className={`${styles.input} ${error ? styles.inputError : ''}`}
+                    className={`${styles.input} ${error !== undefined || (resaltarVacios && t.upTo.trim() === '') ? styles.inputError : ''}`}
                     type="number"
                     min={1}
                     value={t.upTo}
@@ -131,7 +133,7 @@ export function TierEditor({ metric, bloque, onChange, violaciones, currency }: 
                 )}
 
                 <input
-                  className={`${styles.input} ${error ? styles.inputError : ''}`}
+                  className={`${styles.input} ${error !== undefined || (resaltarVacios && t.price.trim() === '') ? styles.inputError : ''}`}
                   type="number"
                   min={0}
                   step="0.01"

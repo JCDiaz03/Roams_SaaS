@@ -3,6 +3,15 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- Sin el icono declarado, el navegador pide /favicon.ico y el 404 resultante es un
+         error de consola en TODAS las vistas (lo cazo Lighthouse). PNG y no ICO: para un
+         raster de 57x57 y 3 KB, PNG ya es el formato optimo (ICO solo aportaria
+         multi-tamano que no tenemos; SVG exigiria vectorizar la marca). -->
+    <link rel="icon" type="image/png" sizes="57x57" href="/favicon.png" />
+    <meta
+      name="description"
+      content="SaaS-O-Matic: la herramienta interna del equipo comercial para registrar clientes, simular su consumo y presupuestar suscripciones en varias divisas."
+    />
     <title>Roams SaaS</title>
   </head>
   <body>

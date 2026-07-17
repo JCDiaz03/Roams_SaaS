@@ -6,9 +6,11 @@ import type { PlanWithTiers } from '../customers/customers.repo'
 import { validarPlantilla, type Plantilla } from './plan-template.validation'
 import {
   archivarPlan,
+  deletePlanFisico,
   findPlanById,
   insertPlan,
   nombreActivoOcupado,
+  planEnUso,
   siguienteVersion,
 } from './plans.repo'
 
@@ -108,16 +110,31 @@ export function versionarPlan(db: Db, id: number, plantilla: Plantilla): PlanWit
 }
 
 /**
- * "Borrar" = archivar. NUNCA borrado fisico (referencia 5.5).
+ * "Borrar" = archivar... salvo el plan JAMAS USADO, que se elimina de verdad (ADR 0013).
  *
- * Regla uniforme y cero problemas de integridad referencial: los clientes y las
- * simulaciones que apuntan a este plan siguen funcionando.
+ * La regla original ("nunca borrado fisico") protege dos cosas: la integridad
+ * referencial y los presupuestos ya emitidos. Un plan con CERO clientes y CERO
+ * simulaciones no tiene ni una ni otros: conservar para siempre el plan que un admin
+ * creo por error no protege nada — solo acumula ruido en el panel. La condicion es
+ * estricta (cero referencias de ambos tipos) y la decide el servidor, no la pantalla.
+ *
+ * Para un plan usado, todo sigue igual: archivar, y 422 si ya lo estaba.
  */
-export function archivar(db: Db, id: number): PlanWithTiers {
+export function archivarOEliminar(db: Db, id: number): PlanWithTiers & { removed: boolean } {
   const plan = findPlanById(db, id)
   if (plan === undefined) {
     throw new AppError(404, 'PLAN_NOT_FOUND', 'Ese plan no existe.')
   }
+
+  if (!planEnUso(db, id)) {
+    // Sin referencias no hay nada que archivar "para los clientes actuales": se borra.
+    // Tambien un ARCHIVADO sin uso (una version vieja que nadie llego a contratar): el
+    // 422 de "ya archivado" es para el caso usado, donde borrar dos veces no significa
+    // nada; aqui la intencion "quitalo de en medio" si tiene un cumplimiento posible.
+    deletePlanFisico(db, id)
+    return { ...plan, active: false, removed: true }
+  }
+
   if (!plan.active) {
     throw new AppError(422, 'PLAN_ALREADY_ARCHIVED', 'Ese plan ya está archivado.')
   }
@@ -126,5 +143,5 @@ export function archivar(db: Db, id: number): PlanWithTiers {
 
   const archivado = findPlanById(db, id)
   if (archivado === undefined) throw new Error('El plan archivado no se encuentra.')
-  return archivado
+  return { ...archivado, removed: false }
 }

@@ -7,8 +7,10 @@ import { AppError } from '../../plugins/error-handler'
 import { findPlanWithTiers } from '../customers/customers.repo'
 import { obtenerClienteOFallar } from '../customers/customers.service'
 import {
+  findSimulationById,
   insertSimulation,
   listSimulationsByCustomer,
+  setSimulationArchived,
   type PricingSnapshot,
   type SimulationRow,
 } from './simulations.repo'
@@ -35,6 +37,7 @@ export type SimulationView = {
   tax_minor: number
   total_minor: number
   breakdown: QuoteResult['breakdown']
+  archived: boolean
   created_at: string
 }
 
@@ -138,12 +141,17 @@ export function crearSimulacion(
  * a llamar con los tramos y el tipo GUARDADOS, asi que el desglose de una simulacion de
  * hace un mes sigue explicando su numero aunque el plan haya cambiado tres veces.
  */
-export function historialDe(db: Db, customerId: number, limit: number): SimulationView[] {
+export function historialDe(
+  db: Db,
+  customerId: number,
+  limit: number,
+  includeArchived: boolean,
+): SimulationView[] {
   // Que el cliente exista se comprueba antes: sin esto, un id inexistente devolveria una
   // lista vacia (un 200 mintiendo) en vez de un 404.
   obtenerClienteOFallar(db, customerId)
 
-  return listSimulationsByCustomer(db, customerId, limit).map((fila) => {
+  return listSimulationsByCustomer(db, customerId, limit, includeArchived).map((fila) => {
     const snapshot = JSON.parse(fila.pricing_snapshot) as PricingSnapshot
 
     const resultado = quote({
@@ -157,6 +165,34 @@ export function historialDe(db: Db, customerId: number, limit: number): Simulati
     // cambia lo que una simulacion vieja declara (spec 09, 5.1).
     return vista(fila, resultado, { name: snapshot.plan.name, version: snapshot.plan.version })
   })
+}
+
+/**
+ * Archiva o recupera una simulacion (spec 09, 5.5). Es lo UNICO mutable de una
+ * simulacion guardada, y es estado de vista: el snapshot, las entradas y los importes
+ * sellados no se tocan — la inmutabilidad del 11.2 es de los numeros, no del flag que
+ * decide si la card se ensena por defecto.
+ */
+export function archivarSimulacion(db: Db, id: number, archived: boolean): SimulationView {
+  const fila = findSimulationById(db, id)
+  if (fila === undefined) {
+    throw new AppError(404, 'SIMULATION_NOT_FOUND', 'No encontramos esa simulación.')
+  }
+
+  setSimulationArchived(db, id, archived)
+
+  const actualizada = findSimulationById(db, id)
+  if (actualizada === undefined) throw new Error('La simulacion desaparecio al archivarla.')
+
+  const snapshot = JSON.parse(actualizada.pricing_snapshot) as PricingSnapshot
+  const resultado = quote({
+    tiers: snapshot.tiers,
+    quantities: cantidades(actualizada),
+    tax_rate_bp: snapshot.tax.rate_bp,
+    currency: snapshot.plan.currency as CurrencyCode,
+  })
+
+  return vista(actualizada, resultado, { name: snapshot.plan.name, version: snapshot.plan.version })
 }
 
 /**
@@ -192,6 +228,7 @@ function vista(
     tax_minor: fila.tax_minor,
     total_minor: fila.total_minor,
     breakdown: resultado.breakdown,
+    archived: fila.archived === 1,
     created_at: fila.created_at,
   }
 }

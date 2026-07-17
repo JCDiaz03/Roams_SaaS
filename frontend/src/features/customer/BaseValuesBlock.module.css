@@ -57,9 +57,11 @@
   padding: 8px 10px;
   font: inherit;
   color: var(--color-ink);
-  background: var(--color-surface);
+  /* surface-2, como todos los inputs del sistema: sobre la Card (surface) un input
+     surface se fundiria con el fondo, y en oscuro directamente desaparece. */
+  background: var(--color-surface-2);
   border: 1px solid var(--color-border);
-  border-radius: 10px;
+  border-radius: var(--radius-field);
   font-variant-numeric: tabular-nums;
 }
 .campo input:focus-visible {

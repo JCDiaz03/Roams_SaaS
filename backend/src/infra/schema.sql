@@ -141,7 +141,12 @@ CREATE TABLE IF NOT EXISTS simulations (
   tax_rate_bp      INTEGER NOT NULL,         -- el tipo APLICADO, no el vigente hoy
   tax_minor        INTEGER NOT NULL,
   total_minor      INTEGER NOT NULL,
+  -- Estado de VISTA, no de negocio (spec 09, 5.5): archivar saca la simulacion del
+  -- historial por defecto sin tocar un solo numero sellado. Tambien via ensureColumn()
+  -- en migrate.ts para bases existentes (ADR 0012): se tocan JUNTOS.
+  archived         INTEGER NOT NULL DEFAULT 0,
   created_at       TEXT NOT NULL,
+  CHECK (archived IN (0, 1)),
   CHECK (active_users >= 0 AND storage_gb >= 0 AND api_calls >= 0),
   CHECK (base_minor >= 0 AND tax_minor >= 0 AND total_minor >= 0),
   CHECK (tax_rate_bp >= 0 AND tax_rate_bp <= 10000),

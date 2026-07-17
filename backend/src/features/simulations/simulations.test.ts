@@ -301,6 +301,69 @@ describe('GET /customers/{id}/simulations — historial', () => {
   })
 })
 
+describe('PATCH /simulations/{id} — archivar es estado de vista (spec 09, 5.5)', () => {
+  const patch = (id: number, payload: unknown) =>
+    h.inject({ method: 'PATCH', url: `/api/simulations/${id}`, payload: payload as Record<string, unknown> })
+  const historial = (id: number, qs = '') =>
+    h.inject({ method: 'GET', url: `/api/customers/${id}/simulations${qs}` })
+
+  it('archivada desaparece del historial por defecto y vuelve con include_archived', async () => {
+    const cliente = customerId(h.db, 'Nébula Cloud S.L.')
+    const guardada = (await simular(entradas())).json()
+    await simular(entradas({ active_users: 30 }))
+
+    const r = await patch(guardada.id, { archived: true })
+    expect(r.statusCode).toBe(200)
+    expect(r.json().archived).toBe(true)
+
+    // El historial por defecto: solo la viva, y el total describe ESA coleccion.
+    const vivas = (await historial(cliente)).json()
+    expect(vivas.simulations).toHaveLength(1)
+    expect(vivas.total).toBe(1)
+
+    // Con include_archived: las dos.
+    const todas = (await historial(cliente, '?include_archived=true')).json()
+    expect(todas.simulations).toHaveLength(2)
+    expect(todas.total).toBe(2)
+  })
+
+  it('recuperar (archived: false) la devuelve al historial', async () => {
+    const cliente = customerId(h.db, 'Nébula Cloud S.L.')
+    const guardada = (await simular(entradas())).json()
+
+    await patch(guardada.id, { archived: true })
+    await patch(guardada.id, { archived: false })
+
+    expect((await historial(cliente)).json().simulations).toHaveLength(1)
+  })
+
+  it('EL GUARDIAN: archivar no toca ni un numero sellado', async () => {
+    // La inmutabilidad del 11.2 es de los numeros. Si este test falla, alguien convirtio
+    // el flag de vista en una puerta a la simulacion.
+    const guardada = (await simular(entradas())).json()
+    const archivada = (await patch(guardada.id, { archived: true })).json()
+
+    expect({ ...archivada, archived: false }).toEqual(guardada)
+  })
+
+  it('un importe en el cuerpo del PATCH -> 400: la frontera es verificable', async () => {
+    const guardada = (await simular(entradas())).json()
+    const r = await patch(guardada.id, { archived: true, total_minor: 1 })
+
+    expect(r.statusCode).toBe(400)
+    expect(r.json().error.field).toBe('total_minor')
+  })
+
+  it('cuerpo sin archived -> 400; simulacion inexistente -> 404', async () => {
+    const guardada = (await simular(entradas())).json()
+    expect((await patch(guardada.id, {})).statusCode).toBe(400)
+
+    const r = await patch(99_999, { archived: true })
+    expect(r.statusCode).toBe(404)
+    expect(r.json().error.code).toBe('SIMULATION_NOT_FOUND')
+  })
+})
+
 describe('paridad preview/persistencia — cinturon y tirantes', () => {
   it('el numero del backend es el que da quote() en el navegador', async () => {
     // Con modulo unico no puede fallar; el test existe para que SIGA sin poder el dia que

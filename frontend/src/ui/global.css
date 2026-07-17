@@ -15,6 +15,21 @@
 
 @import './tokens.css';
 
+/* El respaldo con las METRICAS de Poppins: mientras la fuente descarga, el texto se
+ * pinta en Arial pero ocupando lo mismo que ocupara en Poppins (ascent/descent/line-gap
+ * de Poppins sobre su upm=1000; size-adjust iguala el ancho medio de glifo). Sin esto,
+ * el swap de la fuente recolocaba la pagina entera: Lighthouse media CLS 0,25 en el
+ * simulador con "Web font loaded" como causa. El respaldo va DETRAS de Poppins en
+ * --font-sans (tokens.css): solo pinta durante la descarga. */
+@font-face {
+  font-family: 'Poppins Fallback';
+  src: local('Arial');
+  ascent-override: 105%;
+  descent-override: 35%;
+  line-gap-override: 10%;
+  size-adjust: 112.7753%;
+}
+
 *,
 *::before,
 *::after {

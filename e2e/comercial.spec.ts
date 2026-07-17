@@ -51,7 +51,9 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
   await page.emulateMedia({ media: 'screen' })
 
   // --- Divisa de visualizacion: SOLO vista, siempre etiquetada como referencia --------
-  await page.getByLabel('Divisa de visualización').selectOption('USD')
+  // El selector ya es un desplegable propio: se abre y se elige, como un usuario.
+  await page.getByLabel('Divisa de visualización').click()
+  await page.getByRole('button', { name: /Dólar estadounidense/ }).click()
   await expect(page.getByText('≈ referencia · no es la divisa de facturación')).toBeVisible()
   // El importe de FACTURACION sigue visible y no se ha movido: invariante 4.
   await expect(page.getByText(/Se factura: 184,45/)).toBeVisible()

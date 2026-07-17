@@ -98,6 +98,43 @@ Acordado con el usuario:
 - ✅ **Estado final: 61 + 268 + 34 = 363 tests + 3 E2E, typecheck, lint y build limpios**
 - ✅ Sesión [`15-catalogo-de-planes.md`](./03-proceso/sesiones/15-catalogo-de-planes.md) registrada **al cerrar la tanda** (regla 2, cumplida esta vez)
 
+## 3bis. Retoques de la revisión del usuario ✅
+
+> El usuario condujo la app tras la tanda y volvió con una lista. Todo aplicado en una pasada:
+
+- ✅ **Logout vuelve al inicio**: cerrar sesión en `/planes/3` dejaba al siguiente login aterrizando allí; ahora la URL se restablece a `/`
+- ✅ **Tema claro por defecto** (antes se heredaba `prefers-color-scheme` del sistema) — `lib/theme.ts`
+- ✅ **Revisión del oscuro**: los inputs nuevos usaban `surface` sobre la Card (`surface`) y desaparecían — todos a `surface-2`, como el resto del sistema; el hover del chip-enlace pasó de `brightness()` (direccional) a opacidad (funciona en ambos temas)
+- ✅ **Selector de divisa**: ancho fijo de símbolo y código (EUR→CHF ya no hace bailar la píldora) + flecha de desplegable que `appearance: none` había borrado
+- ✅ **Volver desde el detalle de plan**: el chip de la ficha y el «Ver detalle» del simulador pasan `state.desde`; el detalle pinta la miga intermedia y un botón «Volver a {origen}» que conserva la query (cantidades y plan elegido incluidos)
+- ✅ **Las sugerencias ya no quedan tapadas**: el `position: sticky` se movió del panel de resultado a la **columna** entera — un sticky pegado se desplaza de su posición de flujo y cubría la tarjeta de debajo
+- ✅ **Plantilla de planes con feedback de huecos**: enviar con campos vacíos ya no convertía un precio en blanco en `0 €` silencioso — pre-validación con borde rojo en cada campo vacío y aviso accionable, antes de tocar la red
+- ✅ **Ventana 9: Ajustes** para todos los usuarios (spec `10-ajustes-y-limites-del-simulador.md`): perfil de demostración solo-lectura + **límites del simulador** (máximo visual de cada slider, con clamps 70/100/1.000 ↔ topes del backend; valores en `frontend/src/lib/simulator-limits.tsx`)
+- ✅ **Auditoría XSS almacenado en planes**: cero `dangerouslySetInnerHTML`/`innerHTML` en `frontend/src`; nombre y descripción se pintan solo como texto JSX (React escapa), con la regla ESLint y la CSP del build como segunda y tercera capa. Sin hallazgos
+- ✅ **Icono de administración rehecho** (engranaje canónico para Ajustes, deslizadores para Administración) y **logo de marca real** en login **y topbar** (`frontend/src/assets/roams-logo.svg`, movido desde `ai-workspace/`, con inversión de tinta en oscuro; el `IconLogo` de onda, retirado)
+- ✅ **Ajustes aprovecha el ancho**: Perfil y Límites lado a lado en escritorio, y los campos de límite en rejilla que llena su tarjeta
+
+## 3ter. Auditoría de accesibilidad y Lighthouse ✅
+
+> Petición del usuario: sin letras pequeñas y Lighthouse en todas las vistas. Detalle completo → [sesión 17](./03-proceso/sesiones/17-auditoria-de-accesibilidad.md).
+
+- ✅ **Suelo tipográfico de 12px** en todo el frontend (21 declaraciones de 10,5–11,5px subidas)
+- ✅ **Smoke `e2e/vistas.spec.ts`**: axe sobre ajustes, catálogo y detalle de plan — cazó un contraste real en el summary del catálogo (text-2 sobre fondo de página), corregido. Las 9 pantallas pasan axe en CI
+- ✅ **Lighthouse en las 8 vistas** (build con CSP + cookie de sesión): favicon (el 404 penalizaba todas), `meta description` + `robots.txt`, `<main>` en el login, y el **CLS del simulador de 0,25 → 0** (esqueletos con las medidas reales + `Poppins Fallback` con métricas ajustadas para eliminar el salto del swap de fuente)
+- ✅ Final: **a11y 100 y SEO 100 en todas; best-practices 100** (96 en login por el 401 contractual del sondeo de sesión); **performance 95–99**
+- ✅ Ajustes: layout apilado restaurado a petición del usuario, con texto de ayuda, campos y acciones a ancho completo de su tarjeta
+- ✅ **363 tests + 4 E2E** en verde
+
+## 3quater. Segunda revisión del usuario ✅
+
+> Detalle → [sesión 18](./03-proceso/sesiones/18-planes-borrables-y-archivo-de-simulaciones.md).
+
+- ✅ **Borrado físico del plan JAMÁS usado** (→ ADR 0013): `DELETE /plans/{id}` elimina de verdad si cero clientes y cero simulaciones lo referencian; si no, archiva como siempre. La condición la decide el servidor; `removed` en la respuesta; `CLAUDE.md` matizado por escrito («lo rechazable es borrar un plan usado»)
+- ✅ **Archivar simulaciones** (spec 09 §5.5): columna aditiva `archived` + `PATCH /simulations/{id}` acotado; historial por defecto sin archivadas y sección colapsada con recuperar. Guardián: archivar no mueve ni un número sellado
+- ✅ Favicon de marca (PNG, en su formato óptimo) · desplegable de divisa propio con nombres por `Intl.DisplayNames` · espaciados de callouts en ficha y detalle de plan · contador «3 simulaciones» en una línea
+- ✅ **372 tests + 4 E2E** en verde
+- ✅ **Higiene del repo**: cero módulos huérfanos en los tres workspaces (barrido de imports); retirados los 4 `.gitkeep` de carpetas ya pobladas y la carpeta `capturas/` jamás usada (el `.gitkeep` de `public/` además se colaba en el build); artefactos regenerables (`test-results/`, `dist/` viejo) purgados. Las 2 imágenes del repo están en uso y en formato adecuado (SVG 7 KB, PNG 3,4 KB)
+
 ## 4. Orden y dependencias
 
 Fase 0 → 1 → (2 ∥ 3) → 4 → 5 → 6 → 7 → 8 → 9 → 10. Cada fase de backend lleva sus tests en el mismo commit; el guardián de `plan_id` se reescribe en la Fase 3, nunca antes.

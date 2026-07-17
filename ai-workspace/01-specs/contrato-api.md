@@ -469,6 +469,25 @@ Detalle de un plan con sus tramos. Sesión obligatoria, **sin rol admin**, y dev
 | `400` | `VALIDATION_ERROR` |
 | `404` | `CUSTOMER_NOT_FOUND` |
 
+### 3.9 `PATCH /simulations/{id}` — archivar una simulación
+
+→ spec: `features/09-simulacion-parametrizada-y-plan-elegido.md` §5.5
+
+**Acotado a `archived`**, lo ÚNICO mutable de una simulación guardada. La inmutabilidad del §11.2 es de los **números**: el snapshot, las entradas y los importes sellados no se tocan jamás — archivar es estado de vista (fuera del historial por defecto). El `additionalProperties: false` hace la frontera verificable: un `total_minor` en este cuerpo es un `400`.
+
+```json
+{ "archived": true }
+```
+
+**Respuesta `200`**: la simulación, misma forma que el elemento del historial (con su `archived`).
+
+| Código HTTP | `code` |
+|---|---|
+| `400` | `VALIDATION_ERROR` |
+| `404` | `SIMULATION_NOT_FOUND` |
+
+El historial (§3.4) acepta **`?include_archived=true`**; por defecto solo devuelve las vivas, y su `total` describe la colección pedida.
+
 ---
 
 ## 4. Endpoints de administración (Fase 2)
@@ -550,16 +569,16 @@ Mismo cuerpo que `POST /plans`. **No modifica el plan**: crea una versión nueva
 | `422` | `PLAN_TEMPLATE_INVALID` |
 | `422` | `PLAN_ALREADY_ARCHIVED` — no se versiona desde una versión ya archivada |
 
-### 4.3 `DELETE /plans/{id}` — archivar
+### 4.3 `DELETE /plans/{id}` — archivar (o eliminar el jamás usado)
 
-Pone `active = 0`. **Nunca borra** (→ referencia §5.5).
+Pone `active = 0`... salvo el plan con **cero clientes y cero simulaciones** que lo referencien, que se elimina físicamente (→ ADR 0013): el plan que un admin creó por error no tiene nada que el archivado proteja. **La condición la decide el servidor**, nunca la pantalla.
 
-**Respuesta `200`** con el plan archivado. No `204`: la UI actualiza el badge de estado con lo devuelto, sin una segunda petición.
+**Respuesta `200`** con el plan + **`removed`**: `true` = eliminado de verdad; `false` = archivado. No `204`: la UI actualiza el badge (o quita la fila) con lo devuelto, sin una segunda petición.
 
 | Código HTTP | `code` |
 |---|---|
 | `404` | `PLAN_NOT_FOUND` |
-| `422` | `PLAN_ALREADY_ARCHIVED` |
+| `422` | `PLAN_ALREADY_ARCHIVED` — solo para el plan **usado** ya archivado; el archivado sin uso se elimina |
 
 **Que `DELETE` archive y no borre es una desviación consciente de la semántica HTTP**, y es la correcta aquí: el verbo describe la intención del admin ("quitar este plan de circulación") y el sistema la cumple de la única forma que no rompe integridad referencial ni presupuestos ya enviados. La alternativa honesta sería `POST /plans/{id}/archive`; se descarta porque el recurso **sí** desaparece desde el punto de vista del consumidor (deja de listarse), y `DELETE` es lo que cualquiera espera teclear. El README lo declara.
 
@@ -581,6 +600,7 @@ Pone `active = 0`. **Nunca borra** (→ referencia §5.5).
 | `FISCAL_ID_DUPLICATE` | 409 | Ya existe un cliente con ese `fiscal_id` normalizado |
 | `COUNTRY_NOT_SUPPORTED` | 422 | El país no tiene fila en `countries` |
 | `CUSTOMER_NOT_FOUND` | 404 | — |
+| `SIMULATION_NOT_FOUND` | 404 | — |
 | `PLAN_NOT_FOUND` | 404 / 422 | 404 si es el recurso de la URL; 422 si es una referencia dentro del cuerpo |
 | `PLAN_ARCHIVED` | 422 | No se puede dar de alta un cliente en un plan archivado, ni cotizar con un plan archivado que no sea el contratado del cliente (§2.2) |
 | `PLAN_ALREADY_ARCHIVED` | 422 | No se puede archivar ni versionar lo ya archivado |

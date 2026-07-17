@@ -147,7 +147,35 @@ export function insertPlan(db: Db, plantilla: Plantilla, version: number, active
   return creado
 }
 
-/** Archiva. NUNCA borra: es una regla uniforme y cero problemas de integridad. */
+/** Archiva. Para un plan USADO no hay otra cosa: el borrado fisico es solo del jamas usado. */
 export function archivarPlan(db: Db, id: number): void {
   db.prepare('UPDATE plans SET active = 0 WHERE id = ?').run(id)
+}
+
+/**
+ * ¿Alguien referencia este plan? Clientes suscritos O simulaciones cotizadas con el
+ * (una simulacion guarda plan_id ademas del snapshot, y su FK necesita la fila viva).
+ * Es la condicion del borrado fisico (ADR 0013): cero en AMBOS o no hay borrado.
+ */
+export function planEnUso(db: Db, id: number): boolean {
+  const { n } = db
+    .prepare(
+      `SELECT (SELECT COUNT(*) FROM customers   WHERE plan_id = @id)
+            + (SELECT COUNT(*) FROM simulations WHERE plan_id = @id) AS n`,
+    )
+    .get({ id }) as { n: number }
+
+  return n > 0
+}
+
+/**
+ * Borra DE VERDAD un plan jamas usado (ADR 0013): sus tramos y su fila, en transaccion.
+ * El servicio comprueba planEnUso() antes; las FK ON DELETE RESTRICT son la red si
+ * alguien llegara aqui sin comprobarlo — reventarian el DELETE en vez de dejar huerfanos.
+ */
+export function deletePlanFisico(db: Db, id: number): void {
+  db.transaction(() => {
+    db.prepare('DELETE FROM plan_tiers WHERE plan_id = ?').run(id)
+    db.prepare('DELETE FROM plans WHERE id = ?').run(id)
+  })()
 }

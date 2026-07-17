@@ -5,7 +5,7 @@ import { useSession } from '../../lib/session'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { ThemeToggle } from '../../ui/ThemeToggle'
-import { IconLogo } from '../../ui/icons'
+import logoUrl from '../../assets/roams-logo.svg'
 import styles from './LoginPage.module.css'
 
 /**
@@ -37,14 +37,19 @@ export function LoginPage() {
   }
 
   return (
-    <div className={styles.pantalla}>
+    // <main>, no un div: es la unica pantalla que vive fuera del layout con <main> de
+    // routes.tsx, y sin el landmark un lector de pantalla no tiene "ir al contenido"
+    // (lo cazo Lighthouse: landmark-one-main).
+    <main className={styles.pantalla}>
       {/* El conmutador de tema esta tambien aqui: es la unica pantalla sin topbar, y
           quien prefiera oscuro no deberia tener que entrar antes para conseguirlo. */}
       <ThemeToggle theme={theme} onToggle={toggleTheme} floating />
 
       <div className={styles.marca}>
+        {/* El logo de la marca (assets/roams-logo.svg). alt vacio: la marca la lee el
+            wordmark de al lado; dos nombres seguidos serian ruido de lector de pantalla. */}
         <span className={styles.logo}>
-          <IconLogo size={24} />
+          <img src={logoUrl} alt="" width={44} height={44} />
         </span>
         <span className={styles.wordmark}>
           SaaS<em>-O-</em>Matic
@@ -104,6 +109,6 @@ export function LoginPage() {
           Entra como <strong>ADMIN</strong> para ver los paneles de administración.
         </p>
       </Card>
-    </div>
+    </main>
   )
 }

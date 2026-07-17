@@ -8,6 +8,7 @@ import { NewCustomerPage } from './features/customer/NewCustomerPage'
 import { LoginPage } from './features/login/LoginPage'
 import { PlanDetailPage } from './features/plans/PlanDetailPage'
 import { DashboardPage } from './features/search/DashboardPage'
+import { SettingsPage } from './features/settings/SettingsPage'
 import { SimulatorPage } from './features/simulator/SimulatorPage'
 import { RatesProvider } from './lib/rates-context'
 import { useSession } from './lib/session'
@@ -50,6 +51,10 @@ export function AppRoutes() {
               /editar edita. React Router prioriza "nuevo" sobre ":id" por ranking de
               segmento estatico. */}
           <Route path="/planes/:id" element={<PlanDetailPage />} />
+
+          {/* Ajustes: de cualquier usuario. El perfil es de demostracion; los limites
+              del simulador son funcionales (spec 10). */}
+          <Route path="/ajustes" element={<SettingsPage />} />
 
           {/* Administracion. El gating visual decide que pantallas existen para quien;
               la autorizacion de verdad vive en el backend (403 por rol, spec 07): un

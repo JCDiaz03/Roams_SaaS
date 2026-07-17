@@ -9,7 +9,8 @@ import { Chip } from './Chip'
 import { CurrencySelect } from './CurrencySelect'
 import { ThemeToggle } from './ThemeToggle'
 import styles from './Topbar.module.css'
-import { IconLogo, IconLogout, IconSearch, IconSettings, IconWarning } from './icons'
+import logoUrl from '../assets/roams-logo.svg'
+import { IconAdmin, IconLogout, IconSearch, IconSettings, IconWarning } from './icons'
 
 const fecha = (iso: string) =>
   new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
@@ -55,8 +56,10 @@ export function Topbar() {
   return (
     <header className={styles.bar}>
       <button type="button" className={styles.marca} onClick={() => navegar('/')}>
+        {/* El logo de marca (assets/roams-logo.svg), el mismo que el login. alt vacio:
+            el wordmark de al lado ya nombra la marca. */}
         <span className={styles.logo}>
-          <IconLogo />
+          <img src={logoUrl} alt="" width={30} height={30} />
         </span>
         <span className={styles.wordmark}>
           SaaS<em>-O-</em>Matic
@@ -129,16 +132,41 @@ export function Topbar() {
             {/* hasRole('admin'), no una comparacion de strings: el rol lo dicta el
                 servidor y el literal del usuario magico ya ni existe en el frontend. */}
             {hasRole('admin') && (
-              <button type="button" className={styles.itemMenu} onClick={() => navegar('/planes')}>
-                <IconSettings />
+              <button
+                type="button"
+                className={styles.itemMenu}
+                onClick={() => {
+                  setMenuAbierto(false)
+                  navegar('/planes')
+                }}
+              >
+                <IconAdmin />
                 Administración
               </button>
             )}
+            {/* Ajustes es de TODOS: perfil (demo) + limites del simulador (spec 10). */}
+            <button
+              type="button"
+              className={styles.itemMenu}
+              onClick={() => {
+                setMenuAbierto(false)
+                navegar('/ajustes')
+              }}
+            >
+              <IconSettings />
+              Ajustes
+            </button>
             <div className={styles.separador} />
             <button
               type="button"
               className={`${styles.itemMenu} ${styles.itemPeligro}`}
-              onClick={logout}
+              onClick={() => {
+                logout()
+                // La URL vuelve al inicio: sin esto, el siguiente login aterrizaria en
+                // la ruta donde el anterior cerro sesion (p. ej. /planes/3), que no es
+                // su sitio ni, si era de admin, quiza su rol.
+                navegar('/')
+              }}
             >
               <IconLogout />
               Cerrar sesión

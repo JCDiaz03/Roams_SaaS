@@ -78,6 +78,13 @@ export function PlanTemplatePage() {
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null)
   /** El PLAN_NAME_TAKEN del backend: llega como ApiError con field 'name', no como violacion. */
   const [errorNombre, setErrorNombre] = useState<string | null>(null)
+  /**
+   * true tras un envio con huecos: los campos VACIOS se bordean en rojo alli donde
+   * esten. Sin esto, un precio en blanco viajaba como 0 EUR en silencio — un precio
+   * valido que el admin no escribio. La marca es por-valor (un campo deja de estar rojo
+   * en cuanto se rellena), asi que no hay nada que "limpiar" al teclear.
+   */
+  const [resaltarVacios, setResaltarVacios] = useState(false)
 
   // Ejemplo de la vista previa: lo que costaria este consumo con los tramos escritos.
   const [ejemplo, setEjemplo] = useState<Record<Metric, number>>({
@@ -181,12 +188,34 @@ export function PlanTemplatePage() {
     }
   }, [borradores, ejemplo, currency])
 
+  /** ¿Queda algun campo obligatorio en blanco? Nombre, y en cada bloque activo todos los precios y los "hasta" no-finales. */
+  const hayVacios = (): boolean => {
+    if (!editando && nombre.trim() === '') return true
+
+    return METRICS.some((m) => {
+      const b = borradores[m]
+      if (!b.activo) return false
+      return b.tramos.some(
+        (t, i) => t.price.trim() === '' || (i !== b.tramos.length - 1 && t.upTo.trim() === ''),
+      )
+    })
+  }
+
   const enviar = async (e: React.FormEvent) => {
     e.preventDefault()
-    setEnviando(true)
     setViolaciones([])
     setErrorGeneral(null)
     setErrorNombre(null)
+
+    // El feedback de los huecos ANTES de enviar: el backend rechazaria la forma, pero
+    // "revisa los campos en rojo" es accionable y un 400 generico no (diseno 13.1).
+    if (hayVacios()) {
+      setResaltarVacios(true)
+      setErrorGeneral('Faltan campos por rellenar: revisa los marcados en rojo.')
+      return
+    }
+    setResaltarVacios(false)
+    setEnviando(true)
 
     const plantilla: Plantilla = {
       name: nombre,
@@ -257,7 +286,7 @@ export function PlanTemplatePage() {
                 </label>
                 <input
                   id="nombre"
-                  className={`${styles.input} ${errorNombre !== null ? styles.inputError : ''}`}
+                  className={`${styles.input} ${errorNombre !== null || (resaltarVacios && nombre.trim() === '') ? styles.inputError : ''}`}
                   value={nombre}
                   onChange={(e) => {
                     setNombre(e.target.value)
@@ -321,6 +350,7 @@ export function PlanTemplatePage() {
                 onChange={(b) => setBorradores((prev) => ({ ...prev, [m]: b }))}
                 violaciones={violacionesDe(m)}
                 currency={currency}
+                resaltarVacios={resaltarVacios}
               />
             ))}
 

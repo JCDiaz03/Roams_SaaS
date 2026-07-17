@@ -27,9 +27,14 @@
   place-items: center;
   width: 32px;
   height: 32px;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
+}
+.logo img {
+  display: block;
+  max-width: 100%;
+}
+/* El SVG de marca va en tinta negra: en oscuro se invierte, como en el login. */
+:global([data-theme='dark']) .logo img {
+  filter: invert(1);
 }
 
 .wordmark {
@@ -108,7 +113,7 @@
   border-radius: 50%;
   background: var(--color-primary);
   color: var(--color-on-primary);
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 700;
 }
 

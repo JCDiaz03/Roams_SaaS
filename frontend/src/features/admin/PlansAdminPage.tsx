@@ -55,8 +55,13 @@ export function PlansAdminPage() {
     setArchivando(true)
 
     try {
-      await api.archivePlan(aArchivar.id)
-      toast.showOk(`«${aArchivar.name}» archivado`)
+      // El servidor decide el resultado (ADR 0013): la pantalla no sabe quien usa que.
+      const resultado = await api.archivePlan(aArchivar.id)
+      toast.showOk(
+        resultado.removed
+          ? `«${aArchivar.name}» eliminado: nadie lo usaba`
+          : `«${aArchivar.name}» archivado`,
+      )
       setAArchivar(null)
       cargar()
     } catch {
@@ -181,11 +186,12 @@ export function PlansAdminPage() {
             <h2 className={styles.modalTitulo} id="titulo-archivar">
               ¿Archivar «{aArchivar.name}»?
             </h2>
-            {/* Lenguaje llano, cero jerga: son literalmente las dos reglas del sistema
-                dichas sin una palabra tecnica (referencia 5.5). */}
+            {/* Lenguaje llano, cero jerga: las reglas del sistema dichas sin una palabra
+                tecnica (referencia 5.5, ADR 0013). El resultado lo decide el servidor. */}
             <p className={styles.modalTexto}>
               El plan dejará de ofrecerse a clientes nuevos. Los clientes actuales no se ven
-              afectados: mantienen su tarifa y pueden seguir simulando con ella.
+              afectados: mantienen su tarifa y pueden seguir simulando con ella. Si ningún
+              cliente lo tiene y no hay presupuestos hechos con él, se eliminará del todo.
             </p>
             <div className={styles.modalAcciones}>
               <Button ref={botonCancelarRef} variant="ghost" onClick={() => setAArchivar(null)}>

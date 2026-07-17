@@ -7,11 +7,12 @@ import { api, ApiError, type CustomerDetail, type Plan, type Simulation } from '
 import { formatMinor } from '../../lib/currency-format'
 import { useRatesContext } from '../../lib/rates-context'
 import { useSession } from '../../lib/session'
+import { useSimulatorLimits } from '../../lib/simulator-limits'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
-import { META, MetricSliderCard } from './MetricSliderCard'
+import { MetricSliderCard } from './MetricSliderCard'
 import { PlanSelectorBar } from './PlanSelectorBar'
 import { PrintSheet } from './PrintSheet'
 import { ResultPanel } from './ResultPanel'
@@ -44,6 +45,8 @@ export function SimulatorPage() {
   const toast = useToast()
   const { session, preselectCurrency } = useSession()
   const rates = useRatesContext()
+  // El maximo visual de cada slider: el de /ajustes, ampliable por un valor inicial mayor.
+  const { limites } = useSimulatorLimits()
 
   const [cliente, setCliente] = useState<CustomerDetail | null>(null)
   const [fallo, setFallo] = useState<'error' | 'no-encontrado' | null>(null)
@@ -52,7 +55,7 @@ export function SimulatorPage() {
   const [cantidades, setCantidades] = useState<Quantities>(LIBRE)
   // Modo parametrizado (?base=1): las referencias "base: N" junto a cada input.
   const [modoBase, setModoBase] = useState(false)
-  // Topes visuales de los sliders, ampliados si el valor inicial supera el de META:
+  // Topes visuales de los sliders, ampliados si el valor inicial supera el de /ajustes:
   // truncar seria cambiar en silencio el dato que el comercial guardo (spec 09, 3.4).
   const [maxs, setMaxs] = useState<Record<Metric, number> | null>(null)
 
@@ -109,7 +112,7 @@ export function SimulatorPage() {
 
         const topes = {} as Record<Metric, number>
         for (const m of METRICS) {
-          topes[m] = Math.max(META[m].max, inicial[m])
+          topes[m] = Math.max(limites[m], inicial[m])
         }
 
         setCliente(c)
@@ -127,7 +130,9 @@ export function SimulatorPage() {
     return () => {
       cancelado = true
     }
-  }, [id, params, preselectCurrency, intento])
+    // `limites` solo puede cambiar en /ajustes, que desmonta esta pantalla: esta en las
+    // deps por honestidad, no porque pueda relanzar el efecto en caliente.
+  }, [id, params, preselectCurrency, intento, limites])
 
   // El catalogo, una vez por montaje. Su fallo NO es el del simulador: sin el, se cotiza
   // con el contratado como toda la vida (spec 09, 4.2).
@@ -282,18 +287,30 @@ export function SimulatorPage() {
 
   if (cliente === null || planEnUso === null || preview === null) {
     return (
-      <div className={styles.rejilla} role="status" aria-busy="true" aria-label="Cargando simulador">
-        <div className={styles.controles}>
-          {[0, 1, 2].map((i) => (
-            <Card key={i} className={styles.migas}>
-              <SkeletonStack lines={2} />
-            </Card>
-          ))}
+      <div role="status" aria-busy="true" aria-label="Cargando simulador">
+        {/* Siluetas de las migas y la barra de plan, con SUS medidas: sin ellas, el
+            contenido real empuja la rejilla hacia abajo al llegar y el salto de layout
+            se nota (lo midio Lighthouse: CLS 0,25 en esta pantalla). */}
+        <div className={styles.migas}>
+          <Skeleton width={260} height={14} />
         </div>
-        <div className={styles.resultado}>
-          <Card>
-            <Skeleton height={44} />
-          </Card>
+        <div className={styles.huecoBarra}>
+          <Skeleton height={54} radius="var(--radius-card)" />
+        </div>
+
+        <div className={styles.rejilla}>
+          <div className={styles.controles}>
+            {[0, 1, 2].map((i) => (
+              <Card key={i} className={styles.migas}>
+                <SkeletonStack lines={2} />
+              </Card>
+            ))}
+          </div>
+          <div className={styles.resultado}>
+            <Card>
+              <Skeleton height={44} />
+            </Card>
+          </div>
         </div>
       </div>
     )
@@ -331,7 +348,7 @@ export function SimulatorPage() {
               metric={m}
               value={cantidades[m]}
               billed={factura(m)}
-              max={maxs?.[m] ?? META[m].max}
+              max={maxs?.[m] ?? limites[m]}
               // La referencia "base: N" solo en modo parametrizado, y solo donde hay base.
               baseValue={
                 modoBase

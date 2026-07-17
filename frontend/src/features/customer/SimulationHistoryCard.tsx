@@ -17,9 +17,13 @@ type Props = {
   /** La divisa del selector. Solo VISTA (invariante 4). */
   display: CurrencyCode
   rates: Readonly<Record<string, number>> | null
+  /** Archivar/recuperar (spec 09, 5.5). La ficha actualiza su estado con la respuesta. */
+  onArchivar: (sim: Simulation, archived: boolean) => void
+  /** true mientras el PATCH esta en vuelo, para no archivar dos veces. */
+  archivando: boolean
 }
 
-export function SimulationHistoryCard({ sim, display, rates }: Props) {
+export function SimulationHistoryCard({ sim, display, rates, onArchivar, archivando }: Props) {
   const navegar = useNavigate()
 
   // La conversion es presentacion pura y se hace aqui, con lo que devolvio GET /rates. El
@@ -87,6 +91,17 @@ export function SimulationHistoryCard({ sim, display, rates }: Props) {
       </div>
 
       <div className={styles.acciones}>
+        {/* Archivar es estado de VISTA: saca la card del historial por defecto sin tocar
+            un numero. Por eso convive con la inmutabilidad del presupuesto (11.2). */}
+        <Button
+          variant="ghost"
+          size="sm"
+          disabled={archivando}
+          aria-label={`${sim.archived ? 'Recuperar' : 'Archivar'} la simulación del ${fecha(sim.created_at)}`}
+          onClick={() => onArchivar(sim, !sim.archived)}
+        >
+          {sim.archived ? 'Recuperar' : 'Archivar'}
+        </Button>
         <Button
           variant="ghost"
           size="sm"

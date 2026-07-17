@@ -98,7 +98,9 @@
   --radius-field: 12px; /* inputs y selects */
   --radius-sm: 9px; /* iconos, cuadros pequenos */
 
-  --font-sans: 'Poppins', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  /* 'Poppins Fallback' es Arial con las metricas de Poppins (global.css): pinta solo
+   * mientras la fuente descarga, y evita el salto de layout del swap. */
+  --font-sans: 'Poppins', 'Poppins Fallback', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
 /* ACCESIBILIDAD — por que estos colores no son exactamente los del prototipo

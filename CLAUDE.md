@@ -37,6 +37,6 @@
 
 - Una segunda implementación del cálculo de tramos "para el preview".
 - `if (pais === 'ES')` en la validación fiscal: eso lo resuelve el registro de estrategias.
-- Borrado físico de planes, o edición de un precio publicado en sitio.
+- Borrado físico de planes **usados** (con clientes o simulaciones), o edición de un precio publicado en sitio. El plan jamás usado sí se elimina, con la condición decidida por el servidor (→ ADR 0013).
 - Capas hexagonales completas con DTOs y mappers en cada frontera.
 - Comprobar el rol comparando el string `"ADMIN"` fuera del login.

@@ -4,8 +4,13 @@ import type { FastifyInstance } from 'fastify'
 import type { TaxProvider } from '../../domain/tax/tax-provider'
 import type { Db } from '../../infra/db'
 import { countSimulationsByCustomer } from './simulations.repo'
-import { historySchema, postSimulationSchema } from './simulations.schemas'
-import { crearSimulacion, historialDe, type EntradasSimulacion } from './simulations.service'
+import { historySchema, patchSimulationSchema, postSimulationSchema } from './simulations.schemas'
+import {
+  archivarSimulacion,
+  crearSimulacion,
+  historialDe,
+  type EntradasSimulacion,
+} from './simulations.service'
 
 type Deps = { db: Db; taxProvider: TaxProvider }
 
@@ -21,15 +26,24 @@ export function simulationsRoutes({ db, taxProvider }: Deps) {
     // toque el formato de la simulacion tiene que ver los dos sitios a la vez.
     app.get('/customers/:id/simulations', { schema: historySchema }, async (req) => {
       const { id } = req.params as { id: number }
-      const { limit } = req.query as { limit: number }
+      const { limit, include_archived } = req.query as { limit: number; include_archived: boolean }
 
-      const simulations = historialDe(db, id, limit)
+      const simulations = historialDe(db, id, limit, include_archived)
 
       // Mismo tipo de elemento que la respuesta del POST, a proposito: la card del
       // historial y la recien guardada son el MISMO componente, y una divergencia de
       // forma aqui se paga en el frontend con dos mapeos que mantener sincronizados.
-      // El total es el de la COLECCION, no el de la pagina.
-      return { simulations, total: countSimulationsByCustomer(db, id) }
+      // El total es el de la COLECCION PEDIDA (con o sin archivadas), no el de la pagina.
+      return { simulations, total: countSimulationsByCustomer(db, id, include_archived) }
+    })
+
+    // Lo UNICO mutable de una simulacion guardada: su estado de vista (spec 09, 5.5).
+    // Sesion obligatoria (hook global), sin rol: archivar el propio historial es trabajo
+    // del comercial, no de administracion.
+    app.patch('/simulations/:id', { schema: patchSimulationSchema }, async (req) => {
+      const { id } = req.params as { id: number }
+      const { archived } = req.body as { archived: boolean }
+      return archivarSimulacion(db, id, archived)
     })
   }
 }

@@ -36,6 +36,7 @@ const simulationResponseSchema = {
     'tax_minor',
     'total_minor',
     'breakdown',
+    'archived',
     'created_at',
   ],
   properties: {
@@ -87,8 +88,32 @@ const simulationResponseSchema = {
         },
       },
     },
+    // Estado de VISTA (spec 09, 5.5): archivada = fuera del historial por defecto.
+    archived: { type: 'boolean' },
     created_at: { type: 'string' },
   },
+} as const
+
+/**
+ * PATCH /simulations/{id}, acotado a `archived` (spec 09, 5.5). Una simulacion guardada
+ * sigue siendo inmutable EN SUS NUMEROS: el snapshot, los importes y las entradas no se
+ * tocan jamas (11.2); archivar es estado de vista. El additionalProperties hace la
+ * frontera verificable: un total_minor en este cuerpo es un 400, no una puerta abierta.
+ */
+export const patchSimulationSchema = {
+  params: {
+    type: 'object',
+    required: ['id'],
+    additionalProperties: false,
+    properties: { id: { type: 'integer', minimum: 1 } },
+  },
+  body: {
+    type: 'object',
+    required: ['archived'],
+    additionalProperties: false,
+    properties: { archived: { type: 'boolean' } },
+  },
+  response: { 200: simulationResponseSchema },
 } as const
 
 export const postSimulationSchema = {
@@ -127,7 +152,12 @@ export const historySchema = {
   querystring: {
     type: 'object',
     additionalProperties: false,
-    properties: { limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 } },
+    properties: {
+      limit: { type: 'integer', minimum: 1, maximum: 100, default: 20 },
+      // Por defecto, solo las vivas: archivar existe para que no se muestren 100 a la
+      // vez. La ficha pide con true y separa en dos secciones (spec 09, 5.5).
+      include_archived: { type: 'boolean', default: false },
+    },
   },
   response: {
     200: {

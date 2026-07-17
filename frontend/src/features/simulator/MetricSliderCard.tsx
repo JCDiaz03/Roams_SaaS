@@ -1,15 +1,18 @@
 // Slider + input por metrica; atenuada si el plan no la factura. Diseno: 4
 
 import type { Metric } from '@saas/pricing'
+import { LIMITE_POR_DEFECTO } from '../../lib/simulator-limits'
 import { Callout } from '../../ui/Callout'
 import { Card } from '../../ui/Card'
 import styles from './MetricSliderCard.module.css'
 
+// El max por defecto vive en lib/simulator-limits (una sola fuente): /ajustes lo puede
+// subir o bajar por sesion, y el simulador pasa el vigente por la prop `max`.
 export const META: Record<Metric, { label: string; hint: string; max: number }> = {
-  users: { label: 'Usuarios activos', hint: 'Personas con cuenta', max: 200 },
-  storage_gb: { label: 'Almacenamiento (GB)', hint: 'Espacio contratado', max: 3000 },
+  users: { label: 'Usuarios activos', hint: 'Personas con cuenta', max: LIMITE_POR_DEFECTO.users },
+  storage_gb: { label: 'Almacenamiento (GB)', hint: 'Espacio contratado', max: LIMITE_POR_DEFECTO.storage_gb },
   // "Estimación que el operario ajusta", no telemetria real (referencia 5.2).
-  api_calls: { label: 'Llamadas API', hint: 'Estimación mensual', max: 200_000 },
+  api_calls: { label: 'Llamadas API', hint: 'Estimación mensual', max: LIMITE_POR_DEFECTO.api_calls },
 }
 
 const ICONOS: Record<Metric, React.ReactNode> = {

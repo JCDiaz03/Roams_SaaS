@@ -6,12 +6,14 @@
   cursor: pointer;
   font-size: 13px;
   font-weight: 600;
-  color: var(--color-text-2);
+  /* Tinta principal, no text-2: el summary vive sobre el fondo de pagina (no sobre una
+   * Card) y ahi text-2 se queda por debajo del 4,5:1 — lo cazo el axe del smoke. */
+  color: var(--color-ink);
   /* Objetivo tactil >= 24px (WCAG 2.5.8), como el resto de controles. */
   padding: 6px 0;
 }
 .resumen:hover {
-  color: var(--color-primary);
+  color: var(--color-primary-strong);
 }
 
 .nota {

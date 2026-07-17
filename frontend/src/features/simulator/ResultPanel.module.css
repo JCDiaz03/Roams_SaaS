@@ -1,10 +1,12 @@
+/* El sticky ya NO vive aqui: vive en la COLUMNA (.resultado de SimulatorPage). Cuando lo
+ * llevaba este panel, al pegarse se desplazaba de su posicion de flujo y TAPABA la
+ * tarjeta de sugerencias que va debajo — un sticky solo respeta a sus hermanos mientras
+ * no esta pegado. Con la columna entera pegada, panel y sugerencias viajan juntos. */
 .panel {
-  position: sticky;
-  top: 84px;
 }
 
 .etiqueta {
-  font-size: 11.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-2);
   text-transform: uppercase;
@@ -28,7 +30,7 @@
 }
 
 .impuestos {
-  font-size: 11.5px;
+  font-size: 12px;
   color: var(--color-text-2);
   margin-top: 4px;
 }
@@ -42,7 +44,7 @@
 }
 
 .referenciaEtiqueta {
-  font-size: 10.5px;
+  font-size: 12px;
   font-weight: 600;
   color: var(--color-text-2);
   text-transform: uppercase;

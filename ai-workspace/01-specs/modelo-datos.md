@@ -18,7 +18,7 @@ Cinco decisiones que aplican a todas las tablas y que conviene leer antes del DD
 4. **Tipos impositivos en puntos básicos enteros** (`_bp`): `2100` = 21 %, `810` = 8,1 %. Mismo motivo que el dinero — un `REAL` en `base × rate` reintroduce el float justo en el cálculo que el invariante 5 protege. 4 dígitos dan hasta 2 decimales de porcentaje, suficiente para cualquier tipo estándar real.
 5. **Fechas como texto ISO 8601 en UTC** (`created_at` = `YYYY-MM-DDTHH:MM:SSZ`, `vigente_desde` = `YYYY-MM-DD`). Es el formato que SQLite ordena y compara correctamente como texto, que es todo lo que necesitamos (`vigente_desde <= date('now')`).
 
-**Nada de borrado físico** en ninguna tabla (→ referencia §5.5): por eso todas las FK son `ON DELETE RESTRICT`. Si alguna vez un `DELETE` falla por integridad referencial, es que alguien intentó algo que la regla ya prohibía.
+**Nada de borrado físico** en ninguna tabla (→ referencia §5.5), con una excepción estrecha: el plan con **cero referencias** (ni clientes ni simulaciones) se elimina de verdad en el `DELETE` (→ ADR 0013) — no hay integridad que proteger ni presupuesto que explicar. Por eso todas las FK son `ON DELETE RESTRICT`: si alguna vez un `DELETE` falla por integridad referencial, es que alguien intentó borrar algo usado, que la regla sigue prohibiendo.
 
 ---
 
@@ -158,7 +158,9 @@ CREATE TABLE simulations (
   tax_rate_bp     INTEGER NOT NULL,          -- el tipo APLICADO, no el vigente hoy
   tax_minor       INTEGER NOT NULL,
   total_minor     INTEGER NOT NULL,
+  archived        INTEGER NOT NULL DEFAULT 0,  -- estado de VISTA, no de negocio (spec 09 §5.5)
   created_at      TEXT NOT NULL,
+  CHECK (archived IN (0, 1)),
   CHECK (active_users >= 0 AND storage_gb >= 0 AND api_calls >= 0),
   CHECK (base_minor >= 0 AND tax_minor >= 0 AND total_minor >= 0),
   CHECK (tax_rate_bp >= 0 AND tax_rate_bp <= 10000),
@@ -175,6 +177,7 @@ CREATE INDEX idx_simulations_customer ON simulations(customer_id, created_at DES
 - **`tax_rate_bp` es el tipo aplicado**, no una FK a `tax_rates`: si mañana el IVA español pasa al 22 %, una FK seguiría apuntando a "el tipo de España" y la simulación vieja cambiaría de explicación. Es el mismo motivo que el snapshot, aplicado al impuesto (→ referencia §6.2).
 - **No hay columna de divisa de visualización.** Es intencionado y es el invariante 4 (→ referencia §3): la divisa de visualización no se persiste jamás. Si alguna vez aparece esa columna en un PR, es un bug de diseño, no una mejora.
 - **`storage_gb` y `api_calls` se guardan aunque el plan no los facture** (→ referencia §5.2): son la entrada que el comercial registró, y aportan 0 al total sin dejar de constar.
+- **`archived` es lo ÚNICO mutable de una simulación**, y es estado de vista: saca la card del historial por defecto sin tocar un número sellado (spec 09 §5.5). La inmutabilidad del §11.2 es de los números, no del flag. Columna aditiva (→ ADR 0012).
 
 **Forma del `pricing_snapshot`** (JSON; es un dato opaco para SQL, pero su forma es contrato):
 

@@ -21,18 +21,8 @@ const base = (size: number) => ({
   'aria-hidden': true,
 })
 
-export function IconLogo({ size = 18, className }: Props) {
-  return (
-    <svg {...base(size)} className={className}>
-      <path
-        d="M4 15c3-6 5-6 8 0s5 6 8 0"
-        stroke="currentColor"
-        strokeWidth="2.4"
-        strokeLinecap="round"
-      />
-    </svg>
-  )
-}
+// El antiguo IconLogo (la onda) se retiro cuando la marca paso a assets/roams-logo.svg:
+// el logo es un asset, no un icono de linea.
 
 export function IconSearch({ size = 16, className }: Props) {
   return (
@@ -103,14 +93,31 @@ export function IconCheck({ size = 14, className }: Props) {
 }
 
 export function IconSettings({ size = 15, className }: Props) {
+  // La rueda dentada canonica (Feather "settings"): el trazado anterior era una
+  // aproximacion a mano y los dientes salian deformes a 15px.
   return (
     <svg {...base(size)} className={className}>
-      <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="12" cy="12" r="3" stroke="currentColor" strokeWidth="1.7" />
       <path
-        d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.4-2.3 1a7 7 0 0 0-1.7-1L14.5 2h-5l-.4 2.6a7 7 0 0 0-1.7 1l-2.3-1-2 3.4L3 11a7 7 0 0 0 0 2l-2 1.5 2 3.4 2.3-1a7 7 0 0 0 1.7 1l.4 2.6h5l.4-2.6a7 7 0 0 0 1.7-1l2.3 1 2-3.4-2-1.5c.1-.3.1-.7.1-1Z"
+        d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1Z"
         stroke="currentColor"
-        strokeWidth="1.4"
+        strokeWidth="1.7"
         strokeLinejoin="round"
+      />
+    </svg>
+  )
+}
+
+export function IconAdmin({ size = 15, className }: Props) {
+  // Deslizadores (Feather "sliders"): la administracion ajusta tarifas, y el engranaje
+  // queda para los Ajustes de todo el mundo — dos entradas de menu, dos iconos.
+  return (
+    <svg {...base(size)} className={className}>
+      <path
+        d="M4 21v-7M4 10V3M12 21v-9M12 8V3M20 21v-5M20 12V3M1 14h6M9 8h6M17 16h6"
+        stroke="currentColor"
+        strokeWidth="1.7"
+        strokeLinecap="round"
       />
     </svg>
   )

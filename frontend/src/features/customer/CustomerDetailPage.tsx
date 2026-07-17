@@ -10,6 +10,7 @@ import { Callout } from '../../ui/Callout'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
+import { useToast } from '../../ui/Toast'
 import { IconCheck, IconPlus } from '../../ui/icons'
 import { colorAvatar, iniciales } from '../../ui/avatar'
 import { BaseValuesBlock } from './BaseValuesBlock'
@@ -27,18 +28,21 @@ export function CustomerDetailPage() {
   const navegar = useNavigate()
   const { session, preselectCurrency } = useSession()
   const rates = useRatesContext()
+  const toast = useToast()
 
   const [datos, setDatos] = useState<Estado>({ estado: 'cargando' })
   // Reintento en la SPA, como el buscador: navegar(0) recargaba la pagina entera.
   const [intento, setIntento] = useState(0)
+  const [archivando, setArchivando] = useState(false)
 
   useEffect(() => {
     let cancelado = false
     const idNum = Number(id)
     setDatos({ estado: 'cargando' })
 
-    // Las dos en paralelo: el historial no bloquea a la ficha ni al reves.
-    Promise.all([api.customer(idNum), api.history(idNum)])
+    // Las dos en paralelo: el historial no bloquea a la ficha ni al reves. Con las
+    // archivadas incluidas: la ficha las separa en su seccion colapsada (spec 09, 5.5).
+    Promise.all([api.customer(idNum), api.history(idNum, true)])
       .then(([cliente, historial]) => {
         if (cancelado) return
         setDatos({ estado: 'listo', cliente, historial })
@@ -103,9 +107,30 @@ export function CustomerDetailPage() {
     )
   }
 
+  const alternarArchivo = async (sim: Simulation, archived: boolean) => {
+    setArchivando(true)
+    try {
+      // La respuesta del servidor sustituye a la card en el estado local: una sola fuente.
+      const actualizada = await api.archiveSimulation(sim.id, archived)
+      setDatos((d) =>
+        d.estado === 'listo'
+          ? { ...d, historial: d.historial.map((s) => (s.id === actualizada.id ? actualizada : s)) }
+          : d,
+      )
+      toast.showOk(archived ? 'Simulación archivada' : 'Simulación recuperada')
+    } catch {
+      toast.showError('No hemos podido actualizar la simulación.')
+    } finally {
+      setArchivando(false)
+    }
+  }
+
   const { cliente, historial } = datos
   const [fondo, tinta] = colorAvatar(cliente.id)
   const validado = cliente.fiscal_id_type !== 'unvalidated'
+  // Vivas y archivadas, separadas: las archivadas existen para NO verse por defecto.
+  const vivas = historial.filter((s) => !s.archived)
+  const archivadas = historial.filter((s) => s.archived)
   // Sin ningun valor base, "parametrizada" no significa nada: el boton no aparece.
   const hayBase =
     cliente.base_users !== null || cliente.base_storage_gb !== null || cliente.base_api_calls !== null
@@ -140,9 +165,11 @@ export function CustomerDetailPage() {
               )}
               {/* El chip del plan ENLAZA a su detalle (spec 08): un Link con el chip
                   dentro, no un chip con onClick — asi tabula, anuncia destino y admite
-                  abrir en pestana nueva. */}
+                  abrir en pestana nueva. El state `desde` es lo que le da al detalle su
+                  miga y su boton de volver aqui. */}
               <Link
                 to={`/planes/${cliente.plan.id}`}
+                state={{ desde: { path: `/clientes/${cliente.id}`, label: cliente.company_name } }}
                 className={styles.enlacePlan}
                 aria-label={`Ver el ${cliente.plan.name}`}
               >
@@ -195,9 +222,11 @@ export function CustomerDetailPage() {
             archivada" ni de jerga de versionado (referencia 5.5): lo que el comercial
             necesita saber es que a este cliente no le cambia el precio. */}
         {!cliente.plan.active && (
-          <Callout tone="info" title="Mantiene su tarifa contratada">
-            Este cliente sigue con las condiciones que firmó. Los planes nuevos no le afectan.
-          </Callout>
+          <div className={styles.avisoTarifa}>
+            <Callout tone="info" title="Mantiene su tarifa contratada">
+              Este cliente sigue con las condiciones que firmó. Los planes nuevos no le afectan.
+            </Callout>
+          </div>
         )}
       </Card>
 
@@ -205,7 +234,7 @@ export function CustomerDetailPage() {
         <div className={styles.tituloSeccion}>
           <h2>Simulaciones guardadas</h2>
           <span>
-            {historial.length} {historial.length === 1 ? 'presupuesto' : 'presupuestos'}
+            {vivas.length} {vivas.length === 1 ? 'presupuesto' : 'presupuestos'}
           </span>
         </div>
 
@@ -220,15 +249,39 @@ export function CustomerDetailPage() {
           </Card>
         ) : (
           <div className={styles.historial}>
-            {historial.map((sim) => (
+            {vivas.map((sim) => (
               <SimulationHistoryCard
                 key={sim.id}
                 sim={sim}
                 display={session?.currency ?? 'EUR'}
                 rates={rates.estado === 'listo' ? rates.rates.rates : null}
+                onArchivar={(s, a) => void alternarArchivo(s, a)}
+                archivando={archivando}
               />
             ))}
           </div>
+        )}
+
+        {/* Las archivadas, colapsadas al final: el mismo patron que los planes
+            archivados del panel de admin. Recuperar una la devuelve arriba. */}
+        {archivadas.length > 0 && (
+          <details className={styles.archivadas}>
+            <summary className={styles.resumenArchivadas}>
+              {archivadas.length} {archivadas.length === 1 ? 'archivada' : 'archivadas'}
+            </summary>
+            <div className={styles.historial}>
+              {archivadas.map((sim) => (
+                <SimulationHistoryCard
+                  key={sim.id}
+                  sim={sim}
+                  display={session?.currency ?? 'EUR'}
+                  rates={rates.estado === 'listo' ? rates.rates.rates : null}
+                  onArchivar={(s, a) => void alternarArchivo(s, a)}
+                  archivando={archivando}
+                />
+              ))}
+            </div>
+          </details>
         )}
       </section>
     </>

@@ -33,12 +33,12 @@ export function CustomerResultCard({ cliente }: { cliente: CustomerListItem }) {
         </div>
 
         <div className={styles.derecha}>
-          <div className={styles.sims}>
-            <div className={styles.simsNumero}>{cliente.simulation_count}</div>
-            <div className={styles.simsLabel}>
-              {cliente.simulation_count === 1 ? 'simulación' : 'simulaciones'}
-            </div>
-          </div>
+          {/* En UNA linea ("3 simulaciones"), no numero-sobre-etiqueta: apilados a este
+              tamano parecian dos datos sueltos en vez de uno. */}
+          <span className={styles.sims}>
+            <strong>{cliente.simulation_count}</strong>{' '}
+            {cliente.simulation_count === 1 ? 'simulación' : 'simulaciones'}
+          </span>
           <span className={styles.cta}>Ver cliente →</span>
         </div>
       </div>

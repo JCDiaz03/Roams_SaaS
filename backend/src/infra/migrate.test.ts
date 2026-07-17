@@ -44,6 +44,22 @@ function crearBaseVieja() {
       plan_id        INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
       created_at     TEXT NOT NULL
     ) STRICT;
+
+    CREATE TABLE simulations (
+      id               INTEGER PRIMARY KEY,
+      customer_id      INTEGER NOT NULL REFERENCES customers(id) ON DELETE RESTRICT,
+      plan_id          INTEGER NOT NULL REFERENCES plans(id) ON DELETE RESTRICT,
+      active_users     INTEGER NOT NULL,
+      storage_gb       INTEGER NOT NULL,
+      api_calls        INTEGER NOT NULL,
+      pricing_snapshot TEXT NOT NULL,
+      currency         TEXT NOT NULL,
+      base_minor       INTEGER NOT NULL,
+      tax_rate_bp      INTEGER NOT NULL,
+      tax_minor        INTEGER NOT NULL,
+      total_minor      INTEGER NOT NULL,
+      created_at       TEXT NOT NULL
+    ) STRICT;
   `)
 
   db.prepare("INSERT INTO countries VALUES ('ES', 'España', 'ES_NIF', 'EUR')").run()
@@ -72,6 +88,8 @@ describe('migrate() sobre una base con el DDL viejo', () => {
     expect(columnasDe(db, 'customers')).toEqual(
       expect.arrayContaining(['base_users', 'base_storage_gb', 'base_api_calls']),
     )
+    // Y el archived de simulaciones, con su DEFAULT 0 rellenando las filas viejas.
+    expect(columnasDe(db, 'simulations')).toContain('archived')
 
     // La fila anterior sigue ahi, con "no registrado" (NULL) en las columnas nuevas.
     const fila = db.prepare("SELECT * FROM customers WHERE fiscal_id = 'B12345674'").get() as {

@@ -103,6 +103,14 @@ Botón en la card: navega a `/clientes/:id/simular?users=…&storage_gb=…&api_
 
 `PrintSheet` deja de leer `cliente.plan.name` y pasa a leer el plan de la **simulación sellada** (`plan_name`/`plan_version`). Con el plan elegido, lo anterior imprimiría la tarifa equivocada en el papel — el defecto exacto que la regla "solo se imprime la simulación sellada" existe para impedir.
 
+### 5.5 Archivar simulaciones
+
+Un cliente con decenas de simulaciones no debe enseñarlas todas a la vez. **Archivar** (`PATCH /simulations/{id}`, cuerpo acotado a `{ archived }`) saca la card del historial por defecto; una sección colapsada «N archivadas» al pie permite verlas y **recuperarlas**.
+
+- **Convive con la inmutabilidad, no la contradice**: la regla del §11.2 protege los **números** (snapshot, entradas, importes). `archived` es estado de vista — decide si la card se enseña, no qué dice. El `additionalProperties: false` del PATCH hace la frontera verificable, y un test guardián comprueba que archivar no mueve ni un campo sellado.
+- El historial acepta `?include_archived=true`; por defecto solo las vivas, y el `total` describe la colección pedida.
+- El contador de la ficha («N presupuestos») cuenta las vivas.
+
 ---
 
 ## 6. Tests

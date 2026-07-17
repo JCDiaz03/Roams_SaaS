@@ -1,7 +1,7 @@
 // Ventana 8 - Detalle de plan, solo lectura y para cualquier sesion. Spec: 08 · Diseno: 8
 
 import { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError, type Plan } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
 import { ETIQUETA_METRICA, metricasDe } from '../../lib/plan-format'
@@ -19,10 +19,16 @@ type Estado =
   | { estado: 'no-encontrado' }
   | { estado: 'error' }
 
+/** De donde se llego (chip de la ficha, barra del simulador): miga y boton de volver. */
+type Desde = { path: string; label: string }
+
 export function PlanDetailPage() {
   const { id } = useParams<{ id: string }>()
   const navegar = useNavigate()
+  const location = useLocation()
   const { hasRole } = useSession()
+
+  const desde = (location.state as { desde?: Desde } | null)?.desde ?? null
 
   const [datos, setDatos] = useState<Estado>({ estado: 'cargando' })
   const [intento, setIntento] = useState(0)
@@ -90,6 +96,14 @@ export function PlanDetailPage() {
       <nav className={styles.migas} aria-label="Migas de pan">
         <Link to="/">Buscador</Link>
         <span>/</span>
+        {/* Si se llego desde una ficha o el simulador, la miga intermedia es el camino
+            de vuelta sin perder nada (query incluida). */}
+        {desde !== null && (
+          <>
+            <Link to={desde.path}>{desde.label}</Link>
+            <span>/</span>
+          </>
+        )}
         <strong>{plan.name}</strong>
       </nav>
 
@@ -112,21 +126,32 @@ export function PlanDetailPage() {
             )}
           </div>
 
-          {/* Gating visual sobre la autorizacion real del backend, como siempre: el 403
-              de PUT /plans es quien manda. Solo sobre un plan activo: el archivado no se
-              versiona (contrato 4.2). */}
-          {hasRole('admin') && plan.active && (
-            <Button variant="secondary" onClick={() => navegar(`/planes/${plan.id}/editar`)}>
-              Editar
-            </Button>
-          )}
+          <div className={styles.acciones}>
+            {/* El boton de volver a donde se estaba (ficha o simulador): la miga hace lo
+                mismo, pero un boton explicito no obliga a saber leer migas. */}
+            {desde !== null && (
+              <Button variant="secondary" onClick={() => navegar(desde.path)}>
+                Volver a {desde.label}
+              </Button>
+            )}
+            {/* Gating visual sobre la autorizacion real del backend, como siempre: el 403
+                de PUT /plans es quien manda. Solo sobre un plan activo: el archivado no se
+                versiona (contrato 4.2). */}
+            {hasRole('admin') && plan.active && (
+              <Button variant="secondary" onClick={() => navegar(`/planes/${plan.id}/editar`)}>
+                Editar
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* La misma voz que la ficha de cliente: cero jerga de versionado. */}
         {!plan.active && (
-          <Callout tone="info" title="Este plan ya no se ofrece a clientes nuevos">
-            Los clientes que lo tienen mantienen su tarifa y pueden seguir simulando con ella.
-          </Callout>
+          <div className={styles.aviso}>
+            <Callout tone="info" title="Este plan ya no se ofrece a clientes nuevos">
+              Los clientes que lo tienen mantienen su tarifa y pueden seguir simulando con ella.
+            </Callout>
+          </div>
         )}
       </Card>
 

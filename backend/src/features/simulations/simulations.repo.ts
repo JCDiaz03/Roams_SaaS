@@ -29,12 +29,17 @@ export type SimulationRow = {
   tax_rate_bp: number
   tax_minor: number
   total_minor: number
+  /** Estado de VISTA (spec 09, 5.5): fuera del historial por defecto, numeros intactos. */
+  archived: number
   created_at: string
 }
 
 export function insertSimulation(
   db: Db,
-  datos: Omit<SimulationRow, 'id' | 'created_at' | 'pricing_snapshot'> & { snapshot: PricingSnapshot },
+  // `archived` no se acepta al crear: una simulacion nace viva (DEFAULT 0 de la tabla).
+  datos: Omit<SimulationRow, 'id' | 'created_at' | 'pricing_snapshot' | 'archived'> & {
+    snapshot: PricingSnapshot
+  },
 ): SimulationRow {
   const { snapshot, ...resto } = datos
 
@@ -72,22 +77,42 @@ export function insertSimulation(
  * El indice idx_simulations_customer (customer_id, created_at DESC) sirve esta consulta:
  * igualdad mas orden es lo que un B-tree hace bien.
  */
-export function listSimulationsByCustomer(db: Db, customerId: number, limit: number): SimulationRow[] {
+export function listSimulationsByCustomer(
+  db: Db,
+  customerId: number,
+  limit: number,
+  includeArchived: boolean,
+): SimulationRow[] {
   return db
     .prepare(
       `SELECT * FROM simulations
-        WHERE customer_id = ?
+        WHERE customer_id = ? ${includeArchived ? '' : 'AND archived = 0'}
         ORDER BY created_at DESC, id DESC
         LIMIT ?`,
     )
     .all(customerId, limit) as SimulationRow[]
 }
 
-/** Cuantas simulaciones TIENE el cliente, sin el LIMIT: el `total` real de la coleccion. */
-export function countSimulationsByCustomer(db: Db, customerId: number): number {
+/**
+ * Cuantas simulaciones tiene el cliente EN LA COLECCION PEDIDA (con o sin archivadas),
+ * sin el LIMIT: el `total` describe lo mismo que la lista, o seria un contador mintiendo.
+ */
+export function countSimulationsByCustomer(db: Db, customerId: number, includeArchived: boolean): number {
   return (
-    db.prepare('SELECT COUNT(*) AS n FROM simulations WHERE customer_id = ?').get(customerId) as {
-      n: number
-    }
+    db
+      .prepare(
+        `SELECT COUNT(*) AS n FROM simulations
+          WHERE customer_id = ? ${includeArchived ? '' : 'AND archived = 0'}`,
+      )
+      .get(customerId) as { n: number }
   ).n
+}
+
+export function findSimulationById(db: Db, id: number): SimulationRow | undefined {
+  return db.prepare('SELECT * FROM simulations WHERE id = ?').get(id) as SimulationRow | undefined
+}
+
+/** Lo UNICO mutable de una simulacion: su estado de vista. Los numeros, jamas (11.2). */
+export function setSimulationArchived(db: Db, id: number, archived: boolean): void {
+  db.prepare('UPDATE simulations SET archived = ? WHERE id = ?').run(archived ? 1 : 0, id)
 }

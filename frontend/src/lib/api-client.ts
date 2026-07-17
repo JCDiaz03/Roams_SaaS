@@ -89,6 +89,8 @@ export type Simulation = {
   tax_minor: number
   total_minor: number
   breakdown: MetricBreakdown[]
+  /** Estado de VISTA (spec 09, 5.5): fuera del historial por defecto, numeros intactos. */
+  archived: boolean
   created_at: string
 }
 
@@ -221,10 +223,14 @@ export const api = {
 
   customer: (id: number) => pedir<CustomerDetail>(`/customers/${id}`),
 
-  history: (id: number) =>
-    pedir<{ simulations: Simulation[]; total: number }>(`/customers/${id}/simulations`).then(
-      (r) => r.simulations,
-    ),
+  history: (id: number, includeArchived = false) =>
+    pedir<{ simulations: Simulation[]; total: number }>(
+      `/customers/${id}/simulations${includeArchived ? '?include_archived=true' : ''}`,
+    ).then((r) => r.simulations),
+
+  /** Archiva o recupera una simulacion: lo UNICO mutable de una guardada (spec 09, 5.5). */
+  archiveSimulation: (id: number, archived: boolean) =>
+    pedir<Simulation>(`/simulations/${id}`, { method: 'PATCH', body: JSON.stringify({ archived }) }),
 
   createCustomer: (body: {
     company_name: string
@@ -263,8 +269,8 @@ export const api = {
   versionPlan: (id: number, body: Plantilla) =>
     pedir<Plan>(`/plans/${id}`, { method: 'PUT', body: JSON.stringify(body) }),
 
-  /** "Borrar" archiva. Nunca borra. */
-  archivePlan: (id: number) => pedir<Plan>(`/plans/${id}`, { method: 'DELETE' }),
+  /** "Borrar" archiva — salvo el plan JAMAS usado, que se elimina de verdad (ADR 0013). */
+  archivePlan: (id: number) => pedir<Plan & { removed: boolean }>(`/plans/${id}`, { method: 'DELETE' }),
 }
 
 export type PlantillaTier = {
