@@ -36,8 +36,10 @@ test('ajustes, catalogo de planes y detalle pasan la auditoria de accesibilidad'
   // --- El detalle de plan (ventana 8), solo lectura -----------------------------------
   await page.getByRole('link', { name: /Plan Almacenamiento/ }).click()
   await expect(page.getByRole('heading', { name: 'Plan Almacenamiento' })).toBeVisible()
-  // La tabla de tramos, con el ultimo abierto en lenguaje llano.
-  await expect(page.getByText('En adelante')).toBeVisible()
+  // DOS tablas de tramos (almacenamiento y llamadas API), cada una con su ultimo tramo
+  // abierto en lenguaje llano: el conteo exacto es la asercion, no un .first() que
+  // pasaria igual con una tabla de menos.
+  await expect(page.getByRole('cell', { name: 'En adelante' })).toHaveCount(2)
   await auditarAccesibilidad(page, 'detalle-plan')
 
   expect(inesperados(consola)).toEqual([])
