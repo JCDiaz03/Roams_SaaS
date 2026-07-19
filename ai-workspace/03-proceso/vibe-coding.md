@@ -75,7 +75,7 @@ Más útil que describir «una sesión típica» es contar cómo cambió el trab
 | 20 | El emisor del presupuesto e imprimir desde el historial | `99da140` | `created_by` lo escribe el servidor, jamás el cuerpo — mejor un papel sin firma que con la firma equivocada. La nota de la sesión 13 («mover, no rehacer»), ejecutada |
 | 21 | El catálogo definitivo de planes | `99da140` + `d96c551` | Los precios «por bloque» del usuario, traducidos a per-unit con cada ajuste documentado; el caso del enunciado y la tarifa archivada, defendidos sin que se pidiera (→ caso) |
 | 22 | Buscador en /planes y deduplicación transversal | `99da140` | Extraer las dos mitades del buscador, no copiar ninguna; 4 duplicados unificados y 2 rechazados con el mismo criterio que la hexagonal |
-| 23 | La destilación del `/ai-workspace` | *(el commit de la reorganización — este diario entra en él)* | De 47 ficheros a 23: dossier curado + archivo bruto congelado. Dos fichas nacidas ya destiladas (05, 06) y una pasada que cazó una docena de derivas doc↔doc y doc↔código |
+| 23 | La destilación del `/ai-workspace` | `ad8853e` | De 47 ficheros a 23: dossier curado + archivo bruto congelado. Dos fichas nacidas ya destiladas (05, 06) y una pasada que cazó una docena de derivas doc↔doc y doc↔código |
 
 ## Casos representativos
 
