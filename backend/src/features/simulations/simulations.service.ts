@@ -38,6 +38,8 @@ export type SimulationView = {
   total_minor: number
   breakdown: QuoteResult['breakdown']
   archived: boolean
+  /** Quien la guardo: el emisor que declara el presupuesto impreso. null = anterior a la columna. */
+  created_by: string | null
   created_at: string
 }
 
@@ -59,6 +61,9 @@ export function crearSimulacion(
   db: Db,
   taxProvider: TaxProvider,
   entradas: EntradasSimulacion,
+  // El nombre de la SESION que guarda, no un campo del cuerpo: el emisor del presupuesto
+  // lo determina el servidor, como todo lo demas que se persiste (invariante 1).
+  creadoPor: string | null,
 ): SimulationView {
   // 1. El cliente. No existe -> 404.
   const cliente = obtenerClienteOFallar(db, entradas.customer_id)
@@ -129,6 +134,7 @@ export function crearSimulacion(
     tax_rate_bp: resultado.tax_rate_bp,
     tax_minor: resultado.tax_minor,
     total_minor: resultado.total_minor,
+    created_by: creadoPor,
   })
 
   return vista(fila, resultado, { name: plan.name, version: plan.version })
@@ -226,6 +232,7 @@ function vista(
     total_minor: fila.total_minor,
     breakdown: resultado.breakdown,
     archived: fila.archived === 1,
+    created_by: fila.created_by,
     created_at: fila.created_at,
   }
 }

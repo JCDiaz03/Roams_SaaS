@@ -120,6 +120,14 @@ details[open] .resumenArchivados::before {
   justify-content: flex-end;
 }
 
+.sinResultados {
+  margin: 0;
+  padding: 20px 0;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
 @media (max-width: 640px) {
   .fila {
     flex-direction: column;

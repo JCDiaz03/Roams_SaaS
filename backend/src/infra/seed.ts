@@ -1,4 +1,4 @@
-// Seed: ~10 paises + tax_rates (ES 21%), Plan A literal del enunciado y Plan B. Spec: 5.1, 6.1
+// Seed: ~10 paises + tax_rates (ES 21%), Text (enunciado) + catalogo Demo/PRO/MAX/Premium/Almacenamiento/Tokio. Spec: 5.1, 6.1
 //
 // Datos exactos y su porque: ai-workspace/01-specs/modelo-datos.md 3.
 // Se ejecuta automaticamente si el fichero .db no existe (referencia 2.1): el evaluador
@@ -114,31 +114,24 @@ type SeedPlan = {
 }
 
 /**
- * Nombres y tramos tomados del prototipo de Claude Design (SaaS-O-Matic.dc.html), que es
- * la fuente del producto. El enunciado no nombra los planes: solo fija los tramos
- * 10/8/5, que Agora v2 respeta.
+ * Catalogo de la propuesta de planes (2026-07, segunda iteracion: los tramos salen de
+ * los ajustes hechos en el panel de admin y adoptados aqui como default). Un ancla
+ * conservada: Plan Text v1 lleva los tramos LITERALES del enunciado (10/8/5), el caso
+ * que el evaluador va a probar. El versionado visible en pantalla vive en MAX (v1
+ * archivada con Fjord suscrito + v2 activa).
+ *
+ * Dos patrones de precio conviven a proposito: Text/Tokio bajan el precio por unidad al
+ * crecer (descuento por volumen) y el resto lo SUBE (freemium: los primeros tramos
+ * gratis o baratos). Varios planes usan el tramo "hasta 1" caro como CUOTA DE ENTRADA
+ * (p. ej. Premium: 150 EUR el primer usuario): es la forma de expresar una cuota fija
+ * dentro de graduated sin implementar el modelo 'flat' (referencia 5.3).
  */
 const PLANS: readonly SeedPlan[] = [
   {
-    // La version vieja, ARCHIVADA. No es adorno: Fjord Systems sigue apuntando aqui, y
-    // es lo unico que hace visible en pantalla que un precio publicado es inmutable
-    // (referencia 5.5) y que "los clientes actuales mantienen su tarifa" es cierto y no
-    // una frase de un documento.
-    name: 'Plan Ágora',
-    version: 1,
-    active: false,
-    description: 'Tarifa por usuario activo. Versión anterior, ya no se ofrece a clientes nuevos.',
-    currency: 'EUR',
-    tiers: [
-      { metric: 'users', upTo: 10, unitPriceMinor: 1200 },
-      { metric: 'users', upTo: null, unitPriceMinor: 700 },
-    ],
-  },
-  {
     // Los tramos LITERALES del enunciado. Es el caso que el evaluador va a probar:
     // 15 usuarios -> 10x1000 + 5x800 = 14000 minor = 140 EUR, mas 21 % = 169,40 EUR.
-    name: 'Plan Ágora',
-    version: 2,
+    name: 'Plan Text',
+    version: 1,
     active: true,
     description: 'Tarifa por usuario activo. El precio por usuario baja según crece el equipo.',
     currency: 'EUR',
@@ -149,36 +142,137 @@ const PLANS: readonly SeedPlan[] = [
     ],
   },
   {
-    name: 'Plan Bitácora',
-    version: 1,
+    // Version 2 SIN una v1 en el seed, a proposito: el catalogo la define como segunda
+    // iteracion y la v1 nunca llego a publicarse. El versionado visible en pantalla lo
+    // demuestra MAX; duplicar el caso solo anadiria ruido.
+    name: 'Plan Demo',
+    version: 2,
     active: true,
-    description: 'Tarifa por almacenamiento contratado. No cobra por usuarios ni por llamadas a la API.',
+    description: 'Para probar la plataforma: los primeros usuarios, GB y llamadas son gratis.',
     currency: 'EUR',
     tiers: [
-      { metric: 'storage_gb', upTo: 100, unitPriceMinor: 1300 },
-      { metric: 'storage_gb', upTo: 500, unitPriceMinor: 700 },
-      { metric: 'storage_gb', upTo: 2000, unitPriceMinor: 400 },
-      { metric: 'storage_gb', upTo: null, unitPriceMinor: 200 },
+      { metric: 'users', upTo: 2, unitPriceMinor: 0 },
+      { metric: 'users', upTo: 10, unitPriceMinor: 400 },
+      { metric: 'users', upTo: null, unitPriceMinor: 1000 },
+      { metric: 'storage_gb', upTo: 2, unitPriceMinor: 0 },
+      { metric: 'storage_gb', upTo: null, unitPriceMinor: 400 },
+      { metric: 'api_calls', upTo: 200, unitPriceMinor: 0 },
+      { metric: 'api_calls', upTo: 1000, unitPriceMinor: 1 },
+      { metric: 'api_calls', upTo: null, unitPriceMinor: 4 },
     ],
   },
   {
-    // El multi-metrica. El 5.2 (un plan es un conjunto de metricas, cada una con su
-    // tabla) es la abstraccion central del diseno, y sin un plan asi en el seed solo se
-    // demuestra en un test unitario, nunca en pantalla: aqui el simulador ensena tres
-    // bloques sumando, y por contraste el callout "esta metrica no afecta al coste"
-    // aparece en Agora y en Bitacora.
-    name: 'Plan Cúspide',
+    name: 'Plan PRO',
     version: 1,
     active: true,
-    description: 'Combina usuarios, almacenamiento y llamadas a la API en una sola tarifa.',
+    description: 'Para equipos en crecimiento: entrada barata y el precio acompaña al consumo.',
     currency: 'EUR',
     tiers: [
-      { metric: 'users', upTo: 20, unitPriceMinor: 900 },
-      { metric: 'users', upTo: null, unitPriceMinor: 600 },
-      { metric: 'storage_gb', upTo: 500, unitPriceMinor: 500 },
-      { metric: 'storage_gb', upTo: null, unitPriceMinor: 300 },
-      { metric: 'api_calls', upTo: 50_000, unitPriceMinor: 2 },
-      { metric: 'api_calls', upTo: null, unitPriceMinor: 1 },
+      { metric: 'users', upTo: 8, unitPriceMinor: 50 },
+      { metric: 'users', upTo: 20, unitPriceMinor: 100 },
+      { metric: 'users', upTo: null, unitPriceMinor: 300 },
+      { metric: 'storage_gb', upTo: 2, unitPriceMinor: 0 },
+      { metric: 'storage_gb', upTo: 10, unitPriceMinor: 100 },
+      { metric: 'storage_gb', upTo: null, unitPriceMinor: 400 },
+      { metric: 'api_calls', upTo: 500, unitPriceMinor: 0 },
+      { metric: 'api_calls', upTo: 5000, unitPriceMinor: 1 },
+      { metric: 'api_calls', upTo: null, unitPriceMinor: 4 },
+    ],
+  },
+  {
+    // La version vieja, ARCHIVADA. No es adorno: Fjord Systems sigue apuntando aqui, y
+    // es lo unico que hace visible en pantalla que un precio publicado es inmutable
+    // (referencia 5.5) y que "los clientes actuales mantienen su tarifa" es cierto y no
+    // una frase de un documento.
+    name: 'Plan MAX',
+    version: 1,
+    active: false,
+    description: 'Para equipos grandes. Versión anterior, ya no se ofrece a clientes nuevos.',
+    currency: 'EUR',
+    tiers: [
+      { metric: 'users', upTo: 20, unitPriceMinor: 20 },
+      { metric: 'users', upTo: 40, unitPriceMinor: 50 },
+      { metric: 'users', upTo: null, unitPriceMinor: 100 },
+      { metric: 'storage_gb', upTo: 16, unitPriceMinor: 0 },
+      { metric: 'storage_gb', upTo: 32, unitPriceMinor: 100 },
+      { metric: 'storage_gb', upTo: null, unitPriceMinor: 200 },
+      { metric: 'api_calls', upTo: 15_000, unitPriceMinor: 0 },
+      { metric: 'api_calls', upTo: 50_000, unitPriceMinor: 1 },
+      { metric: 'api_calls', upTo: null, unitPriceMinor: 3 },
+    ],
+  },
+  {
+    // El multi-metrica de referencia del catalogo (Meridian esta suscrita): el simulador
+    // ensena tres bloques sumando (referencia 5.2). El tramo "hasta 1 -> 20 EUR" es la
+    // cuota de entrada; a partir del segundo usuario, centimos.
+    name: 'Plan MAX',
+    version: 2,
+    active: true,
+    description: 'Para equipos grandes: usuarios a céntimos y tramos amplios en almacenamiento y API.',
+    currency: 'EUR',
+    tiers: [
+      { metric: 'users', upTo: 1, unitPriceMinor: 2000 },
+      { metric: 'users', upTo: 20, unitPriceMinor: 20 },
+      { metric: 'users', upTo: 40, unitPriceMinor: 50 },
+      { metric: 'users', upTo: null, unitPriceMinor: 100 },
+      { metric: 'storage_gb', upTo: 12, unitPriceMinor: 0 },
+      { metric: 'storage_gb', upTo: 32, unitPriceMinor: 100 },
+      { metric: 'storage_gb', upTo: null, unitPriceMinor: 200 },
+      { metric: 'api_calls', upTo: 5000, unitPriceMinor: 0 },
+      { metric: 'api_calls', upTo: 50_000, unitPriceMinor: 1 },
+      { metric: 'api_calls', upTo: null, unitPriceMinor: 3 },
+    ],
+  },
+  {
+    // La cuota de entrada mas visible del catalogo: 150 EUR el primer usuario y el
+    // resto del bloque a 2 EUR. Llamadas API ilimitadas incluidas (tramo unico a 0):
+    // la cuota fija pura sigue siendo el hueco 'flat' del Strategy (referencia 5.3).
+    name: 'Plan Premium',
+    version: 1,
+    active: true,
+    description: 'Bloques amplios de usuarios y almacenamiento, con llamadas API ilimitadas incluidas.',
+    currency: 'EUR',
+    tiers: [
+      { metric: 'users', upTo: 1, unitPriceMinor: 15_000 },
+      { metric: 'users', upTo: 50, unitPriceMinor: 200 },
+      { metric: 'users', upTo: null, unitPriceMinor: 10 },
+      { metric: 'storage_gb', upTo: 50, unitPriceMinor: 10 },
+      { metric: 'storage_gb', upTo: 256, unitPriceMinor: 80 },
+      { metric: 'storage_gb', upTo: null, unitPriceMinor: 200 },
+      { metric: 'api_calls', upTo: null, unitPriceMinor: 0 },
+    ],
+  },
+  {
+    // El unico plan en USD: hace visible que la divisa de FACTURACION es del plan
+    // (referencia 4.1) — Talleres Duero cotiza en dolares aunque sea de Espana — y que
+    // los sugeridos no cruzan divisas. El primer GB a 60 $ es la cuota de entrada; el
+    // resto del primer bloque a 0,50 $/GB.
+    name: 'Plan Almacenamiento',
+    version: 1,
+    active: true,
+    description: 'Solo almacenamiento, facturado en dólares. No cobra por usuarios.',
+    currency: 'USD',
+    tiers: [
+      { metric: 'storage_gb', upTo: 1, unitPriceMinor: 6000 },
+      { metric: 'storage_gb', upTo: 120, unitPriceMinor: 50 },
+      { metric: 'storage_gb', upTo: null, unitPriceMinor: 200 },
+      { metric: 'api_calls', upTo: 2000, unitPriceMinor: 0 },
+      { metric: 'api_calls', upTo: null, unitPriceMinor: 4 },
+    ],
+  },
+  {
+    // El caso minor_unit = 0 en pantalla: el yen no tiene decimales, asi que aqui
+    // unit_price_minor son yenes ENTEROS (1500 = 1.500 JPY, no 15,00). Sin este plan,
+    // la pieza mas fina del diseno de divisas (referencia 4.4) solo vive en tests.
+    name: 'Plan Tokio',
+    version: 1,
+    active: true,
+    description: 'Tarifa por usuario facturada en yenes japoneses, sin decimales.',
+    currency: 'JPY',
+    tiers: [
+      { metric: 'users', upTo: 10, unitPriceMinor: 1500 },
+      { metric: 'users', upTo: 50, unitPriceMinor: 1200 },
+      { metric: 'users', upTo: null, unitPriceMinor: 800 },
     ],
   },
 ]
@@ -228,8 +322,8 @@ const CUSTOMERS: readonly SeedCustomer[] = [
     fiscalId: 'b-1234 5674',
     email: 'admin@nebula.example',
     country: 'ES',
-    planName: 'Plan Ágora',
-    planVersion: 2,
+    planName: 'Plan Text',
+    planVersion: 1,
     // El caso literal del enunciado como valor base: el boton "parametrizada" precarga
     // 15 usuarios = 140 EUR + 21 % = 169,40 EUR desde el primer arranque.
     baseUsers: 15,
@@ -241,8 +335,8 @@ const CUSTOMERS: readonly SeedCustomer[] = [
     fiscalId: 'GB428291',
     email: 'ops@meridian.example',
     country: 'GB',
-    planName: 'Plan Cúspide',
-    planVersion: 1,
+    planName: 'Plan MAX',
+    planVersion: 2,
     // Los tres valores base sobre el plan multi-metrica: la parametrizada con los tres
     // campos precargados, visible sin dar de alta nada.
     baseUsers: 40,
@@ -251,11 +345,13 @@ const CUSTOMERS: readonly SeedCustomer[] = [
   },
   {
     // Un DNI entre tantos CIF: el validador espanol despacha por formato, y aqui se ve.
+    // Suscrito al plan en USD: un cliente espanol facturado en dolares es lo que hace
+    // visible que la divisa de facturacion es DEL PLAN, no del pais (referencia 4.1).
     companyName: 'Talleres Duero',
     fiscalId: '12345678Z',
     email: 'gestion@duero.example',
     country: 'ES',
-    planName: 'Plan Bitácora',
+    planName: 'Plan Almacenamiento',
     planVersion: 1,
   },
   {
@@ -268,19 +364,19 @@ const CUSTOMERS: readonly SeedCustomer[] = [
     fiscalId: '512 345 678',
     email: 'geral@lusitania.example',
     country: 'PT',
-    planName: 'Plan Bitácora',
+    planName: 'Plan PRO',
     planVersion: 1,
   },
   {
-    // EL CLIENTE QUE IMPORTA: apunta a la version ARCHIVADA de Agora. Es el unico que
+    // EL CLIENTE QUE IMPORTA: apunta a la version ARCHIVADA de MAX. Es el unico que
     // hace visible el 5.5 en pantalla -su ficha dice "Mantiene su tarifa contratada" y
-    // simula con 1200/700, no con los tramos de hoy-. Sin el, el versionado solo existe
-    // en un test.
+    // simula con la v1 (sin cuota de entrada), no con los tramos de hoy-. Sin el, el
+    // versionado solo existe en un test.
     companyName: 'Fjord Systems AS',
     fiscalId: 'NO993110',
     email: 'hei@fjord.example',
     country: 'DE',
-    planName: 'Plan Ágora',
+    planName: 'Plan MAX',
     planVersion: 1,
   },
 ]
@@ -328,7 +424,7 @@ export function seed(db: Db): void {
     }
 
     // Clave por (nombre, version): un cliente apunta a una FILA concreta, no a un nombre.
-    // Con dos versiones de Agora vivas, la clave por nombre a secas mandaria a todo el
+    // Con dos versiones de MAX en el seed, la clave por nombre a secas mandaria a todo el
     // mundo a la ultima insertada, que es justo el bug que el versionado evita.
     const planIds = new Map<string, number>()
     for (const p of PLANS) {

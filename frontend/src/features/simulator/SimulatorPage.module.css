@@ -28,24 +28,11 @@
   font-weight: 600;
 }
 
-.migas {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font-size: 12.5px;
-  color: var(--color-text-2);
+/* Las migas viven en ui/Breadcrumbs, compartidas con la ficha y el detalle de plan. */
+
+/* Silueta generica de la carga: el margen que las piezas reales traen de serie. */
+.hueco {
   margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.migas a {
-  color: var(--color-text-2);
-}
-.migas a:hover {
-  color: var(--color-primary);
-}
-.migas strong {
-  color: var(--color-ink);
-  font-weight: 600;
 }
 
 /* La silueta de la barra de plan durante la carga: mismo margen que la barra real. */

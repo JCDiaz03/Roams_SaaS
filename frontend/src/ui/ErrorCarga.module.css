@@ -1,0 +1,16 @@
+.cuerpo {
+  text-align: center;
+  padding: 28px 20px;
+}
+
+.mensaje {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--color-text-2);
+}
+
+.acciones {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}

@@ -292,7 +292,7 @@ export function PlanTemplatePage() {
                     setNombre(e.target.value)
                     setErrorNombre(null)
                   }}
-                  placeholder="Plan Ágora"
+                  placeholder="Plan Órbita"
                   maxLength={100}
                   required
                   aria-invalid={errorNombre !== null}

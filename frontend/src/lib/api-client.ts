@@ -91,6 +91,8 @@ export type Simulation = {
   breakdown: MetricBreakdown[]
   /** Estado de VISTA (spec 09, 5.5): fuera del historial por defecto, numeros intactos. */
   archived: boolean
+  /** Quien la guardo: el emisor del presupuesto impreso. null = anterior a la columna. */
+  created_by: string | null
   created_at: string
 }
 

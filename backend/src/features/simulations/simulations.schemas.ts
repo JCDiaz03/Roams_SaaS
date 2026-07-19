@@ -37,6 +37,7 @@ const simulationResponseSchema = {
     'total_minor',
     'breakdown',
     'archived',
+    'created_by',
     'created_at',
   ],
   properties: {
@@ -90,6 +91,9 @@ const simulationResponseSchema = {
     },
     // Estado de VISTA (spec 09, 5.5): archivada = fuera del historial por defecto.
     archived: { type: 'boolean' },
+    // Quien la guardo: el emisor que declara el presupuesto impreso, aunque lo abra otro
+    // comercial. null = simulacion anterior a la columna (el papel omite al emisor).
+    created_by: { type: ['string', 'null'] },
     created_at: { type: 'string' },
   },
 } as const

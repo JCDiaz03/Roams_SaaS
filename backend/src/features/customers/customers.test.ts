@@ -16,7 +16,7 @@ const alta = (parcial: Record<string, unknown> = {}) => ({
   fiscal_id: 'A87654323',
   email: 'compras@nueva.example',
   country: 'ES',
-  plan_id: planId(h.db, 'Plan Ágora', 2),
+  plan_id: planId(h.db, 'Plan Text', 1),
   ...parcial,
 })
 
@@ -104,7 +104,7 @@ describe('POST /customers — errores', () => {
   })
 
   it('plan ARCHIVADO -> 422: no se ofrece a clientes nuevos', async () => {
-    const r = await post(alta({ plan_id: planId(h.db, 'Plan Ágora', 1) }))
+    const r = await post(alta({ plan_id: planId(h.db, 'Plan MAX', 1) }))
     expect(r.statusCode).toBe(422)
     expect(r.json().error.code).toBe('PLAN_ARCHIVED')
   })
@@ -326,7 +326,7 @@ describe('GET /customers/{id} — detalle', () => {
     expect(body.tax_rate_bp).toBe(2100)
     expect(body.country).toMatchObject({ code: 'ES', name: 'España', display_currency: 'EUR' })
     expect(body.plan.tiers).toHaveLength(3)
-    expect(body.plan).toMatchObject({ name: 'Plan Ágora', version: 2, active: true })
+    expect(body.plan).toMatchObject({ name: 'Plan Text', version: 1, active: true })
     // Los valores base del seed viajan en el detalle: la ficha y el simulador
     // parametrizado los leen de aqui.
     expect(body).toMatchObject({ base_users: 15, base_storage_gb: null, base_api_calls: null })
@@ -334,12 +334,14 @@ describe('GET /customers/{id} — detalle', () => {
 
   it('EL CLIENTE CON PLAN ARCHIVADO trae su plan igual, con sus tramos viejos', async () => {
     // El test que impide "filtrar por activos" al escribir el JOIN. Fjord mantiene su
-    // tarifa contratada (1200/700), no la de hoy.
+    // tarifa contratada (MAX v1, sin cuota de entrada), no la v2 de hoy.
     const r = await detalle(customerId(h.db, 'Fjord Systems AS'))
 
     expect(r.statusCode).toBe(200)
-    expect(r.json().plan).toMatchObject({ name: 'Plan Ágora', version: 1, active: false })
-    expect(r.json().plan.tiers[0].unit_price_minor).toBe(1200)
+    expect(r.json().plan).toMatchObject({ name: 'Plan MAX', version: 1, active: false })
+    // La v1 no tiene el tramo "hasta 1" de la v2: el primer tramo de usuarios es 0,20.
+    const users = r.json().plan.tiers.filter((t: { metric: string }) => t.metric === 'users')
+    expect(users[0]).toMatchObject({ up_to: 20, unit_price_minor: 20 })
   })
 
   it('id inexistente -> 404', async () => {

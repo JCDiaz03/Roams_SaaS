@@ -17,7 +17,14 @@ type Deps = { db: Db; taxProvider: TaxProvider }
 export function simulationsRoutes({ db, taxProvider }: Deps) {
   return async (app: FastifyInstance): Promise<void> => {
     app.post('/simulations', { schema: postSimulationSchema }, async (req, reply) => {
-      const sim = crearSimulacion(db, taxProvider, req.body as EntradasSimulacion)
+      // El emisor es la SESION que guarda (la puso el hook de auth), no quien luego mire
+      // la simulacion: el papel impreso declara a su autor y no cambia segun el lector.
+      const sim = crearSimulacion(
+        db,
+        taxProvider,
+        req.body as EntradasSimulacion,
+        req.identity?.nombre ?? null,
+      )
       return reply.status(201).header('Location', `/api/simulations/${sim.id}`).send(sim)
     })
 

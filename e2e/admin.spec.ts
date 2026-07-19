@@ -6,7 +6,7 @@
 import { expect, test } from '@playwright/test'
 import { abrirFicha, auditarAccesibilidad, entrar, inesperados, vigilarConsola } from './helpers'
 
-test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuesto', async ({ page }) => {
+test('ADMIN versiona el Plan Text y Nébula conserva su tarifa y su presupuesto', async ({ page }) => {
   const consola = vigilarConsola(page)
 
   await entrar(page, 'ADMIN')
@@ -31,8 +31,8 @@ test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuest
   await auditarAccesibilidad(page, 'admin-listado')
 
   // Por nombre accesible, no por posicion: un plan nuevo en el seed que ordene antes
-  // que Ágora haria que un .first() editara (mutara) el plan equivocado.
-  await page.getByRole('button', { name: 'Editar Plan Ágora' }).click()
+  // que Text haria que un .first() editara (mutara) el plan equivocado.
+  await page.getByRole('button', { name: 'Editar Plan Text' }).click()
   // La decision D1 clavada en URL: el editor vive en /editar; la URL corta es el detalle.
   await expect(page).toHaveURL(/\/planes\/\d+\/editar$/)
   await expect(page.getByText('Los clientes actuales mantendrán su tarifa')).toBeVisible()
@@ -42,12 +42,11 @@ test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuest
   await page.getByLabel('Precio por unidad, tramo 1').fill('11')
   await page.getByRole('button', { name: 'Guardar como versión nueva' }).click()
 
-  // Version nueva activa; la v2 se une a la v1 en los archivados. El chip se busca
-  // DENTRO de main y con texto exacto: el toast («...actualizado a la v3») tambien
-  // contiene "v3" y vive fuera de main durante ~2,6 s — sin el ancla, la busqueda por
-  // subcadena resuelve a dos elementos mientras el toast no se va.
-  await expect(page.getByText('«Plan Ágora» actualizado a la v3')).toBeVisible()
-  await expect(page.getByRole('main').getByText('v3', { exact: true })).toBeVisible()
+  // Version nueva activa; la v1 de Text se une a la de MAX en los archivados. El chip
+  // "v2" ya no es unico en el listado (Demo y MAX tambien van por v2): se cuenta — tres
+  // chips v2 exactos dentro de main = el listado se actualizo con la Text v2 nueva.
+  await expect(page.getByText('«Plan Text» actualizado a la v2')).toBeVisible()
+  await expect(page.getByRole('main').getByText('v2', { exact: true })).toHaveCount(3)
   await expect(page.getByText('2 planes archivados')).toBeVisible()
 
   // --- La comprobacion que importa: nada de lo de Nébula se ha movido -------------------
@@ -55,14 +54,14 @@ test('ADMIN versiona el Plan Ágora y Nébula conserva su tarifa y su presupuest
   await page.getByRole('button', { name: /SaaS/ }).click()
   await abrirFicha(page, 'nébula', 'Nébula Cloud S.L.')
 
-  // Su plan (la v2) esta ahora archivado: aparece el aviso de tarifa contratada...
+  // Su plan (la v1) esta ahora archivado: aparece el aviso de tarifa contratada...
   await expect(page.getByText('Mantiene su tarifa contratada')).toBeVisible()
   // ...y el presupuesto guardado sigue diciendo LO MISMO: snapshot + versionado (5.5, 11.2).
   await expect(page.getByText('1 presupuesto')).toBeVisible()
   await expect(page.getByText(/169,40/).first()).toBeVisible()
-  // Y sigue declarando SU version (v2), no la v3 recien creada: el nombre tambien sale
+  // Y sigue declarando SU version (v1), no la v2 recien creada: el nombre tambien sale
   // del snapshot (spec 09, 5.1).
-  await expect(page.getByText('Plan Ágora · v2')).toBeVisible()
+  await expect(page.getByText('Plan Text · v1')).toBeVisible()
 
   expect(inesperados(consola)).toEqual([])
 })

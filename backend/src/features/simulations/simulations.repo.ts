@@ -31,6 +31,8 @@ export type SimulationRow = {
   total_minor: number
   /** Estado de VISTA (spec 09, 5.5): fuera del historial por defecto, numeros intactos. */
   archived: number
+  /** Quien la guardo (nombre de sesion): el emisor del papel. NULL = fila anterior a la columna. */
+  created_by: string | null
   created_at: string
 }
 
@@ -47,10 +49,10 @@ export function insertSimulation(
     .prepare(
       `INSERT INTO simulations
          (customer_id, plan_id, active_users, storage_gb, api_calls, pricing_snapshot,
-          currency, base_minor, tax_rate_bp, tax_minor, total_minor, created_at)
+          currency, base_minor, tax_rate_bp, tax_minor, total_minor, created_by, created_at)
        VALUES
          (@customer_id, @plan_id, @active_users, @storage_gb, @api_calls, @pricing_snapshot,
-          @currency, @base_minor, @tax_rate_bp, @tax_minor, @total_minor, @created_at)`,
+          @currency, @base_minor, @tax_rate_bp, @tax_minor, @total_minor, @created_by, @created_at)`,
     )
     .run({
       ...resto,

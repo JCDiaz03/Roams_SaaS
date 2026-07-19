@@ -1,11 +1,14 @@
 // Ventana 3 - Detalle de cliente. Diseno: 4
 
 import { useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError, type CustomerDetail, type Simulation } from '../../lib/api-client'
 import { useRatesContext } from '../../lib/rates-context'
 import { useSession } from '../../lib/session'
+import { Breadcrumbs } from '../../ui/Breadcrumbs'
 import { Button } from '../../ui/Button'
+import { ErrorCarga } from '../../ui/ErrorCarga'
 import { Callout } from '../../ui/Callout'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
@@ -13,6 +16,7 @@ import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
 import { IconCheck, IconPlus } from '../../ui/icons'
 import { colorAvatar, iniciales } from '../../ui/avatar'
+import { PrintSheet } from '../simulator/PrintSheet'
 import { BaseValuesBlock } from './BaseValuesBlock'
 import { SimulationHistoryCard } from './SimulationHistoryCard'
 import styles from './CustomerDetailPage.module.css'
@@ -34,11 +38,18 @@ export function CustomerDetailPage() {
   // Reintento en la SPA, como el buscador: navegar(0) recargaba la pagina entera.
   const [intento, setIntento] = useState(0)
   const [archivando, setArchivando] = useState(false)
+  // La simulacion elegida para imprimir: mientras exista, la hoja esta montada y un
+  // Ctrl+P repetido reimprime la misma. Cambia con cada boton "Imprimir".
+  const [simImpresa, setSimImpresa] = useState<Simulation | null>(null)
 
   useEffect(() => {
     let cancelado = false
     const idNum = Number(id)
     setDatos({ estado: 'cargando' })
+    // Cambiar de cliente por la URL reutiliza el componente montado: sin este reset, la
+    // hoja seguiria montada con la simulacion del cliente anterior (el mismo bug que el
+    // simulador jura no tener).
+    setSimImpresa(null)
 
     // Las dos en paralelo: el historial no bloquea a la ficha ni al reves. Con las
     // archivadas incluidas (la ficha las separa en su seccion colapsada, spec 09 5.5) y
@@ -100,14 +111,10 @@ export function CustomerDetailPage() {
 
   if (datos.estado === 'error') {
     return (
-      <Card>
-        <div className={styles.vacio}>
-          <p>No hemos podido cargar la ficha.</p>
-          <Button variant="secondary" onClick={() => setIntento((i) => i + 1)}>
-            Reintentar
-          </Button>
-        </div>
-      </Card>
+      <ErrorCarga
+        mensaje="No hemos podido cargar la ficha."
+        onReintentar={() => setIntento((i) => i + 1)}
+      />
     )
   }
 
@@ -129,6 +136,16 @@ export function CustomerDetailPage() {
     }
   }
 
+  /**
+   * Monta la hoja con ESA simulacion y abre el dialogo del navegador. flushSync es la
+   * pieza que lo hace correcto: window.print() es sincrono y sin el, React aun no habria
+   * pintado la hoja (y un segundo clic sobre la misma card ni siquiera re-renderizaria).
+   */
+  const imprimir = (sim: Simulation) => {
+    flushSync(() => setSimImpresa(sim))
+    window.print()
+  }
+
   const { cliente, historial } = datos
   const [fondo, tinta] = colorAvatar(cliente.id)
   const validado = cliente.fiscal_id_type !== 'unvalidated'
@@ -141,11 +158,7 @@ export function CustomerDetailPage() {
 
   return (
     <>
-      <nav className={styles.migas} aria-label="Migas de pan">
-        <Link to="/">Buscador</Link>
-        <span>/</span>
-        <strong>{cliente.company_name}</strong>
-      </nav>
+      <Breadcrumbs camino={[{ to: '/', label: 'Buscador' }]} actual={cliente.company_name} />
 
       <Card>
         <div className={styles.cabecera}>
@@ -261,6 +274,7 @@ export function CustomerDetailPage() {
                 rates={rates.estado === 'listo' ? rates.rates.rates : null}
                 onArchivar={(s, a) => void alternarArchivo(s, a)}
                 archivando={archivando}
+                onImprimir={imprimir}
               />
             ))}
           </div>
@@ -282,12 +296,18 @@ export function CustomerDetailPage() {
                   rates={rates.estado === 'listo' ? rates.rates.rates : null}
                   onArchivar={(s, a) => void alternarArchivo(s, a)}
                   archivando={archivando}
+                  onImprimir={imprimir}
                 />
               ))}
             </div>
           </details>
         )}
       </section>
+
+      {/* La hoja de impresion, montada con la simulacion elegida: el papel lleva el
+          numero PERSISTIDO de esa card y a su emisor (created_by), no un preview ni la
+          sesion de quien mira. En pantalla no existe (solo @media print). */}
+      {simImpresa !== null && <PrintSheet cliente={cliente} sim={simImpresa} />}
     </>
   )
 }

@@ -24,7 +24,7 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
   await expect(page.getByText('Mantiene su tarifa contratada')).toBeVisible()
   await auditarAccesibilidad(page, 'ficha')
 
-  // --- Simular con SU tarifa (la archivada: 10x12 + 5x7 = 155 EUR + 19 % DE) ----------
+  // --- Simular con SU tarifa (la archivada MAX v1: 15x0,20 = 3 EUR + 19 % DE) ---------
   // Fjord no tiene valores base: solo existe la simulacion libre (spec 09, 3.3).
   await page.getByRole('button', { name: 'Nueva simulación libre' }).click()
 
@@ -33,8 +33,9 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
 
   await page.getByLabel('Usuarios activos, valor exacto').fill('15')
 
-  // El preview es local (quote() compartido) y debe dar el numero del gate: 184,45 EUR.
-  await expect(page.getByText(/184,45/).first()).toBeVisible()
+  // El preview es local (quote() compartido): la v1 NO tiene la cuota de entrada de la
+  // v2 (que daria 26,30 + IVA), asi que el numero delata con que version se cotiza.
+  await expect(page.getByText(/3,57/).first()).toBeVisible()
   await auditarAccesibilidad(page, 'simulador')
 
   await page.getByRole('button', { name: 'Guardar simulación' }).click()
@@ -46,7 +47,7 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
   await page.emulateMedia({ media: 'print' })
   await expect(page.getByRole('heading', { name: 'Presupuesto mensual' })).toBeVisible()
   await expect(page.getByText(/Emitido por/)).toContainText('María')
-  await expect(page.locator('.hoja-impresion').getByText(/184,45/).first()).toBeVisible()
+  await expect(page.locator('.hoja-impresion').getByText(/3,57/).first()).toBeVisible()
   await expect(page.getByLabel('Divisa de visualización')).not.toBeVisible()
   await page.emulateMedia({ media: 'screen' })
 
@@ -56,15 +57,15 @@ test('el comercial cotiza a Fjord con su tarifa archivada y la guarda', async ({
   await page.getByRole('button', { name: /Dólar estadounidense/ }).click()
   await expect(page.getByText('≈ referencia · no es la divisa de facturación')).toBeVisible()
   // El importe de FACTURACION sigue visible y no se ha movido: invariante 4.
-  await expect(page.getByText(/Se factura: 184,45/)).toBeVisible()
+  await expect(page.getByText(/Se factura: 3,57/)).toBeVisible()
 
   // --- El historial, desde la ficha ----------------------------------------------------
   await page.getByRole('navigation', { name: 'Migas de pan' }).getByRole('link', { name: 'Fjord Systems AS' }).click()
   await expect(page.getByText('1 presupuesto')).toBeVisible()
-  await expect(page.getByText(/184,45/).first()).toBeVisible()
+  await expect(page.getByText(/3,57/).first()).toBeVisible()
 
   // La card dice CON QUE PLAN se cotizo (spec 09, 5.2): el archivado de Fjord, v1.
-  await expect(page.getByText('Plan Ágora · v1')).toBeVisible()
+  await expect(page.getByText('Plan MAX · v1')).toBeVisible()
 
   // --- «Usar como base»: el simulador arranca con las entradas de la guardada ----------
   await page.getByRole('button', { name: /Usar la simulación del/ }).click()

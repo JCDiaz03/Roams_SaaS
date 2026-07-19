@@ -5,24 +5,24 @@ import { createPortal } from 'react-dom'
 import type { CurrencyCode } from '@saas/pricing'
 import type { CustomerDetail, Simulation } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
+import { fechaLarga } from '../../lib/fechas'
 import { META } from './MetricSliderCard'
 import styles from './PrintSheet.module.css'
-
-const fechaLarga = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 
 type Props = {
   cliente: CustomerDetail
   /** La simulacion GUARDADA: el papel lleva el numero persistido, nunca un preview. */
   sim: Simulation
-  /** Quien lo emite: el nombre de la sesion. */
-  emisor: string
 }
 
 /**
  * El presupuesto en papel (o PDF, via el dialogo del navegador). Sin librerias de PDF ni
  * generacion en servidor: una hoja @media print resuelve lo mismo con cero dependencias
  * (roadmap 5.5).
+ *
+ * La montan DOS pantallas —el simulador (recien sellada) y la ficha del cliente (una
+ * guardada del historial)— y es EL MISMO componente a proposito: dos hojas divergirian
+ * en el proximo campo del papel (sesion 13 del proceso: "mover, no rehacer").
  *
  * Solo se monta con la simulacion SELLADA, y es una decision de producto: lo que se
  * entrega a un cliente es el numero que el backend persistio, no un preview que nadie
@@ -36,7 +36,7 @@ type Props = {
  * SOLO cuando la hoja existe. Sin hoja (Ctrl+P en cualquier otra pantalla), la app se
  * imprime tal cual en vez de salir un papel vacio.
  */
-export function PrintSheet({ cliente, sim, emisor }: Props) {
+export function PrintSheet({ cliente, sim }: Props) {
   const currency = sim.currency as CurrencyCode
   const facturadas = sim.breakdown.filter((b) => b.billed && b.tiers.length > 0)
 
@@ -124,9 +124,20 @@ export function PrintSheet({ cliente, sim, emisor }: Props) {
         cliente.
       </p>
 
+      {/* El emisor sale de la SIMULACION (created_by), no de la sesion de quien mira: el
+          papel declara a quien lo creo, y reimprimirlo otro dia u otro comercial no le
+          cambia el autor. En las guardadas antes de existir el dato, se omite: mejor un
+          papel sin emisor que uno con el emisor equivocado. */}
       <footer className={styles.emision}>
-        Emitido por <strong>{emisor}</strong> el {fechaLarga(sim.created_at)} · Importes en{' '}
-        {currency}, la divisa de facturación del plan · Presupuesto orientativo: no es una factura.
+        {sim.created_by !== null ? (
+          <>
+            Emitido por <strong>{sim.created_by}</strong> el {fechaLarga(sim.created_at)}
+          </>
+        ) : (
+          <>Emitido el {fechaLarga(sim.created_at)}</>
+        )}{' '}
+        · Importes en {currency}, la divisa de facturación del plan · Presupuesto orientativo: no es
+        una factura.
       </footer>
     </section>,
     document.body,

@@ -145,7 +145,14 @@ CREATE TABLE IF NOT EXISTS simulations (
   -- historial por defecto sin tocar un solo numero sellado. Tambien via ensureColumn()
   -- en migrate.ts para bases existentes (ADR 0012): se tocan JUNTOS.
   archived         INTEGER NOT NULL DEFAULT 0,
+  -- Quien la guardo: el nombre de la sesion que hizo el POST. Es el emisor que declara
+  -- el presupuesto impreso, aunque lo abra otro comercial (el papel no cambia de autor
+  -- segun quien lo mire). NULL = fila anterior a la columna. Tambien via ensureColumn()
+  -- en migrate.ts (ADR 0012): se tocan JUNTOS. El tope 60 es el del `usuario` del login
+  -- (auth.schemas.ts): la identidad nace alli y esta columna solo la fotografia.
+  created_by       TEXT,
   created_at       TEXT NOT NULL,
+  CHECK (created_by IS NULL OR length(created_by) BETWEEN 1 AND 60),
   CHECK (archived IN (0, 1)),
   CHECK (active_users >= 0 AND storage_gb >= 0 AND api_calls >= 0),
   CHECK (base_minor >= 0 AND tax_minor >= 0 AND total_minor >= 0),

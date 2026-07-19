@@ -28,9 +28,10 @@ type FilaPlan = {
  */
 export function listPlans(db: Db, includeArchived: boolean): PlanWithTiers[] {
   // Sin ORDER BY en SQL a proposito: la colacion por defecto de SQLite es BINARY y ordena
-  // por bytes, asi que "Plan Ágora" caeria DESPUES de "Bitácora" y "Cúspide" (la Á es
-  // 0xC3 y la B es 0x42). El orden alfabetico de verdad necesita locale, y eso SQLite no
-  // lo trae sin ICU. Se ordena abajo, en JS, igual que la lista de paises.
+  // por bytes, asi que un nombre con acento ("Plan Ágora") caeria DESPUES de
+  // "Almacenamiento" y "Demo" (la Á es 0xC3 y la A es 0x41). El orden alfabetico de
+  // verdad necesita locale, y eso SQLite no lo trae sin ICU. Se ordena abajo, en JS,
+  // igual que la lista de paises.
   const planes = db
     .prepare(`SELECT * FROM plans ${includeArchived ? '' : 'WHERE active = 1'}`)
     .all() as FilaPlan[]

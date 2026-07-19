@@ -62,7 +62,7 @@ const PARES: readonly (readonly [string, string, string])[] = [
   ['--color-text-3', '--color-surface-2', 'placeholders dentro de un input'],
   ['--color-on-primary', '--color-primary', 'texto del boton primario'],
   ['--color-primary', '--color-surface', 'enlaces'],
-  ['--color-primary-strong', '--color-primary-soft', 'chip de marca (Plan Agora · v2)'],
+  ['--color-primary-strong', '--color-primary-soft', 'chip de marca (Plan Text · v1)'],
   ['--color-ink', '--color-primary-soft', 'callout de info'],
   ['--color-success', '--color-success-soft', 'chip "CIF validado"'],
   ['--color-warning', '--color-warning-soft', 'chip "Tipos del 12 jul"'],

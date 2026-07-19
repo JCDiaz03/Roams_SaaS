@@ -1,7 +1,7 @@
 // Ventana 4 - Simulador interactivo (la ventana estrella). Diseno: 4, 8
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { METRICS, quote, type Metric, type Quantities } from '@saas/pricing'
 import { api, ApiError, type CustomerDetail, type Plan, type Simulation } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
@@ -11,8 +11,10 @@ import { useSession } from '../../lib/session'
 // (un ?users= manipulado no debe producir un 400 al guardar ni un preview absurdo). Se
 // importan de su unica casa en vez de re-declararse aqui (lo cazo la code review).
 import { LIMITE_MAXIMO, useSimulatorLimits } from '../../lib/simulator-limits'
+import { Breadcrumbs } from '../../ui/Breadcrumbs'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { ErrorCarga } from '../../ui/ErrorCarga'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
 import { MetricSliderCard } from './MetricSliderCard'
@@ -192,19 +194,26 @@ export function SimulatorPage() {
 
     return planes
       .filter((p) => p.id !== planEnUso.id && p.currency === planEnUso.currency)
-      .map((p) => ({
-        plan: p,
-        total: quote({
+      .map((p) => {
+        const q = quote({
           tiers: p.tiers,
           quantities: cantidades,
           tax_rate_bp: cliente.tax_rate_bp,
           currency: p.currency,
-        }).total_minor,
-      }))
-      // total > 0: un plan que cotiza a cero no factura NADA de lo que el cliente usa
-      // (p. ej. Bitacora, solo-almacenamiento, con 15 usuarios y 0 GB) — "mas barato"
-      // seria una burla, no una sugerencia (spec 09, 4.3).
-      .filter((s) => s.total > 0 && s.total < preview.total_minor)
+        })
+        return { plan: p, total: q.total_minor, breakdown: q.breakdown }
+      })
+      // Un plan solo se sugiere si FACTURA todo lo que el cliente esta usando: con 15
+      // usuarios, uno solo-almacenamiento saldria "mas barato" porque los IGNORA, no
+      // porque los cobre mejor. Un plan mono-metrica (p. ej. solo usuarios) solo
+      // aparece con las otras dos cantidades a 0. El total > 0 sigue: un plan que
+      // cotiza a cero tampoco es una sugerencia (spec 09, 4.3).
+      .filter(
+        (s) =>
+          s.total > 0 &&
+          s.total < preview.total_minor &&
+          s.breakdown.every((b) => b.quantity === 0 || b.billed),
+      )
       .sort((a, b) => a.total - b.total)
   }, [cliente, planes, planEnUso, preview, cantidades])
 
@@ -266,15 +275,15 @@ export function SimulatorPage() {
 
   if (fallo === 'error') {
     return (
-      <Card>
-        <p>No hemos podido cargar el cliente.</p>
-        <Button variant="secondary" onClick={() => setIntento((i) => i + 1)}>
-          Reintentar
-        </Button>
-        <Button variant="ghost" onClick={() => navegar('/')}>
-          Volver al buscador
-        </Button>
-      </Card>
+      <ErrorCarga
+        mensaje="No hemos podido cargar el cliente."
+        onReintentar={() => setIntento((i) => i + 1)}
+        extra={
+          <Button variant="ghost" onClick={() => navegar('/')}>
+            Volver al buscador
+          </Button>
+        }
+      />
     )
   }
 
@@ -284,7 +293,7 @@ export function SimulatorPage() {
         {/* Siluetas de las migas y la barra de plan, con SUS medidas: sin ellas, el
             contenido real empuja la rejilla hacia abajo al llegar y el salto de layout
             se nota (lo midio Lighthouse: CLS 0,25 en esta pantalla). */}
-        <div className={styles.migas}>
+        <div className={styles.hueco}>
           <Skeleton width={260} height={14} />
         </div>
         <div className={styles.huecoBarra}>
@@ -294,7 +303,7 @@ export function SimulatorPage() {
         <div className={styles.rejilla}>
           <div className={styles.controles}>
             {[0, 1, 2].map((i) => (
-              <Card key={i} className={styles.migas}>
+              <Card key={i} className={styles.hueco}>
                 <SkeletonStack lines={2} />
               </Card>
             ))}
@@ -314,13 +323,13 @@ export function SimulatorPage() {
 
   return (
     <>
-      <nav className={styles.migas} aria-label="Migas de pan">
-        <Link to="/">Buscador</Link>
-        <span>/</span>
-        <Link to={`/clientes/${cliente.id}`}>{cliente.company_name}</Link>
-        <span>/</span>
-        <strong>Nueva simulación</strong>
-      </nav>
+      <Breadcrumbs
+        camino={[
+          { to: '/', label: 'Buscador' },
+          { to: `/clientes/${cliente.id}`, label: cliente.company_name },
+        ]}
+        actual="Nueva simulación"
+      />
 
       {/* La barra de plan (spec 09, 4.2): entre las migas y la rejilla. La ruta de
           vuelta codifica el ESTADO VIVO (cantidades, plan elegido, modo base) para que
@@ -409,10 +418,9 @@ export function SimulatorPage() {
         </div>
       </div>
 
-      {/* Solo con la simulacion sellada: el papel lleva el numero del backend. */}
-      {sellada !== null && (
-        <PrintSheet cliente={cliente} sim={sellada} emisor={session?.nombre ?? ''} />
-      )}
+      {/* Solo con la simulacion sellada: el papel lleva el numero del backend, y el
+          emisor viaja DENTRO de la simulacion (created_by, lo puso el servidor). */}
+      {sellada !== null && <PrintSheet cliente={cliente} sim={sellada} />}
     </>
   )
 }

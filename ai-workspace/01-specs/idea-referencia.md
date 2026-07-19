@@ -82,7 +82,7 @@ El frontend es espejo: `features/` (login, search, customer, simulator, admin) +
 ## 3. Principios de diseño (invariantes)
 
 1. **El backend es la única fuente de verdad** del coste, el impuesto y la validación fiscal. El frontend nunca envía importes calculados; envía **entradas** (usuarios, GB, llamadas) y el servidor calcula, redondea y persiste.
-2. **El dinero se calcula, redondea y persiste en la divisa de facturación del plan** (hoy EUR en todos los planes).
+2. **El dinero se calcula, redondea y persiste en la divisa de facturación del plan** (EUR en la mayoría; el Plan Almacenamiento factura en USD y el Plan Tokio en JPY).
 3. **Ningún tipo de cambio entra jamás en un importe persistido.** *(Invariante duro; corolario: la misma simulación explica el mismo número mañana.)*
 4. **La divisa de visualización no afecta al negocio.** Cambiar el desplegable no altera base, impuesto ni total.
 5. **Nada de `float` para dinero.** Enteros en **unidades menores de su divisa** (`_minor`), siempre acompañados del código ISO 4217. "Céntimos" asume 2 decimales y no todas las divisas los tienen (→ §4.4).
@@ -111,9 +111,9 @@ Dos conceptos distintos que **no se derivan uno del otro**:
 | Quién la fija | El plan (dato en BD) | El usuario, en cada momento |
 | Se persiste | **Sí**, junto a cada importe | **No, nunca** |
 | Usa tipo de cambio | **Jamás** | Sí, solo para pintar |
-| Hoy | EUR en todos los planes | EUR / USD / GBP / ... |
+| Hoy | EUR / USD / JPY, según el plan | EUR / USD / GBP / ... |
 
-**Si algún día hay un plan con precio base en $, NO se convierte desde EUR**: se define como lista de precios independiente en USD (*price localization*, el modelo de Stripe: un `Price` tiene divisa fija y no se convierte). Motivo: un cliente que firmó a 10 $/usuario no acepta 10,73 $ el mes siguiente porque se movió el EUR/USD. Por eso la columna `currency` existe en `plans` desde el día 1 aunque hoy solo contenga `EUR`: evita que "EUR" quede como suposición invisible incrustada en treinta sitios.
+**Un plan con precio base en $ NO se convierte desde EUR**: se define como lista de precios independiente en USD (*price localization*, el modelo de Stripe: un `Price` tiene divisa fija y no se convierte). Motivo: un cliente que firmó a 10 $/usuario no acepta 10,73 $ el mes siguiente porque se movió el EUR/USD. El Plan Almacenamiento del seed es exactamente eso: sus precios están definidos en USD, no convertidos, y su cliente factura en dólares sea del país que sea. Es la columna `currency` de `plans` haciendo su trabajo: "EUR" nunca fue una suposición invisible incrustada en treinta sitios.
 
 ### 4.2 Orden canónico de cálculo
 
@@ -179,8 +179,8 @@ Contrapartida asumida: USD pasa de `"US$"` a `"$"`, ambiguo con otros dólares. 
 
 Varios planes; el comercial da de alta la empresa **con un plan elegido** y ese plan determina la tarificación. Los tramos del enunciado del reto son el **seed** del Plan A, no una constante del código: nº de tramos, cortes, precios y divisa son configurables por el admin y **viven en BD, nunca en código**.
 
-- **Plan A** (seed, literal del enunciado): tramos por usuario → 10 € (0–10), 8 € (11–50), 5 € (>50).
-- **Plan B** (seed): tramos por GB → 13 € (hasta 100), 7 € (hasta 500), 4 € (hasta 2.000), 2 € (>2.000).
+- **Plan Text v1** (seed, literal del enunciado): tramos por usuario → 10 € (0–10), 8 € (11–50), 5 € (>50).
+- **El resto del catálogo del seed** (Demo, PRO, MAX, Premium en EUR; Almacenamiento en USD; Tokio en JPY) sigue mayoritariamente el patrón freemium inverso —los primeros tramos gratis o baratos y el precio sube al crecer— y varios usan el tramo «hasta 1» caro como cuota de entrada. El versionado visible vive en MAX (v1 archivada + v2 activa). Detalle tramo a tramo → `modelo-datos.md` §3.2.
 
 ### 5.2 La abstracción: multi-métrica
 
@@ -376,9 +376,9 @@ Alternativas descartadas: preview solo-frontend (violaría el invariante #1: el 
 - **`plans`**: `id`, `name`, `version`, `description`, `pricing_model` (`graduated`), `currency` (ISO, ∈ `Currency`), `active`, `created_at`
 - **`plan_tiers`**: `id`, `plan_id` (FK), `metric` (`users`|`storage_gb`|`api_calls`|...), `up_to` (NULL = ∞), `unit_price_minor`, `sort_order`
 - **`tax_rates`**: PK `(country, vigente_desde)`, `country` (FK → `countries.code`), `rate_bp` — vigente = mayor `vigente_desde` ≤ hoy (§6.2)
-- **`simulations`**: `id`, `customer_id` (FK), `active_users`, `storage_gb`, `api_calls`, `plan_id`, `pricing_snapshot` (JSON), `currency`, `base_minor`, `tax_rate_bp`, `tax_minor`, `total_minor`, `created_at`
+- **`simulations`**: `id`, `customer_id` (FK), `active_users`, `storage_gb`, `api_calls`, `plan_id`, `pricing_snapshot` (JSON), `currency`, `base_minor`, `tax_rate_bp`, `tax_minor`, `total_minor`, `created_by` (emisor: la sesión que guardó; el presupuesto impreso declara a quien lo creó, no a quien lo abre), `created_at`
 
-Plan A = 3 filas `metric='users'`; Plan B = 4 filas `metric='storage_gb'`; plan multi-métrica = filas de varias métricas, el motor las suma sin enterarse. Los importes usan sufijo **`_minor`** (unidades menores de *su* divisa), no `_cents`: "cents" asume 2 decimales y no es cierto para todas las divisas (§4.4).
+Plan Text = 3 filas `metric='users'`; Plan Almacenamiento = filas de `storage_gb` y `api_calls`; plan multi-métrica (Demo, PRO, MAX) = filas de las tres métricas, el motor las suma sin enterarse. Los importes usan sufijo **`_minor`** (unidades menores de *su* divisa), no `_cents`: "cents" asume 2 decimales y no es cierto para todas las divisas (§4.4).
 
 Índices: `customers.company_name` y `customers.fiscal_id` (el buscador ataca esos dos campos).
 

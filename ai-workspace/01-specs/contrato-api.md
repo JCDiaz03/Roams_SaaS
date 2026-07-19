@@ -220,6 +220,7 @@ Los `maximum` son topes anti-DoS con la misma lógica que `maxLength` (→ refer
     { "metric": "storage_gb", "billed": false, "quantity": 40,     "subtotal_minor": 0, "tiers": [] },
     { "metric": "api_calls",  "billed": false, "quantity": 250000, "subtotal_minor": 0, "tiers": [] }
   ],
+  "created_by": "María",
   "created_at": "2026-07-15T10:35:00Z"
 }
 ```
@@ -230,6 +231,7 @@ Ese es el caso literal del enunciado: 15 usuarios → `10×1000 + 5×800 = 14000
 - **`billed: false` con `subtotal_minor: 0`** es el contrato de "métrica que este plan no factura" (→ referencia §5.2). La métrica **aparece igual**: es lo que permite a la UI atenuar la tarjeta en vez de ocultarla, sin ningún `if` sobre el plan en el cliente.
 - **`plan_name` y `plan_version` salen del `pricing_snapshot`**, nunca del plan actual: versionar un plan no cambia el nombre que declara una simulación vieja. Van planos (no un objeto `plan{}`) porque `plan_id` ya vive plano en la raíz y anidar duplicaría el id.
 - **`pricing_snapshot` no se devuelve.** Es interno: sirve para explicar el pasado, y lo que la pantalla necesita explicar ya está en `breakdown`. Exponerlo sería filtrar una estructura de persistencia al contrato.
+- **`created_by` es el nombre de la sesión que hizo el POST**, puesto por el servidor (nunca un campo del cuerpo, invariante 1). Es el emisor que declara el presupuesto impreso, aunque la hoja la abra otro comercial. `null` = simulación anterior a la columna: el papel omite al emisor en vez de inventarlo.
 
 **Errores**
 

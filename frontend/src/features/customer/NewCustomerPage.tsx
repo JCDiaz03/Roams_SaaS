@@ -6,6 +6,7 @@ import { api, ApiError, type Country, type Plan } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { ErrorCarga } from '../../ui/ErrorCarga'
 import { Skeleton } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
 import { IconWarning } from '../../ui/icons'
@@ -92,12 +93,10 @@ export function NewCustomerPage() {
 
   if (cargaFallida) {
     return (
-      <Card>
-        <p>No hemos podido cargar los países ni los planes.</p>
-        <Button variant="secondary" onClick={() => setIntento((i) => i + 1)}>
-          Reintentar
-        </Button>
-      </Card>
+      <ErrorCarga
+        mensaje="No hemos podido cargar los países ni los planes."
+        onReintentar={() => setIntento((i) => i + 1)}
+      />
     )
   }
 

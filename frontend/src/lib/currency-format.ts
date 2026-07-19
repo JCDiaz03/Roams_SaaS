@@ -83,3 +83,33 @@ export function convertMinor(
 
   return Math.round(convertido * 10 ** minorUnitOf(to))
 }
+
+/**
+ * LA REGLA DEL IMPORTE CONVERTIDO, en un solo sitio. El panel de resultado y las cards
+ * del historial la calculaban cada uno por su cuenta, y es una regla de producto, no
+ * cosmetica: el convertido JAMAS se ensena a secas (invariante 4) — va etiquetado como
+ * referencia y con el importe de facturacion al lado.
+ *
+ * - `facturado === null`: `principal` ES el importe de facturacion; no hay nada que
+ *   etiquetar (no hay conversion que hacer, o no hay tipo de cambio para hacerla).
+ * - `facturado !== null`: `principal` es una CONVERSION. Quien pinta esta obligado a
+ *   etiquetarla como referencia y a ensenar `facturado` al lado.
+ */
+export function importeMostrado(
+  totalMinor: number,
+  facturacion: CurrencyCode,
+  display: CurrencyCode,
+  rates: Readonly<Record<string, number>> | null,
+): { principal: string; facturado: string | null } {
+  const convertido =
+    rates === null || display === facturacion
+      ? null
+      : convertMinor(totalMinor, facturacion, display, rates)
+
+  if (convertido === null) return { principal: formatMinor(totalMinor, facturacion), facturado: null }
+
+  return {
+    principal: formatMinor(convertido, display),
+    facturado: formatMinor(totalMinor, facturacion),
+  }
+}

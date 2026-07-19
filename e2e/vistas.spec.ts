@@ -27,15 +27,15 @@ test('ajustes, catalogo de planes y detalle pasan la auditoria de accesibilidad'
 
   // --- El catalogo del dashboard (spec 08, 5), colapsado por defecto -------------------
   await page.getByRole('button', { name: /SaaS/ }).click()
-  const catalogo = page.getByText(/Planes activos \(3\)/)
+  const catalogo = page.getByText(/Planes activos \(7\)/)
   await expect(catalogo).toBeVisible()
   await catalogo.click()
-  await expect(page.getByRole('link', { name: /Plan Bitácora/ })).toBeVisible()
+  await expect(page.getByRole('link', { name: /Plan Almacenamiento/ })).toBeVisible()
   await auditarAccesibilidad(page, 'dashboard-catalogo')
 
   // --- El detalle de plan (ventana 8), solo lectura -----------------------------------
-  await page.getByRole('link', { name: /Plan Bitácora/ }).click()
-  await expect(page.getByRole('heading', { name: 'Plan Bitácora' })).toBeVisible()
+  await page.getByRole('link', { name: /Plan Almacenamiento/ }).click()
+  await expect(page.getByRole('heading', { name: 'Plan Almacenamiento' })).toBeVisible()
   // La tabla de tramos, con el ultimo abierto en lenguaje llano.
   await expect(page.getByText('En adelante')).toBeVisible()
   await auditarAccesibilidad(page, 'detalle-plan')

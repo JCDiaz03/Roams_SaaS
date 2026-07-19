@@ -159,7 +159,9 @@ CREATE TABLE simulations (
   tax_minor       INTEGER NOT NULL,
   total_minor     INTEGER NOT NULL,
   archived        INTEGER NOT NULL DEFAULT 0,  -- estado de VISTA, no de negocio (spec 09 §5.5)
+  created_by      TEXT,                        -- emisor: la sesión que guardó; NULL = fila anterior a la columna
   created_at      TEXT NOT NULL,
+  CHECK (created_by IS NULL OR length(created_by) BETWEEN 1 AND 60),
   CHECK (archived IN (0, 1)),
   CHECK (active_users >= 0 AND storage_gb >= 0 AND api_calls >= 0),
   CHECK (base_minor >= 0 AND tax_minor >= 0 AND total_minor >= 0),
@@ -178,6 +180,7 @@ CREATE INDEX idx_simulations_customer ON simulations(customer_id, created_at DES
 - **No hay columna de divisa de visualización.** Es intencionado y es el invariante 4 (→ referencia §3): la divisa de visualización no se persiste jamás. Si alguna vez aparece esa columna en un PR, es un bug de diseño, no una mejora.
 - **`storage_gb` y `api_calls` se guardan aunque el plan no los facture** (→ referencia §5.2): son la entrada que el comercial registró, y aportan 0 al total sin dejar de constar.
 - **`archived` es lo ÚNICO mutable de una simulación**, y es estado de vista: saca la card del historial por defecto sin tocar un número sellado (spec 09 §5.5). La inmutabilidad del §11.2 es de los números, no del flag. Columna aditiva (→ ADR 0012).
+- **`created_by` es el emisor del presupuesto**: el nombre de la sesión que hizo el `POST`, fotografiado al guardar — el papel impreso declara a quien lo creó, no a quien lo abre. Se persiste el **valor**, no una referencia a la sesión (que muere al reiniciar, §8): mismo motivo que `tax_rate_bp`. `NULL` = fila anterior a la columna. Columna aditiva (→ ADR 0012); el tope 60 es el del `usuario` del login.
 
 **Forma del `pricing_snapshot`** (JSON; es un dato opaco para SQL, pero su forma es contrato):
 
@@ -238,46 +241,70 @@ España tiene dos filas: al arrancar debe resolverse **21 %**, nunca 18 %. El ca
 
 ### 3.2 `plans` + `plan_tiers`
 
-Nombres y tramos tomados del **prototipo de Claude Design** (`SaaS-O-Matic.dc.html`), que es la fuente del producto. El enunciado no nombra los planes: solo fija los tramos 10/8/5, que Ágora v2 respeta.
+Catálogo de la propuesta de planes (segunda iteración: los tramos salen de los ajustes hechos en el panel de admin y adoptados como default). Un ancla conservada: **Plan Text v1** lleva los tramos **literales del enunciado** (10/8/5). El versionado visible en pantalla vive en **MAX** (v1 archivada con Fjord suscrito + v2 activa).
 
-Todos: `currency = 'EUR'`, `pricing_model = 'graduated'`.
+Dos patrones de precio conviven a propósito: Text y Tokio **bajan** el precio por unidad al crecer (descuento por volumen) y el resto lo **sube** (freemium). Varios planes usan el tramo `hasta 1` caro como **cuota de entrada** (Premium: 150 € el primer usuario): es la forma de expresar una cuota fija dentro de graduated sin implementar el modelo `flat` (→ referencia §5.3).
 
-**Plan Ágora v1 `(active = 0)`** — la versión vieja, archivada:
+Todos `pricing_model = 'graduated'` y `currency = 'EUR'` salvo **Plan Almacenamiento (`USD`)** — un plan en dólares hace visible que la divisa de facturación es del plan (→ referencia §4.1) y que los sugeridos no cruzan divisas — y **Plan Tokio (`JPY`)** — el caso `minor_unit = 0` en pantalla: sus `unit_price_minor` son yenes **enteros**, no centésimas (→ referencia §4.4).
 
-| `metric` | `sort_order` | `up_to` | `unit_price_minor` |
-|---|---|---|---|
-| `users` | 0 | 10 | `1200` |
-| `users` | 1 | `NULL` | `700` |
+**Plan Text v1** — los tramos **literales del enunciado**. Es el caso que el evaluador va a probar: 15 usuarios → 140 € + IVA. Nébula está suscrita con `base_users: 15`.
 
-**No es adorno.** `Fjord Systems AS` sigue apuntando aquí, y es lo único que hace visible **en pantalla** que un precio publicado es inmutable (→ referencia §5.5): su ficha dice "Mantiene su tarifa contratada" y simula con 1200/700, no con los tramos de hoy. Sin esta fila, el versionado solo existe en un test.
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `users` | 10 / 50 / `NULL` | `1000` / `800` / `500` |
 
-**Plan Ágora v2 `(active = 1)`** — los tramos **literales del enunciado**. Es el caso que el evaluador va a probar: 15 usuarios → 140 € + IVA.
+**Plan Demo v2** — el freemium de entrada: los primeros usuarios, GB y llamadas gratis. Versión 2 **sin una v1 en el seed**, a propósito: el catálogo la define como segunda iteración y la v1 nunca llegó a publicarse; el versionado en pantalla lo demuestra MAX.
 
-| `metric` | `sort_order` | `up_to` | `unit_price_minor` |
-|---|---|---|---|
-| `users` | 0 | 10 | `1000` |
-| `users` | 1 | 50 | `800` |
-| `users` | 2 | `NULL` | `500` |
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `users` | 2 / 10 / `NULL` | `0` / `400` / `1000` |
+| `storage_gb` | 2 / `NULL` | `0` / `400` |
+| `api_calls` | 200 / 1000 / `NULL` | `0` / `1` / `4` |
 
-**Plan Bitácora v1** — tramos por almacenamiento (→ referencia §5.1):
+**Plan PRO v1** — para equipos en crecimiento:
 
-| `metric` | `sort_order` | `up_to` | `unit_price_minor` |
-|---|---|---|---|
-| `storage_gb` | 0 | 100 | `1300` |
-| `storage_gb` | 1 | 500 | `700` |
-| `storage_gb` | 2 | 2000 | `400` |
-| `storage_gb` | 3 | `NULL` | `200` |
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `users` | 8 / 20 / `NULL` | `50` / `100` / `300` |
+| `storage_gb` | 2 / 10 / `NULL` | `0` / `100` / `400` |
+| `api_calls` | 500 / 5000 / `NULL` | `0` / `1` / `4` |
 
-**Plan Cúspide v1** — el multi-métrica. El §5.2 (un plan es un conjunto de métricas, cada una con su tabla) es la abstracción central del diseño, y **sin un plan así en el seed solo se demuestra en un test unitario, nunca en pantalla**. Con él, el simulador enseña tres bloques sumando, y por contraste el callout "esta métrica no afecta al coste" aparece en Ágora y en Bitácora.
+**Plan MAX v1 `(active = 0)`** — la versión vieja, archivada, sin cuota de entrada. **No es adorno**: `Fjord Systems AS` sigue apuntando aquí, y es lo único que hace visible **en pantalla** que un precio publicado es inmutable (→ referencia §5.5): su ficha dice "Mantiene su tarifa contratada" y simula sin el tramo `hasta 1` de la v2. Sin esta fila, el versionado solo existe en un test.
 
-| `metric` | `sort_order` | `up_to` | `unit_price_minor` |
-|---|---|---|---|
-| `users` | 0 | 20 | `900` |
-| `users` | 1 | `NULL` | `600` |
-| `storage_gb` | 0 | 500 | `500` |
-| `storage_gb` | 1 | `NULL` | `300` |
-| `api_calls` | 0 | 50000 | `2` |
-| `api_calls` | 1 | `NULL` | `1` |
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `users` | 20 / 40 / `NULL` | `20` / `50` / `100` |
+| `storage_gb` | 16 / 32 / `NULL` | `0` / `100` / `200` |
+| `api_calls` | 15000 / 50000 / `NULL` | `0` / `1` / `3` |
+
+**Plan MAX v2** — el multi-métrica de referencia (Meridian está suscrita). El §5.2 (un plan es un conjunto de métricas, cada una con su tabla) es la abstracción central del diseño, y sin un plan así en el seed solo se demuestra en un test unitario, nunca en pantalla. El tramo `hasta 1 → 20 €` es la cuota de entrada; a partir del segundo usuario, céntimos.
+
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `users` | 1 / 20 / 40 / `NULL` | `2000` / `20` / `50` / `100` |
+| `storage_gb` | 12 / 32 / `NULL` | `0` / `100` / `200` |
+| `api_calls` | 5000 / 50000 / `NULL` | `0` / `1` / `3` |
+
+**Plan Premium v1** — la cuota de entrada más visible del catálogo: 150 € el primer usuario y el resto del bloque a 2 €. Llamadas API ilimitadas incluidas (tramo único a 0). La cuota fija **pura** («700 € aunque no haya consumo») sigue siendo inexpresable en graduated y es el hueco `flat` del Strategy (→ referencia §5.3).
+
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `users` | 1 / 50 / `NULL` | `15000` / `200` / `10` |
+| `storage_gb` | 50 / 256 / `NULL` | `10` / `80` / `200` |
+| `api_calls` | `NULL` | `0` |
+
+**Plan Almacenamiento v1 (`USD`)** — solo almacenamiento; no cobra por usuarios. El primer GB a 60 $ es la cuota de entrada; el resto del primer bloque a 0,50 $/GB.
+
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `storage_gb` | 1 / 120 / `NULL` | `6000` / `50` / `200` |
+| `api_calls` | 2000 / `NULL` | `0` / `4` |
+
+**Plan Tokio v1 (`JPY`)** — tarifa por usuario en yenes, sin decimales: `1500` = 1.500 ¥, no 15,00. Sin este plan, la pieza más fina del diseño de divisas (§4.4) solo vive en tests.
+
+| `metric` | `up_to` | `unit_price_minor` |
+|---|---|---|
+| `users` | 10 / 50 / `NULL` | `1500` / `1200` / `800` |
 
 ### 3.3 `customers` de demo
 
@@ -285,17 +312,17 @@ Sin clientes, el evaluador entra al dashboard y ve el estado vacío: el buscador
 
 | `company_name` | `fiscal_id` | `fiscal_id_type` | `country` | `plan` | valores base |
 |---|---|---|---|---|---|
-| Nébula Cloud S.L. | `B12345674` | `CIF` | `ES` | Ágora **v2** | `base_users: 15` |
-| Meridian Data Ltd. | `GB428291` | `unvalidated` | `GB` | Cúspide v1 | `base_users: 40`, `base_storage_gb: 750`, `base_api_calls: 120000` |
-| Talleres Duero | `12345678Z` | `DNI` | `ES` | Bitácora v1 | — |
-| Lusitânia Dados Lda. | `512345678` | `NIF` | `PT` | Bitácora v1 | — |
-| Fjord Systems AS | `NO993110` | `unvalidated` | `DE` | Ágora **v1 (archivada)** | — |
+| Nébula Cloud S.L. | `B12345674` | `CIF` | `ES` | Text v1 | `base_users: 15` |
+| Meridian Data Ltd. | `GB428291` | `unvalidated` | `GB` | MAX v2 | `base_users: 40`, `base_storage_gb: 750`, `base_api_calls: 120000` |
+| Talleres Duero | `12345678Z` | `DNI` | `ES` | Almacenamiento v1 (USD) | — |
+| Lusitânia Dados Lda. | `512345678` | `NIF` | `PT` | PRO v1 | — |
+| Fjord Systems AS | `NO993110` | `unvalidated` | `DE` | MAX **v1 (archivada)** | — |
 
 Cada uno cubre un caso que si no habría que provocar a mano:
 
 - **`fiscal_id_type` no se declara en el seed: lo dice el validador.** Declararlo permitiría escribir `'DNI'` junto a un CIF y que nadie se enterase. `Nébula` se siembra además con el identificador **sin normalizar** (`"b-1234 5674"`) para que el seed recorra el mismo camino que el alta; se persiste `B12345674`.
 - Los CIF son **sintéticos y con dígito de control correcto** (no son de empresas reales). `B12345674`: pares 2+4+6=12; impares duplicados 1,3,5,7 → 2,6,10,14 → 2+6+1+5=14; total 26 → control `(10 − 6) mod 10 = 4`. ✓
-- **`Talleres Duero` lleva un DNI** entre tantos CIF: el validador español despacha por formato (→ §7.7), y así se ve.
+- **`Talleres Duero` lleva un DNI** entre tantos CIF: el validador español despacha por formato (→ §7.7), y así se ve. Además está suscrito al plan en **USD**: un cliente español facturado en dólares es lo que hace visible que la divisa de facturación es del plan, no del país (→ referencia §4.1).
 - **`Lusitânia` es el segundo validador del registro visible desde el primer arranque**: su ficha enseña el chip «NIF validado» sin que ningún componente sepa que Portugal existe. El NIF es **sintético con control correcto**: `5,1,2,3,4,5,6,7` ponderados 9..2 suman 157; 157 mod 11 = 3; 11 − 3 = **8**. ✓ Se siembra sin normalizar (`"512 345 678"`), como Nébula.
 - **`Meridian` y `Fjord` son `unvalidated`**: pasan por `PassThroughValidator`. `Meridian` aporta además una divisa de presentación ≠ EUR (GBP) desde el primer arranque.
 - **`Fjord` apunta a la versión archivada** (→ §3.2).

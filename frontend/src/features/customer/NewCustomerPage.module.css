@@ -113,13 +113,17 @@
   accent-color: var(--color-primary);
 }
 
+/* display: block en ambos: son <span> dentro del label y sin esto el nombre y el
+   resumen se pintan seguidos en la misma linea ("Plan AgoraTarifa por usuario..."). */
 .planNombre {
+  display: block;
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 3px;
 }
 
 .planResumen {
+  display: block;
   font-size: 12px;
   color: var(--color-text-2);
   line-height: 1.5;

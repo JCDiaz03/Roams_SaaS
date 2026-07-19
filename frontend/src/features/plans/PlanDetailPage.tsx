@@ -1,13 +1,15 @@
 // Ventana 8 - Detalle de plan, solo lectura y para cualquier sesion. Spec: 08 · Diseno: 8
 
 import { useEffect, useState } from 'react'
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { api, ApiError, type Plan } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
 import { ETIQUETA_METRICA, metricasDe } from '../../lib/plan-format'
 import { useSession } from '../../lib/session'
+import { Breadcrumbs } from '../../ui/Breadcrumbs'
 import { Button } from '../../ui/Button'
 import { Callout } from '../../ui/Callout'
+import { ErrorCarga } from '../../ui/ErrorCarga'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 import { SkeletonStack } from '../../ui/Skeleton'
@@ -88,14 +90,10 @@ export function PlanDetailPage() {
 
   if (datos.estado === 'error') {
     return (
-      <Card>
-        <div className={styles.vacio}>
-          <p>No hemos podido cargar el plan.</p>
-          <Button variant="secondary" onClick={() => setIntento((i) => i + 1)}>
-            Reintentar
-          </Button>
-        </div>
-      </Card>
+      <ErrorCarga
+        mensaje="No hemos podido cargar el plan."
+        onReintentar={() => setIntento((i) => i + 1)}
+      />
     )
   }
 
@@ -103,19 +101,15 @@ export function PlanDetailPage() {
 
   return (
     <>
-      <nav className={styles.migas} aria-label="Migas de pan">
-        <Link to="/">Buscador</Link>
-        <span>/</span>
-        {/* Si se llego desde una ficha o el simulador, la miga intermedia es el camino
-            de vuelta sin perder nada (query incluida). */}
-        {desde !== null && (
-          <>
-            <Link to={desde.path}>{desde.label}</Link>
-            <span>/</span>
-          </>
-        )}
-        <strong>{plan.name}</strong>
-      </nav>
+      {/* Si se llego desde una ficha o el simulador, la miga intermedia es el camino de
+          vuelta sin perder nada (query incluida). */}
+      <Breadcrumbs
+        camino={[
+          { to: '/', label: 'Buscador' },
+          ...(desde !== null ? [{ to: desde.path, label: desde.label }] : []),
+        ]}
+        actual={plan.name}
+      />
 
       <Card>
         <div className={styles.cabecera}>

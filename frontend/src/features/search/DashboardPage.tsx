@@ -1,19 +1,19 @@
 // Ventana 2 - Dashboard / buscador con debounce. Diseno: 4
 
-import { useEffect, useRef, useState } from 'react'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { api, type CustomerListItem } from '../../lib/api-client'
+import { useBusquedaEnUrl } from '../../lib/busqueda-url'
 import { useSession } from '../../lib/session'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
+import { ErrorCarga } from '../../ui/ErrorCarga'
+import { SearchBar } from '../../ui/SearchBar'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
-import { IconPlus, IconSearch } from '../../ui/icons'
+import { IconPlus } from '../../ui/icons'
 import { ActivePlansSection } from './ActivePlansSection'
 import { CustomerResultCard } from './CustomerResultCard'
 import styles from './DashboardPage.module.css'
-
-/** Ni una peticion por tecla. 250 ms: por debajo no da tiempo a teclear, por encima se nota. */
-const DEBOUNCE_MS = 250
 
 type Estado =
   | { estado: 'cargando' }
@@ -23,42 +23,13 @@ type Estado =
 export function DashboardPage() {
   const { session } = useSession()
   const navegar = useNavigate()
-  const [params, setParams] = useSearchParams()
 
-  // El termino vive en la URL: asi el buscador sobrevive a un F5 y se puede compartir.
-  const termino = params.get('q') ?? ''
-  const [borrador, setBorrador] = useState(termino)
+  // El termino en la URL con debounce (lib/busqueda-url): compartido con /planes.
+  const { termino, borrador, setBorrador } = useBusquedaEnUrl()
   const [datos, setDatos] = useState<Estado>({ estado: 'cargando' })
   // Contador de reintentos: "Reintentar" no puede apoyarse en la URL, porque volver a
   // escribir el mismo termino no cambia nada y el efecto no se relanzaria.
   const [intento, setIntento] = useState(0)
-
-  // Lo ultimo que ESTE debounce escribio en la URL: distingue "la URL cambio porque yo
-  // la escribi" de "la URL cambio desde fuera" (el buscador de la topbar navega a /?q=).
-  const ultimoEscrito = useRef(termino)
-
-  // Un cambio EXTERNO del termino baja al borrador, o el input no lo mostraria y el
-  // debounce de abajo lo revertiria a los 250 ms con el valor viejo del input — que es
-  // exactamente lo que pasaba al buscar desde la topbar estando en el dashboard
-  // (setSearchParams cambia de identidad con cada URL y relanzaba el efecto).
-  useEffect(() => {
-    if (termino !== ultimoEscrito.current) {
-      ultimoEscrito.current = termino
-      setBorrador(termino)
-    }
-  }, [termino])
-
-  // Debounce: el borrador baja a la URL cuando el comercial deja de teclear. El guard de
-  // igualdad es lo que hace inofensivo que el efecto se relance por identidad.
-  useEffect(() => {
-    if (borrador === termino) return
-
-    const t = setTimeout(() => {
-      ultimoEscrito.current = borrador
-      setParams(borrador === '' ? {} : { q: borrador }, { replace: true })
-    }, DEBOUNCE_MS)
-    return () => clearTimeout(t)
-  }, [borrador, termino, setParams])
 
   useEffect(() => {
     // AbortController: sin el, dos busquedas seguidas pueden llegar desordenadas y la
@@ -83,20 +54,13 @@ export function DashboardPage() {
       <h1 className={styles.saludo}>Hola, {session?.nombre}</h1>
       <p className={styles.subtitulo}>Busca un cliente para simular su presupuesto mensual.</p>
 
-      <div className={styles.barra}>
-        <span className={styles.lupa}>
-          <IconSearch size={19} />
-        </span>
-        <input
-          className={styles.input}
-          value={borrador}
-          onChange={(e) => setBorrador(e.target.value)}
-          placeholder="Busca por empresa o identificador fiscal…"
-          aria-label="Buscar cliente"
-          maxLength={100}
-          autoFocus
-        />
-      </div>
+      <SearchBar
+        value={borrador}
+        onChange={setBorrador}
+        placeholder="Busca por empresa o identificador fiscal…"
+        ariaLabel="Buscar cliente"
+        autoFocus
+      />
 
       <div className={styles.herramientas}>
         {datos.estado === 'listo' && (
@@ -130,14 +94,10 @@ export function DashboardPage() {
       {/* ERROR DE RED != VACIO. Son dos pantallas distintas y dos mensajes distintos
           (referencia 13.1): una ofrece reintentar, la otra ofrece dar de alta. */}
       {datos.estado === 'error' && (
-        <Card>
-          <div className={styles.banner}>
-            <span>No hemos podido cargar los clientes.</span>
-            <Button variant="secondary" size="sm" onClick={() => setIntento((i) => i + 1)}>
-              Reintentar
-            </Button>
-          </div>
-        </Card>
+        <ErrorCarga
+          mensaje="No hemos podido cargar los clientes."
+          onReintentar={() => setIntento((i) => i + 1)}
+        />
       )}
 
       {datos.estado === 'listo' && datos.clientes.length === 0 && (

@@ -1,16 +1,14 @@
 // Resultado vivo: total grande, preview local a 0 ms. Ref: 10
 
 import type { CurrencyCode, QuoteResult } from '@saas/pricing'
-import { convertMinor, formatMinor } from '../../lib/currency-format'
+import { importeMostrado } from '../../lib/currency-format'
+import { fechaCorta } from '../../lib/fechas'
 import { Button } from '../../ui/Button'
 import { Callout } from '../../ui/Callout'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 import { BreakdownTable } from './BreakdownTable'
 import styles from './ResultPanel.module.css'
-
-const fecha = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 
 type Props = {
   resultado: QuoteResult
@@ -38,20 +36,17 @@ export function ResultPanel({
   const facturacion = resultado.currency
 
   // Paso 5 del orden canonico, y el unico que vive en el frontend: convertir para PINTAR
-  // (referencia 4.2). El resultado no vuelve al negocio ni se envia a ningun sitio.
-  const convertido =
-    rates === null || display === facturacion
-      ? null
-      : convertMinor(resultado.total_minor, facturacion, display, rates)
-
-  const hayConversion = convertido !== null
+  // (referencia 4.2). La regla entera (cuando convertir y que dos numeros salen) vive en
+  // importeMostrado, compartida con las cards del historial.
+  const { principal, facturado } = importeMostrado(resultado.total_minor, facturacion, display, rates)
+  const hayConversion = facturado !== null
 
   return (
     <Card className={styles.panel}>
       <div className={styles.etiqueta}>Presupuesto mensual</div>
 
       <div className={styles.total}>
-        {hayConversion ? formatMinor(convertido, display) : formatMinor(resultado.total_minor, facturacion)}
+        {principal}
         <span className={styles.periodo}> /mes</span>
       </div>
       <div className={styles.impuestos}>impuestos incluidos</div>
@@ -63,16 +58,14 @@ export function ResultPanel({
       {hayConversion && (
         <div className={styles.referencia}>
           <div className={styles.referenciaEtiqueta}>≈ referencia · no es la divisa de facturación</div>
-          <div className={styles.facturado}>
-            Se factura: {formatMinor(resultado.total_minor, facturacion)}
-          </div>
+          <div className={styles.facturado}>Se factura: {facturado}</div>
         </div>
       )}
 
       {hayConversion && stale && (
         <div className={styles.aviso}>
           <Callout tone="warning">
-            Tipos de cambio del <strong>{staleDesde === null ? '—' : fecha(staleDesde)}</strong>. La
+            Tipos de cambio del <strong>{staleDesde === null ? '—' : fechaCorta(staleDesde)}</strong>. La
             conversión es orientativa; el importe facturado no se ve afectado.
           </Callout>
         </div>
@@ -92,7 +85,7 @@ export function ResultPanel({
         // AQUI: el papel lleva el numero persistido (PrintSheet), no un preview que nadie
         // podria reproducir.
         <div className={styles.sellada}>
-          <Chip tone="success">Guardada · {fecha(selladaEn)}</Chip>
+          <Chip tone="success">Guardada · {fechaCorta(selladaEn)}</Chip>
           <Button variant="secondary" size="sm" onClick={() => window.print()}>
             Imprimir presupuesto
           </Button>

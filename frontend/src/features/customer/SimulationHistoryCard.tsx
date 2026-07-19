@@ -3,14 +3,12 @@
 import { useNavigate } from 'react-router-dom'
 import type { CurrencyCode } from '@saas/pricing'
 import type { Simulation } from '../../lib/api-client'
-import { convertMinor, formatMinor } from '../../lib/currency-format'
+import { importeMostrado } from '../../lib/currency-format'
+import { fechaLarga } from '../../lib/fechas'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
 import styles from './SimulationHistoryCard.module.css'
-
-const fecha = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric' })
 
 type Props = {
   sim: Simulation
@@ -21,19 +19,24 @@ type Props = {
   onArchivar: (sim: Simulation, archived: boolean) => void
   /** true mientras el PATCH esta en vuelo, para no archivar dos veces. */
   archivando: boolean
+  /** Imprimir el presupuesto guardado. La hoja la monta la ficha, que tiene al cliente. */
+  onImprimir: (sim: Simulation) => void
 }
 
-export function SimulationHistoryCard({ sim, display, rates, onArchivar, archivando }: Props) {
+export function SimulationHistoryCard({
+  sim,
+  display,
+  rates,
+  onArchivar,
+  archivando,
+  onImprimir,
+}: Props) {
   const navegar = useNavigate()
 
-  // La conversion es presentacion pura y se hace aqui, con lo que devolvio GET /rates. El
-  // importe de facturacion (sim.total_minor, en sim.currency) NO cambia jamas.
-  const convertido =
-    rates === null || display === sim.currency
-      ? null
-      : convertMinor(sim.total_minor, sim.currency, display, rates)
-
-  const hayConversion = convertido !== null
+  // La conversion es presentacion pura, con lo que devolvio GET /rates. La regla entera
+  // (cuando convertir y que dos numeros salen) vive en importeMostrado, compartida con
+  // el panel de resultado: el importe de facturacion NO cambia jamas.
+  const { principal, facturado } = importeMostrado(sim.total_minor, sim.currency, display, rates)
 
   // LEE las entradas de la simulacion para crear OTRA; la guardada no se toca jamas
   // (spec 09, 5.3). El plan viaja en la URL y el simulador lo preselecciona solo si
@@ -47,7 +50,7 @@ export function SimulationHistoryCard({ sim, display, rates, onArchivar, archiva
   return (
     <Card className={styles.tarjeta}>
       <div className={styles.cabecera}>
-        <div className={styles.fecha}>{fecha(sim.created_at)}</div>
+        <div className={styles.fecha}>{fechaLarga(sim.created_at)}</div>
         {/* Con el plan elegido en juego (ADR 0011), "¿con que tarifa era este numero?" ya
             no tiene una respuesta unica por cliente: la card la dice. Del snapshot, asi
             que versionar el plan no la cambia (spec 09, 5.1-5.2). */}
@@ -73,20 +76,12 @@ export function SimulationHistoryCard({ sim, display, rates, onArchivar, archiva
       </div>
 
       <div className={styles.total}>
-        <div className={styles.importe}>
-          {hayConversion ? formatMinor(convertido, display) : formatMinor(sim.total_minor, sim.currency)}
-        </div>
+        <div className={styles.importe}>{principal}</div>
         {/* El importe convertido va SIEMPRE etiquetado como referencia, con el facturado
             real al lado (referencia 4.1). Nunca se ensena un convertido a secas: el
             comercial tiene que poder decir por telefono cual es el numero de verdad. */}
         <div className={styles.referencia}>
-          {hayConversion ? (
-            <>
-              ≈ referencia · se factura {formatMinor(sim.total_minor, sim.currency)}
-            </>
-          ) : (
-            <>impuestos incluidos</>
-          )}
+          {facturado !== null ? <>≈ referencia · se factura {facturado}</> : <>impuestos incluidos</>}
         </div>
       </div>
 
@@ -97,7 +92,7 @@ export function SimulationHistoryCard({ sim, display, rates, onArchivar, archiva
           variant="ghost"
           size="sm"
           disabled={archivando}
-          aria-label={`${sim.archived ? 'Recuperar' : 'Archivar'} la simulación del ${fecha(sim.created_at)}`}
+          aria-label={`${sim.archived ? 'Recuperar' : 'Archivar'} la simulación del ${fechaLarga(sim.created_at)}`}
           onClick={() => onArchivar(sim, !sim.archived)}
         >
           {sim.archived ? 'Recuperar' : 'Archivar'}
@@ -105,10 +100,20 @@ export function SimulationHistoryCard({ sim, display, rates, onArchivar, archiva
         <Button
           variant="ghost"
           size="sm"
-          aria-label={`Usar la simulación del ${fecha(sim.created_at)} como base`}
+          aria-label={`Usar la simulación del ${fechaLarga(sim.created_at)} como base`}
           onClick={usarComoBase}
         >
           Usar como base
+        </Button>
+        {/* Imprime el numero PERSISTIDO de esta card (PrintSheet), con el emisor que la
+            guardo (created_by), no la sesion que la abre. */}
+        <Button
+          variant="ghost"
+          size="sm"
+          aria-label={`Imprimir el presupuesto del ${fechaLarga(sim.created_at)}`}
+          onClick={() => onImprimir(sim)}
+        >
+          Imprimir
         </Button>
       </div>
     </Card>

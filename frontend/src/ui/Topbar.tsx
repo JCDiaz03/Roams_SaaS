@@ -7,13 +7,11 @@ import { useRatesContext } from '../lib/rates-context'
 import { Button } from './Button'
 import { Chip } from './Chip'
 import { CurrencySelect } from './CurrencySelect'
+import { fechaCorta } from '../lib/fechas'
 import { ThemeToggle } from './ThemeToggle'
 import styles from './Topbar.module.css'
 import logoUrl from '../assets/roams-logo.svg'
 import { IconAdmin, IconLogout, IconSearch, IconSettings, IconWarning } from './icons'
-
-const fecha = (iso: string) =>
-  new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 
 export function Topbar() {
   const { session, theme, hasRole, logout, setCurrency, toggleTheme } = useSession()
@@ -88,7 +86,7 @@ export function Topbar() {
           ensena un numero viejo EN SILENCIO es peor que uno que dice que no sabe. */}
       {rates.estado === 'listo' && rates.rates.stale && (
         <Chip tone="warning" icon={<IconWarning size={14} />}>
-          Tipos del {fecha(rates.rates.as_of)}
+          Tipos del {fechaCorta(rates.rates.as_of)}
         </Chip>
       )}
 

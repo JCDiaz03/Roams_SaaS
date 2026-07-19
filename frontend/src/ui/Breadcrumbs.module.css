@@ -1,0 +1,20 @@
+.migas {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--color-text-2);
+  margin-bottom: 16px;
+  /* wrap: un nombre de empresa largo en movil parte la linea en vez de desbordarla. */
+  flex-wrap: wrap;
+}
+.migas a {
+  color: var(--color-text-2);
+}
+.migas a:hover {
+  color: var(--color-primary);
+}
+.migas strong {
+  color: var(--color-ink);
+  font-weight: 600;
+}

@@ -3,10 +3,13 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { api, type Plan } from '../../lib/api-client'
+import { contiene, useBusquedaEnUrl } from '../../lib/busqueda-url'
 import { ETIQUETA_METRICA, metricasDe } from '../../lib/plan-format'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Chip } from '../../ui/Chip'
+import { ErrorCarga } from '../../ui/ErrorCarga'
+import { SearchBar } from '../../ui/SearchBar'
 import { Skeleton } from '../../ui/Skeleton'
 import { useToast } from '../../ui/Toast'
 import { IconPlus } from '../../ui/icons'
@@ -16,6 +19,9 @@ export function PlansAdminPage() {
   const navegar = useNavigate()
   const toast = useToast()
 
+  // El MISMO termino-en-URL con debounce que el dashboard (lib/busqueda-url). Aqui el
+  // filtro es local: el catalogo entero ya esta en memoria y no hay endpoint que pedir.
+  const { termino, borrador, setBorrador } = useBusquedaEnUrl()
   const [planes, setPlanes] = useState<Plan[] | null>(null)
   const [fallo, setFallo] = useState(false)
   const [aArchivar, setAArchivar] = useState<Plan | null>(null)
@@ -72,18 +78,19 @@ export function PlansAdminPage() {
   }
 
   if (fallo) {
-    return (
-      <Card>
-        <p>No hemos podido cargar los planes.</p>
-        <Button variant="secondary" onClick={cargar}>
-          Reintentar
-        </Button>
-      </Card>
-    )
+    return <ErrorCarga mensaje="No hemos podido cargar los planes." onReintentar={cargar} />
   }
 
-  const activos = planes?.filter((p) => p.active) ?? []
-  const archivados = planes?.filter((p) => !p.active) ?? []
+  // Coincide por nombre, divisa o metrica facturada, ignorando acentos: "usd" encuentra
+  // el plan en dolares y "usuarios" los que cobran por usuario.
+  const coincide = (p: Plan) =>
+    termino === '' ||
+    contiene(p.name, termino) ||
+    contiene(p.currency, termino) ||
+    metricasDe(p).some((m) => contiene(ETIQUETA_METRICA[m], termino))
+
+  const activos = planes?.filter((p) => p.active && coincide(p)) ?? []
+  const archivados = planes?.filter((p) => !p.active && coincide(p)) ?? []
 
   const tarjeta = (plan: Plan) => (
     <Card key={plan.id} className={plan.active ? '' : styles.atenuada}>
@@ -146,6 +153,13 @@ export function PlansAdminPage() {
         clientes con esa tarifa.
       </p>
 
+      <SearchBar
+        value={borrador}
+        onChange={setBorrador}
+        placeholder="Filtra por nombre, métrica o divisa…"
+        ariaLabel="Buscar plan"
+      />
+
       {planes === null ? (
         <div className={styles.lista} role="status" aria-busy="true" aria-label="Cargando planes">
           {[0, 1, 2].map((i) => (
@@ -154,13 +168,25 @@ export function PlansAdminPage() {
             </Card>
           ))}
         </div>
+      ) : activos.length === 0 && archivados.length === 0 ? (
+        // Con filtro activo, "nada coincide" es una pantalla, no una lista vacia muda
+        // (referencia 13.1). Sin filtro, la lista vacia es improbable pero esta definida.
+        <Card>
+          <p className={styles.sinResultados}>
+            {termino === ''
+              ? 'Todavía no hay planes. Crea el primero con «Nuevo plan».'
+              : `Ningún plan coincide con «${termino}».`}
+          </p>
+        </Card>
       ) : (
         <>
           <div className={styles.lista}>{activos.map(tarjeta)}</div>
 
-          {/* Los archivados, agrupados y colapsados al final (diseno, ventana 6). */}
+          {/* Los archivados, agrupados y colapsados al final (diseno, ventana 6) —
+              ABIERTOS mientras se filtra: si lo que coincide esta archivado, esconderlo
+              tras un summary seria un buscador que "no encuentra" lo que encontro. */}
           {archivados.length > 0 && (
-            <details className={styles.archivados}>
+            <details className={styles.archivados} open={termino !== ''}>
               <summary className={styles.resumenArchivados}>
                 {archivados.length} {archivados.length === 1 ? 'plan archivado' : 'planes archivados'}
               </summary>

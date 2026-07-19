@@ -4,7 +4,7 @@
 // convirtieron en el segundo y tercer consumidor: tres copias de un Record se
 // desincronizan la primera vez que alguien renombra una metrica.
 
-import type { Metric } from '@saas/pricing'
+import { METRICS, type Metric } from '@saas/pricing'
 import type { Plan } from './api-client'
 
 /** La etiqueta de cada metrica, en lenguaje de comercial. */
@@ -14,7 +14,13 @@ export const ETIQUETA_METRICA: Record<Metric, string> = {
   api_calls: 'Llamadas API',
 }
 
-/** Las metricas que un plan factura, en el orden de sus tramos. */
+/**
+ * Las metricas que un plan factura, SIEMPRE en el orden canonico (usuarios,
+ * almacenamiento, llamadas): el mismo que los sliders del simulador. Ordenar por
+ * aparicion de los tramos pintaba las tarjetas de un plan solo-almacenamiento con las
+ * llamadas primero (la API devuelve los tramos por metrica alfabetica).
+ */
 export function metricasDe(plan: Plan): Metric[] {
-  return [...new Set(plan.tiers.map((t) => t.metric))]
+  const presentes = new Set(plan.tiers.map((t) => t.metric))
+  return METRICS.filter((m) => presentes.has(m))
 }

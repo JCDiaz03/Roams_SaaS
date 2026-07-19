@@ -34,35 +34,40 @@ describe('GET /plans', () => {
     const { plans } = (await get()).json() as { plans: { name: string; version: number; active: boolean }[] }
 
     expect(plans.every((p) => p.active)).toBe(true)
+    // El orden es localeCompare 'es' por nombre (03-buscador-y-detalle.md 2.4).
     expect(plans.map((p) => `${p.name} v${p.version}`)).toEqual([
-      'Plan Ágora v2',
-      'Plan Bitácora v1',
-      'Plan Cúspide v1',
+      'Plan Almacenamiento v1',
+      'Plan Demo v2',
+      'Plan MAX v2',
+      'Plan Premium v1',
+      'Plan PRO v1',
+      'Plan Text v1',
+      'Plan Tokio v1',
     ])
   })
 
   it('?include_archived=true los trae todos, para el panel de admin', async () => {
     const { plans } = (await get('?include_archived=true')).json() as { plans: { active: boolean }[] }
 
-    expect(plans).toHaveLength(4)
+    expect(plans).toHaveLength(8)
     expect(plans.filter((p) => !p.active)).toHaveLength(1)
   })
 
   it('trae los tramos de cada plan, y el multi-metrica los suyos', async () => {
     const { plans } = (await get()).json() as { plans: { name: string; tiers: { metric: string }[] }[] }
-    const cuspide = plans.find((p) => p.name === 'Plan Cúspide')
+    const max = plans.find((p) => p.name === 'Plan MAX')
 
-    expect(cuspide?.tiers).toHaveLength(6)
-    expect(new Set(cuspide?.tiers.map((t) => t.metric))).toEqual(
+    expect(max?.tiers).toHaveLength(10)
+    expect(new Set(max?.tiers.map((t) => t.metric))).toEqual(
       new Set(['users', 'storage_gb', 'api_calls']),
     )
   })
 
   it('GET /plans/{id}: un plan activo, con sus tramos', async () => {
-    const r = await getUno(planId(h.db, 'Plan Ágora', 2))
+    const r = await getUno(planId(h.db, 'Plan Text', 1))
 
     expect(r.statusCode).toBe(200)
-    expect(r.json()).toMatchObject({ name: 'Plan Ágora', version: 2, active: true })
+    expect(r.json()).toMatchObject({ name: 'Plan Text', version: 1, active: true })
     expect(r.json().tiers).toHaveLength(3)
   })
 
@@ -74,13 +79,13 @@ describe('GET /plans', () => {
     const sid = h.sessions.create({ nombre: 'Marta', rol: 'sales' })
     const r = await h.app.inject({
       method: 'GET',
-      url: `/api/plans/${planId(h.db, 'Plan Ágora', 1)}`,
+      url: `/api/plans/${planId(h.db, 'Plan MAX', 1)}`,
       cookies: { sid },
     })
 
     expect(r.statusCode).toBe(200)
-    expect(r.json()).toMatchObject({ name: 'Plan Ágora', version: 1, active: false })
-    expect(r.json().tiers[0].unit_price_minor).toBe(1200)
+    expect(r.json()).toMatchObject({ name: 'Plan MAX', version: 1, active: false })
+    expect(r.json().tiers).toHaveLength(9)
   })
 
   it('GET /plans/{id}: inexistente -> 404 PLAN_NOT_FOUND', async () => {
@@ -90,7 +95,7 @@ describe('GET /plans', () => {
   })
 
   it('GET /plans/{id}: sin sesion -> 401', async () => {
-    const r = await h.app.inject({ method: 'GET', url: `/api/plans/${planId(h.db, 'Plan Ágora', 2)}` })
+    const r = await h.app.inject({ method: 'GET', url: `/api/plans/${planId(h.db, 'Plan Text', 1)}` })
     expect(r.statusCode).toBe(401)
     expect(r.json().error.code).toBe('AUTH_REQUIRED')
   })
@@ -158,17 +163,17 @@ describe('POST /plans — errores', () => {
   })
 
   it('nombre de un plan ACTIVO -> 409', async () => {
-    const r = await post(plantilla({ name: 'Plan Ágora' }))
+    const r = await post(plantilla({ name: 'Plan Text' }))
 
     expect(r.statusCode).toBe(409)
     expect(r.json().error).toMatchObject({ code: 'PLAN_NAME_TAKEN', field: 'name' })
   })
 
   it('el nombre de un plan ARCHIVADO se puede reutilizar', async () => {
-    // Si no, archivar un plan quemaria su nombre para siempre. "Plan Ágora" esta ocupado
-    // por la v2 activa; con la v1 archivada sola, no lo estaria.
-    await del(planId(h.db, 'Plan Ágora', 2))
-    expect((await post(plantilla({ name: 'Plan Ágora' }))).statusCode).toBe(201)
+    // Si no, archivar un plan quemaria su nombre para siempre. "Plan Text" esta ocupado
+    // por la v1 activa; archivada, deja de estarlo.
+    await del(planId(h.db, 'Plan Text', 1))
+    expect((await post(plantilla({ name: 'Plan Text' }))).statusCode).toBe(201)
   })
 
   it('cero tramos -> 400 (lo para el esquema antes del servicio)', async () => {
@@ -189,38 +194,38 @@ describe('POST /plans — errores', () => {
 
 describe('PUT /plans/{id} — "editar" es versionar', () => {
   it('crea version nueva y archiva la anterior', async () => {
-    const v2 = planId(h.db, 'Plan Ágora', 2)
-    const r = await put(v2, plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 400 }] }))
+    const v1 = planId(h.db, 'Plan Text', 1)
+    const r = await put(v1, plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 400 }] }))
 
     // 201 y no 200: se ha creado un recurso nuevo, que es literalmente lo que ha pasado.
     expect(r.statusCode).toBe(201)
-    expect(r.json()).toMatchObject({ name: 'Plan Ágora', version: 3, active: true })
+    expect(r.json()).toMatchObject({ name: 'Plan Text', version: 2, active: true })
     // El id devuelto NO es el de la URL, y ese desajuste ES la semantica de la operacion.
-    expect(r.json().id).not.toBe(v2)
+    expect(r.json().id).not.toBe(v1)
 
-    const anterior = h.db.prepare('SELECT active FROM plans WHERE id = ?').get(v2) as { active: number }
+    const anterior = h.db.prepare('SELECT active FROM plans WHERE id = ?').get(v1) as { active: number }
     expect(anterior.active).toBe(0)
   })
 
   it('el nombre se hereda: editar no puede renombrar', async () => {
-    const v2 = planId(h.db, 'Plan Ágora', 2)
-    const r = await put(v2, plantilla({ name: 'Otro Nombre Cualquiera' }))
+    const v1 = planId(h.db, 'Plan Text', 1)
+    const r = await put(v1, plantilla({ name: 'Otro Nombre Cualquiera' }))
 
-    // v1 y v2 tienen que compartir nombre para que "la version anterior de este plan"
-    // signifique algo.
-    expect(r.json().name).toBe('Plan Ágora')
+    // Las versiones tienen que compartir nombre para que "la version anterior de este
+    // plan" signifique algo.
+    expect(r.json().name).toBe('Plan Text')
   })
 
   it('EL CLIENTE EXISTENTE SIGUE APUNTANDO AL PLAN ANTIGUO', async () => {
     // Es la feature entera, no un efecto secundario.
-    const v2 = planId(h.db, 'Plan Ágora', 2)
+    const v1 = planId(h.db, 'Plan Text', 1)
     const nebula = customerId(h.db, 'Nébula Cloud S.L.')
 
-    await put(v2, plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 9999 }] }))
+    await put(v1, plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 9999 }] }))
 
     const detalle = (await h.inject({ method: 'GET', url: `/api/customers/${nebula}` })).json()
-    expect(detalle.plan.id).toBe(v2)
-    expect(detalle.plan.version).toBe(2)
+    expect(detalle.plan.id).toBe(v1)
+    expect(detalle.plan.version).toBe(1)
     expect(detalle.plan.active).toBe(false)
     // Y sus tramos siguen siendo los suyos.
     expect(detalle.plan.tiers[0].unit_price_minor).toBe(1000)
@@ -239,7 +244,7 @@ describe('PUT /plans/{id} — "editar" es versionar', () => {
     ).json()
 
     await put(
-      planId(h.db, 'Plan Ágora', 2),
+      planId(h.db, 'Plan Text', 1),
       plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 9999 }] }),
     )
 
@@ -255,7 +260,7 @@ describe('PUT /plans/{id} — "editar" es versionar', () => {
   it('y el cliente sigue pudiendo simular con su tarifa vieja', async () => {
     const nebula = customerId(h.db, 'Nébula Cloud S.L.')
     await put(
-      planId(h.db, 'Plan Ágora', 2),
+      planId(h.db, 'Plan Text', 1),
       plantilla({ tiers: [{ metric: 'users', up_to: null, unit_price_minor: 9999 }] }),
     )
 
@@ -275,39 +280,39 @@ describe('PUT /plans/{id} — "editar" es versionar', () => {
 
   it('NO se versiona desde una version archivada', async () => {
     // Crearia una v3 a partir de la v1 mientras la v2 sigue activa: dos ramas vivas.
-    const r = await put(planId(h.db, 'Plan Ágora', 1), plantilla())
+    const r = await put(planId(h.db, 'Plan MAX', 1), plantilla())
 
     expect(r.statusCode).toBe(422)
     expect(r.json().error.code).toBe('PLAN_ALREADY_ARCHIVED')
   })
 
   it('plantilla incoherente -> 422 y NO archiva nada', async () => {
-    const v2 = planId(h.db, 'Plan Ágora', 2)
-    const r = await put(v2, plantilla({ tiers: [{ metric: 'users', up_to: 10, unit_price_minor: 1 }] }))
+    const v1 = planId(h.db, 'Plan Text', 1)
+    const r = await put(v1, plantilla({ tiers: [{ metric: 'users', up_to: 10, unit_price_minor: 1 }] }))
 
     expect(r.statusCode).toBe(422)
-    const sigue = h.db.prepare('SELECT active FROM plans WHERE id = ?').get(v2) as { active: number }
+    const sigue = h.db.prepare('SELECT active FROM plans WHERE id = ?').get(v1) as { active: number }
     expect(sigue.active).toBe(1)
   })
 })
 
 describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
   it('marca active = 0 y LA FILA SIGUE EXISTIENDO', async () => {
-    const v2 = planId(h.db, 'Plan Ágora', 2)
-    const r = await del(v2)
+    const v1 = planId(h.db, 'Plan Text', 1)
+    const r = await del(v1)
 
     // 200 con el plan, no 204: la UI actualiza el badge con lo devuelto.
     expect(r.statusCode).toBe(200)
-    expect(r.json()).toMatchObject({ id: v2, active: false })
+    expect(r.json()).toMatchObject({ id: v1, active: false })
 
     // El test que caza un borrado fisico.
-    const fila = h.db.prepare('SELECT id, active FROM plans WHERE id = ?').get(v2)
-    expect(fila).toEqual({ id: v2, active: 0 })
+    const fila = h.db.prepare('SELECT id, active FROM plans WHERE id = ?').get(v1)
+    expect(fila).toEqual({ id: v1, active: 0 })
   })
 
   it('el cliente de un plan archivado sigue funcionando', async () => {
     const nebula = customerId(h.db, 'Nébula Cloud S.L.')
-    await del(planId(h.db, 'Plan Ágora', 2))
+    await del(planId(h.db, 'Plan Text', 1))
 
     const sim = await h.inject({
       method: 'POST',
@@ -319,16 +324,16 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
   })
 
   it('desaparece del listado de activos', async () => {
-    await del(planId(h.db, 'Plan Ágora', 2))
+    await del(planId(h.db, 'Plan Text', 1))
     const { plans } = (await get()).json() as { plans: { name: string }[] }
 
-    expect(plans.map((p) => p.name)).not.toContain('Plan Ágora')
-    expect(((await get('?include_archived=true')).json() as { plans: unknown[] }).plans).toHaveLength(4)
+    expect(plans.map((p) => p.name)).not.toContain('Plan Text')
+    expect(((await get('?include_archived=true')).json() as { plans: unknown[] }).plans).toHaveLength(8)
   })
 
   it('un plan archivado no se puede elegir en un alta', async () => {
-    const v2 = planId(h.db, 'Plan Ágora', 2)
-    await del(v2)
+    const v1 = planId(h.db, 'Plan Text', 1)
+    await del(v1)
 
     const alta = await h.inject({
       method: 'POST',
@@ -338,7 +343,7 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
         fiscal_id: 'A87654323',
         email: 'a@b.example',
         country: 'ES',
-        plan_id: v2,
+        plan_id: v1,
       },
     })
     expect(alta.statusCode).toBe(422)
@@ -346,9 +351,9 @@ describe('DELETE /plans/{id} — archivar, nunca borrar', () => {
   })
 
   it('archivar dos veces un plan USADO -> 422', async () => {
-    const v2 = planId(h.db, 'Plan Ágora', 2)
-    await del(v2)
-    expect((await del(v2)).statusCode).toBe(422)
+    const v1 = planId(h.db, 'Plan Text', 1)
+    await del(v1)
+    expect((await del(v1)).statusCode).toBe(422)
   })
 
   it('plan inexistente -> 404', async () => {
@@ -374,12 +379,12 @@ describe('DELETE /plans/{id} — el plan JAMAS USADO se elimina de verdad (ADR 0
   })
 
   it('con clientes suscritos NO se elimina: se archiva, como siempre', async () => {
-    // Bitacora tiene clientes del seed. La respuesta lo dice con `removed`, no adivinando.
-    const r = await del(planId(h.db, 'Plan Bitácora', 1))
+    // PRO tiene un cliente del seed (Lusitania). La respuesta lo dice con `removed`, no adivinando.
+    const r = await del(planId(h.db, 'Plan PRO', 1))
 
     expect(r.statusCode).toBe(200)
     expect(r.json().removed).toBe(false)
-    expect(h.db.prepare('SELECT active FROM plans WHERE id = ?').get(planId(h.db, 'Plan Bitácora', 1))).toEqual({ active: 0 })
+    expect(h.db.prepare('SELECT active FROM plans WHERE id = ?').get(planId(h.db, 'Plan PRO', 1))).toEqual({ active: 0 })
   })
 
   it('con SOLO simulaciones (sin clientes) tampoco se elimina: el snapshot vive, pero la FK no', async () => {

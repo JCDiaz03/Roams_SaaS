@@ -39,6 +39,13 @@ const COLUMNAS_ADITIVAS: readonly { tabla: string; columna: string; ddl: string 
     columna: 'archived',
     ddl: 'INTEGER NOT NULL DEFAULT 0 CHECK (archived IN (0, 1))',
   },
+  // Quien guardo la simulacion: el emisor del presupuesto impreso. NULL en las filas
+  // anteriores a la columna. El tope 60 es el del `usuario` del login (auth.schemas.ts).
+  {
+    tabla: 'simulations',
+    columna: 'created_by',
+    ddl: 'TEXT CHECK (created_by IS NULL OR length(created_by) BETWEEN 1 AND 60)',
+  },
 ]
 
 /**
