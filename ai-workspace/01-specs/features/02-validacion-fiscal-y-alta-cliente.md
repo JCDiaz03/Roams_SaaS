@@ -1,6 +1,6 @@
 # Spec — Validación fiscal y alta de cliente
 
-> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §7 completo. El contrato HTTP → `../contrato-api.md` §2.1 y §3.1. Las tablas → `../modelo-datos.md` §2.1, §2.4. La pantalla → `../diseño-frontend.md` ventana 5.
+> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §7 completo. El contrato HTTP → `../contrato-api.md` §2.1 y §3.1. Las tablas → `../modelo-datos.md` §2.1, §2.4. La pantalla → `../diseno-frontend.md` ventana 5.
 >
 > Validador y endpoint se especifican juntos porque el registro de validadores existe para servir al alta.
 
@@ -42,7 +42,7 @@ Regla exacta: eliminar todo carácter que no sea `[A-Za-z0-9]`, después `toUppe
 ### 3.1 Estructura
 
 ```ts
-type FiscalIdType = 'DNI' | 'NIE' | 'CIF' | 'unvalidated';
+type FiscalIdType = 'DNI' | 'NIE' | 'CIF' | 'NIF' | 'unvalidated';
 
 interface TaxIdValidator {
   readonly hint: string;                    // texto de presentación, ya resuelto
@@ -203,7 +203,7 @@ Contrato → `../contrato-api.md` §3.1. Sirve el desplegable del alta y el hint
 
 - **Se sirve de la caché de arranque**: cero consultas a SQLite por petición (→ referencia §6.1). La tabla es minúscula y de solo lectura en v1.
 - **El `hint` y `validated` los aporta el validador**, no la tabla: `REGISTRO.get(scheme)?.hint ?? PASS_THROUGH.hint`. Es la misma resolución que usa el alta, y por eso el hint que ve el usuario y la validación que sufre no pueden desincronizarse.
-- **Orden**: alfabético por `name` con locale español (`Á` ordena junto a `A`). España primero no; el desplegable lleva búsqueda (→ `../diseño-frontend.md`, ventana 5) y un orden "útil" que nadie puede predecir es peor que uno alfabético.
+- **Orden**: alfabético por `name` con locale español (`Á` ordena junto a `A`). España primero no; el desplegable lleva búsqueda (→ `../diseno-frontend.md`, ventana 5) y un orden "útil" que nadie puede predecir es peor que uno alfabético.
 
 ---
 

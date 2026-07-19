@@ -1,6 +1,6 @@
 # Spec — Buscador y detalle de cliente
 
-> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §12, §10. El contrato HTTP → `../contrato-api.md` §3.2, §3.3, §3.4. Las tablas → `../modelo-datos.md` §2.4. Las pantallas → `../diseño-frontend.md` ventanas 2 y 3.
+> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §12, §10. El contrato HTTP → `../contrato-api.md` §3.2, §3.3, §3.4. Las tablas → `../modelo-datos.md` §2.4. Las pantallas → `../diseno-frontend.md` ventanas 2 y 3.
 
 ---
 
@@ -57,7 +57,7 @@ Lo que **no** se hace es fingir lo contrario. Si la tabla creciera a millones, l
 
 ### 2.5 Estados en la pantalla
 
-Tres, y son tres (→ referencia §13.1, `../diseño-frontend.md` ventana 2):
+Tres, y son tres (→ referencia §13.1, `../diseno-frontend.md` ventana 2):
 
 - **Vacío ≠ error.** Sin resultados es `200` con `customers: []`, y la pantalla dice "sin resultados" con CTA "Dar de alta a {término}". Un `404` aquí sería un error de contrato: la colección existe, está vacía.
 - **Error de red** → banner con "Reintentar". Mensaje distinto del vacío.
@@ -84,7 +84,7 @@ Contrato → `../contrato-api.md` §3.3. Debe traer **en una sola llamada** todo
 
 ### 3.2 El plan archivado en pantalla
 
-`active: false` llega al cliente y la UI lo traduce a un aviso discreto: *"Mantiene su tarifa contratada"* (→ `../diseño-frontend.md` ventana 3). **Nada de jerga de versionado** — el comercial no sabe ni tiene que saber qué es una versión de plan. El dato viaja porque la UI lo necesita para decidir; la palabra "archivado" no aparece en pantalla.
+`active: false` llega al cliente y la UI lo traduce a un aviso discreto: *"Mantiene su tarifa contratada"* (→ `../diseno-frontend.md` ventana 3). **Nada de jerga de versionado** — el comercial no sabe ni tiene que saber qué es una versión de plan. El dato viaja porque la UI lo necesita para decidir; la palabra "archivado" no aparece en pantalla.
 
 ---
 
@@ -112,7 +112,7 @@ Orden `created_at DESC`, servido por `idx_simulations_customer` (→ `../modelo-
 - `search` vacío → `200` con los recientes, **no** `400`.
 - Sin resultados → `200` con lista vacía, **no** `404`.
 - Busca por `fiscal_id` además de por nombre: `B12345674` encuentra a Nébula.
-- Búsqueda con acento: `nébula` encuentra `Nébula Sistemas SL` (§2.3).
+- Búsqueda con acento: `nébula` encuentra `Nébula Cloud S.L.` — el cliente del seed; el test no usa fixture propio (§2.3).
 
 **Detalle:**
 - Trae el plan con sus tramos y el `tax_rate_bp` en una sola respuesta.

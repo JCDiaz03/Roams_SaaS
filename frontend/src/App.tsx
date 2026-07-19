@@ -1,4 +1,4 @@
-// Layout + topbar + rutas. Diseno: 01-specs/diseño-frontend.md 3
+// Layout + topbar + rutas. Diseno: 01-specs/diseno-frontend.md 3
 
 import { BrowserRouter } from 'react-router-dom'
 import { SessionProvider } from './lib/session'

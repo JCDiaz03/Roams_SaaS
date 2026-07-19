@@ -30,6 +30,8 @@ La capa 2 es la única que no depende de que alguien se acuerde. Ejemplos concre
 
 Estos cinco no se discuten en una sesión de vibe coding. Si el código generado los rompe, se rechaza sin evaluar el resto — no hay contexto en el que la alternativa sea mejor. El razonamiento completo está en `../01-specs/idea-referencia.md` §3; aquí queda el enunciado y **la señal que delata su incumplimiento**.
 
+> **Ojo con la numeración**: esta tabla es el resumen operativo y numera por su cuenta. La numeración **canónica** es la de los 7 principios de la referencia §3, y es la que usan todas las citas del workspace («invariante 5» en un ADR o en el contrato = el 5 de la referencia, nada de float — que aquí es el 2). Dos listas, una sola verdad: la de la referencia.
+
 | Invariante | Cómo se detecta que está roto |
 |---|---|
 | **1. El backend es la única fuente de verdad** del coste, el impuesto y la validación fiscal | Un campo de importe en el cuerpo de una petición. Un cálculo en el frontend cuyo resultado se envía |
@@ -101,7 +103,7 @@ Esta es la regla que **más veces hay que defender frente a una IA**: pedir "una
 ```
 frontend/src/
   features/   (login, search, customer, simulator, admin)
-  ui/         (componentes del sistema de tokens → ../01-specs/diseño-frontend.md)
+  ui/         (componentes del sistema de tokens → ../01-specs/diseno-frontend.md)
   lib/        (cliente API, sesión, formato de divisa)
 ```
 
@@ -154,7 +156,8 @@ Lista de rechazo directo. Cada entrada es algo que un modelo propone **con buena
 
 1. **Ninguna feature se implementa sin su spec** en `../01-specs/`. Si no existe, se escribe primero. No es burocracia: la spec **es** el prompt: el trabajo de precisar el problema hay que hacerlo igual, y hacerlo antes lo deja escrito.
 2. **El documento madre es `idea-referencia.md`.** Sus secciones (`§4.2`, `§7.3`…) son la referencia canónica y se citan en los prompts. Ante cualquier duda de negocio, manda él.
-3. **Cada sesión deja rastro** en `../03-proceso/sesiones/`: prompt de partida, qué se generó, **qué se rechazó y por qué**. Lo tercero es lo que tiene valor; lo primero es contexto. **Y el rastro se escribe al cerrar la sesión, no al final del proyecto**: esta regla se incumplió en la primera entrega precisamente porque vivía solo aquí y no en el `CLAUDE.md` que la IA relee en cada sesión — hoy está en los dos (→ nota de procedencia, `../03-proceso/sesiones/00-como-se-registro-esto.md`). Una regla que no vive donde se relee no es una regla: es una esperanza.
+3. **Cada sesión deja rastro**: el diario bruto en `../04-archivo/sesiones/` y su reflejo en la tabla de `../03-proceso/vibe-coding.md` — prompt de partida, qué se generó, **qué se rechazó y por qué**. Lo tercero es lo que tiene valor; lo primero es contexto. **Y el rastro se escribe al cerrar la sesión, no al final del proyecto**: esta regla se incumplió en la primera entrega precisamente porque vivía solo aquí y no en el `CLAUDE.md` que la IA relee en cada sesión — hoy está en los dos (→ nota de procedencia, `../03-proceso/vibe-coding.md`). Una regla que no vive donde se relee no es una regla: es una esperanza. La tabla es obligatoria para toda sesión; **el caso y la ficha son excepcionales por diseño** — un destilado donde todo asciende deja de ser un destilado.
 4. **El código generado se audita, no se acepta.** Lo que se busca no es que compile, sino los invariantes del §2, y son justo lo que un modelo no sabe que existe hasta que se le dice.
 5. **Un rechazo se argumenta.** "No" no enseña nada — ni al modelo en el siguiente turno, ni a quien lea el proceso. Por eso la tabla del §5 tiene dos columnas y la segunda es la que importa.
 6. **La suite entera en verde antes de cerrar la sesión** (`npm test`; el smoke E2E si se tocó pantalla). Una sesión cerrada en rojo deja el rastro mintiendo: el diario diría "hecho" de algo que no funciona.
+7. **Un ADR que supersede no está cerrado hasta grepear la frase vieja en todo el repo, documentación incluida.** La sesión 10 dejó «sin protección real» vivo en un cuarto sitio; el ADR 0013 dejó «nunca borrado físico» en cinco. Una regla evoluciona en un commit y muere en un grep. La lista «qué documentos cambian al implementar» de la spec 07 §9 es esta regla aplicada a una feature; esto la extiende a cualquier decisión que cambie una frase ya escrita.

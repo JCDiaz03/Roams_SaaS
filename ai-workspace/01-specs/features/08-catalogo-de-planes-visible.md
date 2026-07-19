@@ -1,6 +1,6 @@
 # Spec — Catálogo de planes visible: detalle solo-lectura y sección del dashboard
 
-> **Capa SPEC de feature.** El porqué de negocio → `../../roams-roadmap_v2.md` §1. El contrato HTTP → `../contrato-api.md` §3.7. Las pantallas → `../diseño-frontend.md` (ventanas 2 y 3, y la ventana nueva de detalle de plan). Decisión de rutas → roadmap v2, D1.
+> **Capa SPEC de feature.** El porqué de negocio → `../../roams-roadmap_v2.md` §1. El contrato HTTP → `../contrato-api.md` §3.7. Las pantallas → `../diseno-frontend.md` (ventanas 2 y 3, y la ventana nueva de detalle de plan). Decisión de rutas → roadmap v2, D1.
 
 ---
 

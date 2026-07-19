@@ -4,7 +4,7 @@
 >
 > * Qué es: hacia dónde va el proyecto y en qué punto está. Rastrea ESTADO, no cambios.
 > * Estado con marcadores (✅ hecho · 🔵 en curso · ⏳ pendiente · 🚫 descartado), NO con fechas de commit ni "antes/ahora". Una fecha solo si es un hito/objetivo real (aquí: la entrega, día 5).
-> * El "qué se construye y por qué" → `01-specs/idea-referencia.md` (no duplicar; resumir + enlazar). Diseño de pantallas → `01-specs/diseño-frontend.md`. Proceso con IA → `/ai-workspace`.
+> * El "qué se construye y por qué" → `01-specs/idea-referencia.md` (no duplicar; resumir + enlazar). Diseño de pantallas → `01-specs/diseno-frontend.md`. Proceso con IA → `/ai-workspace`.
 > * Ideas sin comprometer (post-entrega) → §7 Diferido. No mezclar con las fases comprometidas.
 
 ---
@@ -40,7 +40,7 @@
 
 ## 3. Fase 1 — Core del enunciado (innegociable) ✅
 
-### 3.1 Algoritmos en aislamiento — *Día 1 (tarde)*
+### 3.1 Algoritmos en aislamiento
 
 > Se implementan y testean ANTES de cualquier endpoint o UI: son el corazón de la nota de calidad.
 
@@ -50,7 +50,7 @@
 - ✅ Tests fiscales: **87 tests**, batería de válidos/inválidos por tipo (CIF la más amplia), normalización, fallbacks del registro. Validados por mutación: cinco mutantes (mod 10 exterior, validador permisivo, NIE sin sustituir la inicial, K/L/M como CIF, checksum sin reducir dígitos) mueren todos
 - ✅ Chequeo de integridad dato↔registro **en el arranque**: se cableó con la caché de países (→ §3.2), que es donde se recorre `countries` una sola vez. El chequeo **es** la construcción de la caché, no un segundo recorrido
 
-### 3.2 Backend — *Día 2*
+### 3.2 Backend 
 
 - ✅ Esqueleto Fastify: esquemas JSON por ruta **con `maxLength` en todos los campos de texto** (→ referencia §7.5), gestor de errores de producción (sin stack traces al cliente), middleware de auth `(mock, costura desde el día 1)`, caché de arranque de `countries` **+ tipo vigente** con **chequeo de integridad triple** (esquema registrado, tipo vigente por país y divisas ∈ `Currency`; fallo ruidoso → referencia §6.1), **seed automático si el `.db` no existe** (→ referencia §2.1)
 - ✅ `POST /customers` (validación fiscal vía registro por país, `fiscal_id` UNIQUE normalizado, duplicado por captura del UNIQUE y no por `SELECT` previo) · `POST /simulations` (cálculo + snapshot + persistencia)
@@ -59,10 +59,10 @@
 - ✅ Tests de integración: **202 tests** de backend contra la app real (`app.inject`) y base en memoria con el esquema y el seed de producción. Incluye paridad preview/persistencia y los chequeos de arranque
 - ✅ Verificado con el servidor real: `.db` creado y sembrado solo · alta con `p-1234 567d` → `P1234567D` · **15 usuarios = 140 € + 21 % = 169,40 €** · cliente con plan archivado mantiene su tarifa (155 €) · `GET /rates` contra `open.er-api.com` filtrando de ~160 a 45 divisas · el arranque **se niega** ante una deriva dato↔código
 
-### 3.3 Frontend core — *Día 3*
+### 3.3 Frontend core 
 
 - ✅ Configuración Vite con **proxy de dev hacia el backend** (mismo origen; nada de abrir CORS → referencia §14.1)
-- ✅ **Sistema de diseño importado** del prototipo de Claude Design (`SaaS-O-Matic.dc.html` → `01-specs/diseño-frontend.md` §6.3): `tokens.css` de ambos temas, primitivas (`Button`, `Card`, `Chip`, `Callout`, `Skeleton`, `Toast`, `ThemeToggle`, iconos), `lib/theme.ts` y `lib/currency-format.ts`. Del prototipo se porta el lenguaje visual; **su lógica no** (reimplementa motor, redondeo y validador fiscal → directrices §5). Poppins auto-alojada, subset latino. **Contraste AA como test que falla el CI** (`ui/tokens.test.ts`, 32 pares): 8 pares del prototipo fallaban AA y se corrigieron
+- ✅ **Sistema de diseño importado** del prototipo de Claude Design (`SaaS-O-Matic.dc.html` → `01-specs/diseno-frontend.md` §6.3): `tokens.css` de ambos temas, primitivas (`Button`, `Card`, `Chip`, `Callout`, `Skeleton`, `Toast`, `ThemeToggle`, iconos), `lib/theme.ts` y `lib/currency-format.ts`. Del prototipo se porta el lenguaje visual; **su lógica no** (reimplementa motor, redondeo y validador fiscal → directrices §5). Poppins auto-alojada, subset latino. **Contraste AA como test que falla el CI** (`ui/tokens.test.ts`, 32 pares): 8 pares del prototipo fallaban AA y se corrigieron
 - ✅ Login mock + sesión `{nombre, rol}` + `hasRole()` (→ referencia §8). **El literal `"ADMIN"` aparece una sola vez en `frontend/src`, y hay un test que lo vigila** (`lib/session.test.ts`): es lo único que hace que el mock sea sustituible en un módulo, que es la única razón por la que un mock es aceptable
 - ✅ Buscador con debounce de 250 ms (vacío ≠ error), término en la URL, `AbortController` para que una respuesta lenta no pise a la rápida
 - ✅ Cards responsive: detalle de cliente + historial de simulaciones (grid 1-2-3)
@@ -71,7 +71,7 @@
 - ✅ Selector de divisa: preselección `auto`/`manual` (la elección manual manda → referencia §13), conversión solo visual, importe marcado como referencia con el facturado al lado, `Intl.NumberFormat` con `narrowSymbol`
 - ✅ Verificado conduciendo la app real con Chrome (backend + frontend con `npm run dev`): login → buscador (`nébula` → 1 resultado) → ficha de Fjord con el aviso «Mantiene su tarifa contratada» → simulador con **su tarifa archivada (10×12 € + 5×7 € = 155 € + 19 % DE = 184,45 €)** → guardar → cambio a USD (210,62 $ marcado como referencia) → historial. **Cero errores de consola**
 
-### 3.4 Robustez y entrega mínima — *Día 4*
+### 3.4 Robustez y entrega mínima 
 
 - ✅ Estados de carga/error en TODAS las llamadas (→ referencia §13.1) — criterio de evaluación explícito. Skeletons con la silueta del contenido (nunca spinner a pantalla completa), vacío ≠ error con mensajes distintos, errores de validación junto al campo, y botón deshabilitado durante el envío
 - ✅ Seguridad §14: regla ESLint anti `dangerouslySetInnerHTML` ✅ · `npm audit` en CI ✅ · **CSP estricta** ✅ — cabecera desde Vite (`server`/`preview`). El build corre bajo `style-src 'self'` **sin `unsafe-inline`** y con **cero violaciones**, verificado recorriendo la app: la fuente carga (auto-alojada), el CSS aplica y el `fetch` pasa. **El modo dev necesita `unsafe-inline` en `script-src` y `style-src`** (Vite inyecta el preámbulo de React Refresh y el CSS por JS): allí la CSP no defiende de un XSS y **no se pretende que lo haga** — se queda como alarma de deriva. Esta línea es la de la Fase 1: tras la entrega se suman Dependabot, CodeQL y dos endurecimientos (→ §6, «Después de la entrega»)
@@ -90,7 +90,7 @@
 - ✅ UI admin: plantilla (bloques por métrica, cortes como "hasta cuántos", último tramo fijo como "En adelante", **vista previa en vivo con el mismo `quote()`**), listado con archivado y confirmación en lenguaje llano, aviso de versionado sin jerga
 - ✅ El seed cierra su círculo: los planes pasan por el **mismo validador de plantilla** que `POST /plans`
 - ✅ Verificado conduciendo la app: entrar como `ADMIN` → Administración → editar Ágora → plantilla incoherente rechazada **con el error en su fila** → arreglar y guardar → **v3 activa, v1 y v2 archivadas**, la simulación guardada sigue en 169,40 € con sus tramos de 10 €/8 €, y Nébula sigue apuntando a la v2
-- ✅ Registro del proceso en `/ai-workspace/03-proceso`: **9 sesiones** (una por commit, con el prompt literal y qué se rechazó) y **3 auditorías** de los defectos silenciosos. 🚫 **Incumple la regla 2**: se transcribió al final, no por sesión. El contenido es real y trazable a commits, y la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) lo declara en vez de disimularlo
+- ✅ Registro del proceso: **9 sesiones** (una por commit, con el prompt literal y qué se rechazó) y **3 auditorías** de los defectos silenciosos — hoy destilado en `03-proceso/` (vibe-coding.md, auditorias.md) con los diarios brutos en `04-archivo/`. 🚫 **Incumple la regla 2**: se transcribió al final, no por sesión. El contenido es real y trazable a commits, y la [nota de procedencia](03-proceso/vibe-coding.md) lo declara en vez de disimularlo
 
 ## 5. Fase 3 — Endurecimiento con el margen de plazo ✅
 
@@ -174,13 +174,13 @@ Con días extra, la tentación es rellenarlos. Lo que se consideró y **no** ent
   - **Tope de 1 MB al cuerpo del proveedor de tipos**: el timeout acotaba el tiempo, no el volumen *dentro* de ese tiempo. El payload de un tercero no es de fiar (→ referencia §9)
   - **`nosniff` y `Referrer-Policy` en toda respuesta**, de la API y de Vite. La CSP no va ahí: es del documento HTML y la envía Vite (→ referencia §14.2)
 - ✅ En verde: **204 tests** de backend (los 202 de §3.2 más los 2 del recuerdo de fallo) + **34** de frontend; typecheck, lint y build limpios
-- ✅ **Auditoría de cierre con tres lentes en paralelo** (backend+pricing · frontend · config+CI+deriva docs↔código), cada hallazgo verificado contra el código antes de tocar nada: **4 altos corregidos y testeados** — topes anti-overflow del dinero del plan (→ [auditoría 04](./03-proceso/auditorias/04-dinero-sin-tope.md)), `MALFORMED_REQUEST` para peticiones ilegibles que respondían 500, la búsqueda de la topbar que se auto-revertía a los 250 ms, y la hoja de impresión que podía cruzar datos entre clientes — más ~25 medios y bajos aplicados; lo que se decidió NO tocar, razonado en la [sesión 14](./03-proceso/sesiones/14-auditoria-de-cierre.md). Eficiencia: **limpia en los tres informes**. Estado final: **339 tests + 3 E2E**
+- ✅ **Auditoría de cierre con tres lentes en paralelo** (backend+pricing · frontend · config+CI+deriva docs↔código), cada hallazgo verificado contra el código antes de tocar nada: **4 altos corregidos y testeados** — topes anti-overflow del dinero del plan (→ [auditoría 04](04-archivo/auditorias/04-dinero-sin-tope.md)), `MALFORMED_REQUEST` para peticiones ilegibles que respondían 500, la búsqueda de la topbar que se auto-revertía a los 250 ms, y la hoja de impresión que podía cruzar datos entre clientes — más ~25 medios y bajos aplicados; lo que se decidió NO tocar, razonado en la [sesión 14](04-archivo/sesiones/14-auditoria-de-cierre.md). Eficiencia: **limpia en los tres informes**. Estado final: **339 tests + 3 E2E**
 
 ### Lo que queda fuera, y con qué cara
 
 **Nada de lo comprometido está a medias.** Lo que no está, no está por decisión y tiene su porqué escrito:
 
-- **La regla 2 no se cumplió** (`sesiones/` y `auditorias/` se transcribieron al final). Declarado en la [nota de procedencia](./03-proceso/sesiones/00-como-se-registro-esto.md) y en §8.
+- **La regla 2 no se cumplió** (`sesiones/` y `auditorias/` se transcribieron al final). Declarado en la [nota de procedencia](03-proceso/vibe-coding.md) y en §8.
 - **Lo diferido** (§7) sigue diferido, y ninguno bloquea nada: cada uno tiene su costura hecha.
 - **Los recortes de implementación** viven en [`recortes-conscientes.md`](./03-proceso/recortes-conscientes.md): FTS5, tildes en el buscador, refresco proactivo de tipos, `/api/v1`, `docker-compose`.
 - **Lo evaluado y descartado para la Fase 3** — docker-compose, cruzada de divisas, FTS5, volume/flat, panel de impuestos… — está en §5.5: se consideró **otra vez** con el margen de plazo y se descartó otra vez, por las mismas razones.
@@ -195,7 +195,7 @@ Con días extra, la tentación es rellenarlos. Lo que se consideró y **no** ent
 - 🚫 **Conexión al sistema de identidad corporativo** (SSO/OIDC/LDAP): la Fase 3 construye la sesión, el enforcement en backend y el puerto `IdentityProvider` (→ §5.1); lo que sigue diferido es la implementación del puerto contra el sistema real, que se define cuando se conozca. El diferido se **estrechó**: antes era "auth real" entero
 - 🚫 `VIESProvider` / reverse charge intracomunitario (la interfaz `TaxProvider` ya lo permite)
 - 🚫 Pasarela de pagos (lock del tipo de cambio en el instante del cobro)
-- 🚫 Planes con divisa de facturación ≠ EUR (price localization; la columna `currency` ya existe)
+- ✅ ~~Planes con divisa de facturación ≠ EUR~~ — **salió del diferido**: el catálogo definitivo trae Almacenamiento (USD) y Tokio (JPY) como listas de precios independientes (→ `03-proceso/recortes-conscientes.md` §2.4)
 - 🚫 Modelos de tarificación `volume` / `flat` (el Strategy ya deja el hueco)
 - 🚫 Modelo **compromiso + excedente** (cantidad contratada + tarifa de exceso, estilo telefonía): evaluado en la tanda del catálogo de planes y diferido — el modelo actual es elástico por diseño; los `base_*` del cliente son la semilla del dato de compromiso (→ `03-proceso/recortes-conscientes.md` §2.9)
 - 🚫 Modelo **`flat` premium** ("ilimitado con sobrecoste"): lo ilimitado-incluido ya es expresable (métrica sin tramos = aporta 0); la cuota fija mensual espera al modelo `flat` (→ `03-proceso/recortes-conscientes.md` §2.10)

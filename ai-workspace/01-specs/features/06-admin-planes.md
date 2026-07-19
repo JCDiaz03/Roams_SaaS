@@ -1,6 +1,6 @@
 # Spec — Administración de planes (Fase 2)
 
-> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §5.4, §5.5. El contrato HTTP → `../contrato-api.md` §4. Las tablas → `../modelo-datos.md` §2.3. Las pantallas → `../diseño-frontend.md` ventanas 6 y 7.
+> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §5.4, §5.5. El contrato HTTP → `../contrato-api.md` §4. Las tablas → `../modelo-datos.md` §2.3. Las pantallas → `../diseno-frontend.md` ventanas 6 y 7.
 >
 > **Implementado.** Se abrió con el gate de Fase 1 en verde, como exige la regla 1 del roadmap.
 
@@ -55,7 +55,7 @@ Con `up_to` a secas, lo único que queda por validar es el **orden** (`CUTS_NOT_
 
 ### 3.3 Se devuelven todas las violaciones, no la primera
 
-`violations` es un array. El admin que ha escrito cuatro tramos mal no debe descubrirlos de uno en uno, guardando y fallando cuatro veces — y el diseño pide el error **sobre la fila afectada** (→ `../diseño-frontend.md` ventana 7), lo que exige saber cuáles fallan, en plural. Cada violación lleva `metric` e `index` para que la UI sepa dónde pintarla.
+`violations` es un array. El admin que ha escrito cuatro tramos mal no debe descubrirlos de uno en uno, guardando y fallando cuatro veces — y el diseño pide el error **sobre la fila afectada** (→ `../diseno-frontend.md` ventana 7), lo que exige saber cuáles fallan, en plural. Cada violación lleva `metric` e `index` para que la UI sepa dónde pintarla.
 
 `message` es la traducción a lenguaje de comercial, y **es texto de producto** (→ `../contrato-api.md` §1.2). No dice `LAST_TIER_MUST_BE_OPEN`; dice: *"El último tramo de «Usuarios» debe quedar abierto: hoy los usuarios por encima de 50 no tienen precio."* La regla explica **la consecuencia**, no la regla.
 
@@ -75,7 +75,7 @@ Contrato → `../contrato-api.md` §4. Ni edición libre ni borrado físico: es 
 |---|---|
 | **Crear** (`POST`) | Inserta plan, `active = 1`, y `version = 1`… **salvo que el nombre ya exista archivado** (→ §4.4) |
 | **Editar** (`PUT`) | **Crea versión nueva** (`version + 1`, activa) y archiva la anterior. Los clientes existentes **siguen apuntando al `plan_id` antiguo** |
-| **Borrar** (`DELETE`) | **Archiva** (`active = 0`). Nunca borrado físico |
+| **Borrar** (`DELETE`) | **Archiva** (`active = 0`) el plan **usado** (con clientes o simulaciones). El jamás usado se elimina de verdad — la condición la decide el servidor y la respuesta la declara con `removed` (→ ADR 0013) |
 
 **Por qué "el admin edita con conocimiento de causa" no se sostiene** (→ referencia §5.5): no es un problema de competencia del admin, es que **no puede ver las consecuencias desde su pantalla**. No sabe qué presupuestos se enviaron con ese tramo ni qué clientes están dados de alta con ese plan. Ninguna advertencia arregla información que no está en la pantalla.
 
@@ -91,13 +91,13 @@ Contrato → `../contrato-api.md` §4. Ni edición libre ni borrado físico: es 
 
 Consecuencia: `PLAN_NAME_TAKEN` (`409`) se comprueba contra planes **activos**. Un nombre cuya única ocurrencia está archivada se puede reutilizar; si no, archivar un plan quemaría su nombre para siempre.
 
-### 4.4 Reutilizar un nombre archivado NO da la versión 1
+### 4.3 Reutilizar un nombre archivado NO da la versión 1
 
 Se descubrió con un test, y merece estar escrito porque el enunciado del §4 («Crear → `version = 1`») induce al error: **fijar `version = 1` al crear choca contra el `UNIQUE (name, version)`** en cuanto ese nombre tuvo una v1, aunque esté archivada. Un `500` donde debería haber un `201`.
 
 La regla correcta: **crear usa la siguiente versión de ese nombre**, igual que versionar. Y es coherente, no un parche: si `UNIQUE (name, version)` significa que **el nombre es la identidad del linaje**, reutilizarlo es continuarlo. Las versiones viejas siguen en el histórico bajo el mismo nombre, que es exactamente lo que el admin espera ver. La versión 1 es, entonces, el caso particular de un nombre que nunca se ha usado.
 
-### 4.3 No se versiona desde una versión archivada
+### 4.4 No se versiona desde una versión archivada
 
 `PUT` sobre un plan con `active = 0` → `422 PLAN_ALREADY_ARCHIVED`. Permitirlo crearía una `v3` a partir de una `v1` mientras la `v2` sigue activa: dos ramas vivas del mismo plan y ninguna forma de saber cuál manda. El versionado es lineal a propósito.
 
@@ -105,7 +105,7 @@ La regla correcta: **crear usa la siguiente versión de ese nombre**, igual que 
 
 ## 5. Las pantallas
 
-Detalle → `../diseño-frontend.md` ventanas 6 y 7. Lo que esta spec fija:
+Detalle → `../diseno-frontend.md` ventanas 6 y 7. Lo que esta spec fija:
 
 - **Nada de jerga de versionado** (→ referencia §5.5). El admin ve "Editar plan" y un aviso: *"Los clientes actuales mantendrán la tarifa anterior. Se creará una nueva versión."* Es **toda** la jerga que se permite, y aparece una vez.
 - **El archivado se confirma en lenguaje llano**: *"El plan dejará de ofrecerse a clientes nuevos. Los clientes actuales no se ven afectados."* Son las dos reglas del §5.3 de `02-validacion-fiscal-y-alta-cliente.md`, dichas sin una palabra técnica.
@@ -124,7 +124,7 @@ Detalle → `../diseño-frontend.md` ventanas 6 y 7. Lo que esta spec fija:
 - Cero bloques → `AT_LEAST_ONE_BLOCK`.
 - Divisa fuera del enum → `CURRENCY_NOT_SUPPORTED`.
 - **Varias violaciones a la vez** → se devuelven **todas**, con su `metric` e `index`. Es el test que impide "optimizar" con un early return.
-- **Plantilla válida multi-métrica** (el Plan C del seed) → sin violaciones.
+- **Plantilla válida multi-métrica** (el Plan MAX del seed) → sin violaciones.
 
 **Versionado** (→ referencia §15, el test que da sentido a toda la feature):
 - Editar un plan **no altera las simulaciones guardadas**: sus totales y su desglose siguen iguales (protege el snapshot).

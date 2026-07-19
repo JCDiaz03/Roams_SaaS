@@ -18,7 +18,7 @@ import {
  * Lanza si la plantilla no cuadra, con TODAS las violaciones dentro.
  *
  * `violations` viaja en el sobre de error para que la UI pinte cada error sobre la fila
- * afectada (diseño-frontend.md, ventana 7). `rule` es el codigo estable; `message` es la
+ * afectada (diseno-frontend.md, ventana 7). `rule` es el codigo estable; `message` es la
  * traduccion a lenguaje de admin.
  */
 function assertPlantillaValida(plantilla: Plantilla): void {

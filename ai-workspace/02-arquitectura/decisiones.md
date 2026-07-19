@@ -95,6 +95,8 @@ El coste asumido: cada importe viaja como par `(entero, ISO)` y el formateo es r
 
 ## 0006 — Versionado de planes y snapshot de simulación
 
+> **Matizada por el ADR 0013**: el plan jamás usado (cero clientes, cero simulaciones) sí se elimina físicamente. Lo inmutable es el precio publicado *usado*.
+
 **Contexto.** Los planes son datos editables por un admin. Una simulación guardada tiene que poder explicar su número mañana. Y un cliente dado de alta con el Plan A tiene que seguir tarificando como su Plan A. **Son dos problemas distintos** y es fácil verlos como uno.
 
 **Alternativas consideradas.**
@@ -114,11 +116,13 @@ Es además la práctica de industria: en Stripe un `Price` no permite cambiar su
 
 ## 0007 — Auth mock con costura
 
+> **Superseded parcialmente por el ADR 0009**: la costura se rellenó con sesión de servidor y enforcement real. La apuesta de esta decisión —sustituir el mock costaría un módulo— se comprobó allí, y costó exactamente eso.
+
 **Contexto.** El enunciado pide login con contraseña `1111` y un rol admin. No se conocen ni los datos ni el sistema de identidad interno de la empresa.
 
 **Alternativas consideradas.**
 
-- **Auth real** (usuarios en base de datos, hash de contraseñas, tokens). Inventar hoy un modelo de usuarios —tablas de roles, `sales_rep_id`— cuesta más que añadirlo cuando se conozca el sistema real, y casi con certeza sería el modelo equivocado. Se descarta y se documenta como diferido (→ `roams-roadmap.md` §6).
+- **Auth real** (usuarios en base de datos, hash de contraseñas, tokens). Inventar hoy un modelo de usuarios —tablas de roles, `sales_rep_id`— cuesta más que añadirlo cuando se conozca el sistema real, y casi con certeza sería el modelo equivocado. Se descarta y se documenta como diferido (→ `roams-roadmap.md` §7 y `../03-proceso/recortes-conscientes.md` §2.1).
 - **Mock a pelo**, con `if (usuario === "ADMIN")` donde haga falta. Cumple el enunciado y **genera deuda real**: sustituirlo obliga a encontrar y tocar veinte sitios, y el que se olvide no falla — deja de proteger, en silencio.
 - **Mock con costura.** Elegida.
 
@@ -144,7 +148,7 @@ Es además la práctica de industria: en Stripe un `Price` no permite cambiar su
 
 **Consecuencias.** **El stack no tiene dependencias de sistema que justifiquen contenedores**: SQLite es un fichero, no un servicio; no hay Postgres, ni Redis, ni colas. Docker resuelve el problema de orquestar servicios y aislar dependencias del sistema, y aquí no hay ninguno de los dos — sería ceremonia con coste cierto y beneficio cero.
 
-**Cuándo dejaría de ser cierto**, que es la parte que hace que esto sea una decisión y no una excusa: en cuanto haya un servicio real que orquestar (una base de datos que sea un proceso, una caché compartida entre instancias, un worker). Ese día `docker-compose` entra por la puerta grande. Queda como diferido documentado (→ `roams-roadmap.md` §6).
+**Cuándo dejaría de ser cierto**, que es la parte que hace que esto sea una decisión y no una excusa: en cuanto haya un servicio real que orquestar (una base de datos que sea un proceso, una caché compartida entre instancias, un worker). Ese día `docker-compose` entra por la puerta grande. Queda como diferido documentado (→ `roams-roadmap.md` §7 y `../03-proceso/recortes-conscientes.md` §4.1).
 
 El único riesgo real es `better-sqlite3`, que compila binario nativo: si el evaluador tuviera una versión de Node sin binario precompilado disponible, `npm install` pediría herramientas de compilación. Lo mitiga el `engines` + `.nvmrc` fijando una versión LTS con binarios publicados, y el README diciendo cuál es.
 

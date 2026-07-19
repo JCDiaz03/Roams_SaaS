@@ -183,7 +183,7 @@ Una desviación más, en la ventana 7: **la vista previa en vivo usa `quote()` d
 
 ---
 
-## 8. Ampliaciones: el catálogo de planes `(en construcción)`
+## 8. Ampliaciones: el catálogo de planes
 
 > Specs → `features/08-catalogo-de-planes-visible.md` y `features/09-simulacion-parametrizada-y-plan-elegido.md`; hoja de ruta → `../roams-roadmap_v2.md`. Estas piezas no tienen prototipo de Claude Design: se componen con las primitivas y patrones ya implementados (§2.4), sin lenguaje visual nuevo.
 

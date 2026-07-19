@@ -98,7 +98,7 @@ La **verificación de credenciales** sigue detrás del puerto `IdentityProvider`
 
 ```json
 {
-  "company_name": "Nébula Sistemas SL",
+  "company_name": "Nébula Cloud S.L.",
   "fiscal_id": "b-1234 5674",
   "email": "compras@nebula.example",
   "country": "ES",
@@ -126,7 +126,7 @@ Los `base_*` son los **valores base de consumo** del cliente (→ `features/09-s
 ```json
 {
   "id": 1,
-  "company_name": "Nébula Sistemas SL",
+  "company_name": "Nébula Cloud S.L.",
   "fiscal_id": "B12345674",
   "fiscal_id_type": "CIF",
   "email": "compras@nebula.example",
@@ -154,7 +154,7 @@ Devuelve el `fiscal_id` **normalizado**: el cliente escribió `"b-1234 5674"` y 
 | `422` | `PLAN_NOT_FOUND` | `plan_id` | El plan no existe |
 | `422` | `PLAN_ARCHIVED` | `plan_id` | El plan existe pero `active = 0` (→ referencia §5.5) |
 
-`FISCAL_ID_DUPLICATE` devuelve además el cliente existente, porque el diseño pide enlazar a su ficha (→ `diseño-frontend.md`, ventana 5: *"Esta empresa ya existe"* con enlace):
+`FISCAL_ID_DUPLICATE` devuelve además el cliente existente, porque el diseño pide enlazar a su ficha (→ `diseno-frontend.md`, ventana 5: *"Esta empresa ya existe"* con enlace):
 
 ```json
 {
@@ -162,7 +162,7 @@ Devuelve el `fiscal_id` **normalizado**: el cliente escribió `"b-1234 5674"` y 
     "code": "FISCAL_ID_DUPLICATE",
     "message": "Ya hay una empresa dada de alta con este identificador fiscal.",
     "field": "fiscal_id",
-    "existing_customer": { "id": 1, "company_name": "Nébula Sistemas SL" }
+    "existing_customer": { "id": 1, "company_name": "Nébula Cloud S.L." }
   }
 }
 ```
@@ -288,7 +288,7 @@ Sin parámetros. Sirve el desplegable del alta y el hint fiscal (→ referencia 
 | `search` | string | `maxLength: 100`, opcional |
 | `limit` | integer | `minimum: 1`, `maximum: 50`, por defecto `20` |
 
-**`search` ausente o vacío no es un error**: devuelve los clientes más recientes, que es el estado inicial del dashboard (→ `diseño-frontend.md`, ventana 2). Un `400` aquí obligaría al frontend a no llamar hasta tener texto, y el estado inicial dejaría de existir.
+**`search` ausente o vacío no es un error**: devuelve los clientes más recientes, que es el estado inicial del dashboard (→ `diseno-frontend.md`, ventana 2). Un `400` aquí obligaría al frontend a no llamar hasta tener texto, y el estado inicial dejaría de existir.
 
 **Respuesta `200`**
 
@@ -297,7 +297,7 @@ Sin parámetros. Sirve el desplegable del alta y el hint fiscal (→ referencia 
   "customers": [
     {
       "id": 1,
-      "company_name": "Nébula Sistemas SL",
+      "company_name": "Nébula Cloud S.L.",
       "fiscal_id": "B12345674",
       "fiscal_id_type": "CIF",
       "country": "ES",
@@ -326,7 +326,7 @@ Sin resultados → `200` con `customers: []` y `total: 0`. **Vacío no es error*
 ```json
 {
   "id": 1,
-  "company_name": "Nébula Sistemas SL",
+  "company_name": "Nébula Cloud S.L.",
   "fiscal_id": "B12345674",
   "fiscal_id_type": "CIF",
   "email": "compras@nebula.example",
@@ -494,7 +494,7 @@ El historial (§3.4) acepta **`?include_archived=true`**; por defecto solo devue
 
 ## 4. Endpoints de administración (Fase 2)
 
-→ spec: `features/06-admin-planes.md`. Sin protección real (§1.6).
+→ spec: `features/06-admin-planes.md`. Exigen rol admin **de verdad** en el backend: `403 AUTH_FORBIDDEN` sin él (→ §1.6).
 
 ### 4.1 `POST /plans`
 
@@ -536,7 +536,7 @@ El historial (§3.4) acepta **`?include_archived=true`**; por defecto solo devue
 | `422` | `PLAN_TEMPLATE_INVALID` | La plantilla es incoherente (→ referencia §5.4) |
 | `409` | `PLAN_NAME_TAKEN` | Ya existe un plan activo con ese nombre |
 
-`PLAN_TEMPLATE_INVALID` **detalla qué tramo falla**, porque el diseño exige el error sobre la fila afectada (→ `diseño-frontend.md`, ventana 7):
+`PLAN_TEMPLATE_INVALID` **detalla qué tramo falla**, porque el diseño exige el error sobre la fila afectada (→ `diseno-frontend.md`, ventana 7):
 
 ```json
 {

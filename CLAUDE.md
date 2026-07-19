@@ -9,6 +9,8 @@
 
 ## Invariantes que no se negocian
 
+> **Ojo con la numeración**: estos cinco son el resumen operativo, con numeración propia. La numeración **canónica** es la de los 7 principios de `idea-referencia.md` §3 — cuando el workspace cita «invariante 5» (ADRs, contrato, modelo de datos), habla de la referencia (el 5 = nada de float), no de esta lista.
+
 1. El backend es la única fuente de verdad del coste, el impuesto y la validación fiscal. El frontend envía entradas, nunca importes.
 2. Nada de `float` para dinero: enteros en unidades menores (`_minor`) acompañados del código ISO.
 3. Ningún tipo de cambio entra jamás en un importe persistido. La divisa de visualización no afecta al negocio.
@@ -35,7 +37,9 @@
 
 ## Al cerrar cada sesión
 
-- La sesión se registra en `ai-workspace/03-proceso/sesiones/` **antes de cerrarla**, no al final del proyecto: prompt de partida, resultado y qué se rechazó, con su porqué. (Regla que se incumplió en la primera entrega precisamente porque no vivía en este fichero → nota de procedencia en `ai-workspace/03-proceso/sesiones/00-como-se-registro-esto.md`.)
+- La sesión se registra **antes de cerrarla**, no al final del proyecto: el diario bruto en `ai-workspace/04-archivo/sesiones/` y su reflejo en la tabla de `ai-workspace/03-proceso/vibe-coding.md` — prompt de partida, resultado y qué se rechazó, con su porqué. (Regla que se incumplió en la primera entrega precisamente porque no vivía en este fichero → nota de procedencia en `vibe-coding.md`.)
+- Caso desarrollado o ficha de auditoría, **solo si pagan su peaje**: una lección distinta de las ya contadas, o un defecto silencioso con regla transferible.
+- Si la sesión matiza o supersede una regla escrita, **se grepea la frase vieja en todo el repo** (docs incluidos) y se matiza donde sobreviva.
 - La suite entera en verde (`npm test`; el smoke E2E si la sesión tocó pantalla) antes de dar la sesión por cerrada.
 
 ## Qué rechazar aunque la IA lo proponga

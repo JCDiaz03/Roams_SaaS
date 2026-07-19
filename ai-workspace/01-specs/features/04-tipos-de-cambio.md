@@ -1,6 +1,6 @@
 # Spec — Tipos de cambio
 
-> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §9, §4.1, §13.1. El contrato HTTP → `../contrato-api.md` §3.6. La pantalla → `../diseño-frontend.md` (topbar y ventana 4).
+> **Capa SPEC de feature.** El porqué de negocio → `../idea-referencia.md` §9, §4.1, §13.1. El contrato HTTP → `../contrato-api.md` §3.6. La pantalla → `../diseno-frontend.md` (topbar y ventana 4).
 
 ---
 
@@ -89,7 +89,7 @@ Lo que no se hace jamás es servir el número viejo **en silencio**: un dashboar
 ## 6. En el cliente
 
 - **La conversión es solo visual** y se hace en el frontend: `mostrado = total_minor × rate`, formateado con `Intl.NumberFormat` a partir del código ISO (→ referencia §4.4). El resultado no se envía a ningún sitio.
-- **El importe convertido se marca siempre como referencia**, con el importe de facturación real visible al lado ("Se factura: 169,40 €"). → `../diseño-frontend.md`, ventana 4.
+- **El importe convertido se marca siempre como referencia**, con el importe de facturación real visible al lado ("Se factura: 169,40 €"). → `../diseno-frontend.md`, ventana 4.
 - **Preselección de divisa**: la sesión guarda `{ currency, source: 'auto' | 'manual' }`. Detalle en `05-auth-mock.md` §4, porque es estado de sesión.
 - **Estados** (→ referencia §13.1): skeleton al cargar; `stale: true` → badge ámbar persistente; `503` → selector deshabilitado o caída a EUR con aviso.
 - **La cruzada existe y es real**: el catálogo tiene planes facturados en USD y JPY (→ `../modelo-datos.md` §3.2), así que mostrar su total en otra divisa cruza por la base EUR — `USD→GBP = rates[GBP] / rates[USD]`. Vive en el conversor de presentación del frontend (`convertMinor`), nunca en un importe persistido (→ referencia §4.1, invariante 3).

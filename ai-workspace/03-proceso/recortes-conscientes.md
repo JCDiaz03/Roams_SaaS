@@ -20,6 +20,8 @@ El criterio que gobierna toda la lista es el mismo que rechaza los puertos de m�
 
 ## 2. Recortes de producto
 
+> Numeración estable, orden temático: §2.9 y §2.10 nacieron en la tanda del catálogo y viven junto a §2.5, su pariente (los tres son modelos de tarificación). El salto en la numeración no es un error: es historial.
+
 ### 2.1 Conexión al sistema de identidad corporativo (SSO / OIDC / LDAP)
 
 > **Este recorte se estrechó en la Fase 3** (→ ADR 0009): la sesión de servidor, la cookie `HttpOnly`, el rate limit del login y el rol aplicado en el backend (401/403) **ya están construidos**. La predicción original —"rellenar el hook y sustituir un módulo"— se ejecutó y se cumplió. Lo que sigue recortado es solo lo de abajo.
@@ -43,12 +45,11 @@ El criterio que gobierna toda la lista es el mismo que rechaza los puertos de m�
 **Coste de hacerlo**: el diseño ya lo contempla en lo único que le afectaría: **un tipo cacheado sirve para enseñar, nunca para cobrar** (→ referencia §4.2). Al cobrar hay que revalidar, **fijar (*lock*) el tipo en el instante de la transacción** y persistirlo con el cobro. Y `minor_unit` ya está en el enum, que es lo que Stripe espera (JPY en yenes enteros).
 **Nota**: es el recorte que más se beneficia de 0005. Sin `minor_unit`, integrar una pasarela sería una migración de datos; con él, es una feature.
 
-### 2.4 Planes con divisa de facturación ≠ EUR
+### 2.4 Planes con divisa de facturación ≠ EUR — **ejecutado** (catálogo definitivo)
 
-**Qué se pierde**: nada hoy — todos los planes son EUR.
-**Por qué se aplaza**: no hay ningún cliente que lo pida, y hacerlo bien es *price localization* (una lista de precios independiente en USD, el modelo de Stripe), **no una conversión**. Un cliente que firmó a 10 $/usuario no acepta 10,73 $ el mes siguiente porque se movió el EUR/USD (→ referencia §4.1).
-**Coste de hacerlo**: **la columna `currency` ya existe en `plans`** desde el día 1 aunque hoy solo contenga `EUR`, precisamente para que "EUR" no quede como suposición invisible incrustada en treinta sitios. Faltaría la cruzada de tipos (`USD→GBP = rates[GBP] / rates[USD]`, la API tiene base EUR) y el selector de divisa en la plantilla de planes — que también existe ya.
-**Este es el ejemplo del recorte con coste futuro nulo**: la parte cara (que el sistema sepa que un importe tiene divisa) está hecha; la barata (que haya más de una) espera.
+El recorte presumía coste futuro nulo, y se comprobó: con el catálogo definitivo entraron el Plan Almacenamiento (**USD**) y el Plan Tokio (**JPY**, `minor_unit = 0` en pantalla) como **listas de precios independientes** — *price localization*, el modelo de Stripe, no una conversión (→ referencia §4.1).
+**Lo que la predicción acertó**: la parte cara (que un importe tenga divisa: la columna `currency` de `plans`, el enum con `minor_unit`, el selector de la plantilla) estaba hecha desde el día 1; la barata (que haya más de una) llegó **sin tocar el motor** — filas de seed y la cruzada de tipos en el conversor de presentación (`USD→GBP = rates[GBP] / rates[USD]`, base EUR), que ya estaba prevista.
+**Lo que sigue fuera**, porque siempre lo estuvo: convertir un precio persistido. La divisa de un plan se define, no se deriva.
 
 ### 2.5 Modelos de tarificación `volume` / `flat`
 

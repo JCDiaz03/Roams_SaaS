@@ -327,7 +327,7 @@ Cada uno cubre un caso que si no habría que provocar a mano:
 - **`Meridian` y `Fjord` son `unvalidated`**: pasan por `PassThroughValidator`. `Meridian` aporta además una divisa de presentación ≠ EUR (GBP) desde el primer arranque.
 - **`Fjord` apunta a la versión archivada** (→ §3.2).
 - **`Nébula` y `Meridian` llevan valores base** para que la simulación parametrizada sea visible desde el primer arranque: Nébula el caso literal del enunciado (`base_users: 15` → el botón «parametrizada» precarga 15 usuarios = 169,40 €) y Meridian los tres campos sobre el plan multi-métrica. Los otros tres quedan a `NULL` a propósito: la ficha sin valores base (con el botón «parametrizada» oculto) también es una vista que hay que poder ver.
-- **El seed no crea simulaciones.** El estado vacío del historial es una vista que hay que poder ver (→ `diseño-frontend.md`, ventana 3), y crear la primera simulación es justo el flujo que el evaluador va a recorrer.
+- **El seed no crea simulaciones.** El estado vacío del historial es una vista que hay que poder ver (→ `diseno-frontend.md`, ventana 3), y crear la primera simulación es justo el flujo que el evaluador va a recorrer.
 
 **El seed es un camino de escritura y pasa por el mismo validador que `POST /customers`**: normaliza, resuelve el validador por el esquema del país y le pregunta el tipo. Un seed que introduce datos que el sistema rechazaría es una bomba de relojería, y así nadie tiene que recalcular a mano un dígito de control nunca más.
 

@@ -1,6 +1,6 @@
 # Spec — Motor de tramos y simulaciones
 
-> **Capa SPEC de feature.** Qué se implementa, con qué reglas y qué casos lo prueban. El porqué de negocio → `../idea-referencia.md` §5.3, §4.2, §10, §11.2. El contrato HTTP → `../contrato-api.md` §2.2. Las tablas → `../modelo-datos.md`. La pantalla → `../diseño-frontend.md` ventana 4.
+> **Capa SPEC de feature.** Qué se implementa, con qué reglas y qué casos lo prueban. El porqué de negocio → `../idea-referencia.md` §5.3, §4.2, §10, §11.2. El contrato HTTP → `../contrato-api.md` §2.2. Las tablas → `../modelo-datos.md`. La pantalla → `../diseno-frontend.md` ventana 4.
 >
 > Motor y endpoint se especifican juntos porque se implementan y testean juntos: el motor existe para servir a este endpoint y al preview local.
 
@@ -136,7 +136,7 @@ function roundHalfUpDiv(numerador: bigint, denominador: bigint): bigint;
 Tres razones para que no sea un `Math.round(base * rate / 10000)`:
 
 1. **`Math.round` no es half-up**: es "half hacia +∞". `Math.round(-2.5) === -2`, y half-up daría `-3`. Hoy no hay importes negativos; el día que haya un abono, el bug es silencioso y contable.
-2. **`base_minor * rate_bp` crece rápido**: con los topes del contrato (`active_users ≤ 1e6`) y precios altos, el producto intermedio se acerca a la zona donde un `number` deja de ser exacto. `bigint` la cierra sin tener que razonar dónde está el límite.
+2. **`base_minor * rate_bp` no desborda con los topes del contrato**: el peor producto ronda `1e15`, un orden de magnitud por debajo de los 2⁵³ exactos de un `number` (la derivación → auditoría 04). El `bigint` es **defensivo**: cierra la cuestión de una vez, sin re-derivar el límite cada vez que un tope cambie.
 3. El float no puede tocar el cálculo en ningún punto (invariante 5), y `x / 10000` en `number` **es** float.
 
 Implementación de half-up sobre enteros, sin float en ningún paso:
@@ -158,7 +158,7 @@ Contrato completo → `../contrato-api.md` §2.2. Aquí, solo lo que el contrato
 ### 3.1 Secuencia
 
 1. **Cargar el cliente** por `customer_id`. No existe → `404 CUSTOMER_NOT_FOUND`.
-2. **El `plan_id` sale del cliente**, nunca del cuerpo. Es lo que garantiza que se cotiza con la tarifa contratada.
+2. **El `plan_id` efectivo**: el del cuerpo si viene, el del cliente si no (→ ADR 0011). La regla original —«sale del cliente, nunca del cuerpo»— protegía que nadie cotizara con una tarifa retirada; la regla **activo-o-contratado** preserva exactamente esa protección: un plan elegido debe estar activo salvo que sea el contratado del cliente (archivado incluido), y una tarifa archivada ajena es `422` → spec 09 §4.1.
 3. **Cargar el plan con sus tramos, esté activo o archivado.** Un plan archivado **no es un error aquí** (→ referencia §5.5): un cliente antiguo cotiza con su versión, y ese es justo el caso que el versionado existe para proteger. Un `PLAN_ARCHIVED` copiado del alta rompería el diseño entero en silencio.
 4. **Resolver el tipo impositivo** del país del cliente vía `TaxProvider` (→ referencia §6.2), que lee de la caché de arranque. Sin IO, sin `if` por país.
 5. **Llamar a `quote()`** con tramos, cantidades, `tax_rate_bp` y la divisa **del plan**.
@@ -195,7 +195,7 @@ Al guardar, el backend **recalcula desde cero** e ignora cualquier cosa que el c
 | Plan sin tramo abierto y `quantity` lo excede | **Inexpresable**: la validación de plantilla lo impide (→ `06-admin-planes.md`) | El motor **no** defiende contra esto: confía en el invariante. Si se rompe, es un bug de la plantilla, no del motor |
 | Métrica sin tramos | `billed: false`, subtotal 0 | Contrato de "el plan no cobra esto" (→ referencia §5.2) |
 | `tax_rate_bp = 0` | `tax_minor = 0`, `total = base` | Ningún país del seed lo tiene, pero es aritmética válida y no un caso especial |
-| `unit_price_minor = 0` en un tramo | Ese tramo aporta 0 | Es cómo se modela "incluido hasta N" (→ `../modelo-datos.md` §3.2, Plan C). Un precio de cero **es** un precio |
+| `unit_price_minor = 0` en un tramo | Ese tramo aporta 0 | Es cómo se modela "incluido hasta N" (→ `../modelo-datos.md` §3.2 — los tramos gratis de Demo, PRO y MAX). Un precio de cero **es** un precio |
 
 **La cuarta fila es una decisión, no un descuido**: el motor **no valida sus entradas**. Si los tramos tienen huecos, no son crecientes o el último está cerrado, el resultado es basura silenciosa. Se acepta porque los tramos solo pueden entrar por el seed o por `POST /plans`, y **ambos pasan por el mismo validador de plantilla**. Duplicar esa validación dentro del motor lo obligaría a devolver errores, y una función que puede fallar es una función que el preview tiene que saber manejar en mitad de un arrastre de slider. El precio de la decisión: **el validador de plantilla es obligatorio en todo camino de escritura**, y eso está escrito en `../modelo-datos.md` §2.3 y en `06-admin-planes.md`.
 
@@ -208,9 +208,9 @@ Los del motor y el redondeo se escriben **antes que cualquier endpoint** (→ `r
 **Motor — tramos:**
 - Plan Text con **15 usuarios → `base_minor = 14000`**. Es el caso literal del enunciado; si falla este, no importa nada más.
 - Bordes: **0** → 0 · **10** → 10000 · **11** → 10800 · **50** → 42000 (`10×1000 + 40×800`) · **51** → 42500.
-- Multi-métrica: Plan C, usuarios + llamadas API, `base` = suma de los dos bloques.
+- Multi-métrica: Plan MAX, usuarios + almacenamiento + llamadas API, `base` = suma de los bloques.
 - Métrica no facturada: Plan Text (solo usuarios) con `storage_gb = 500` → aporta 0, aparece en el `breakdown` con `billed: false`.
-- Tramo a precio 0: `api_calls = 50000` en el Plan C → 0.
+- Tramo a precio 0: las llamadas dentro del tramo gratis del Plan MAX → aportan 0.
 - El `breakdown` cuadra: `Σ tiers[].amount_minor == subtotal_minor` y `Σ subtotal_minor == base_minor`. Es la propiedad que detecta un desglose que no explica su propio total.
 
 **Redondeo — half-up:**

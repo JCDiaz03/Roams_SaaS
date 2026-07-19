@@ -7,7 +7,7 @@
 > * Conserva el porqué, no el cuándo: documenta decisiones, invariantes y gotchas no obvios; fuera anécdotas y números de fase.
 > * Estado, no fecha: si algo está incompleto márcalo con un estado —`(parcial)`, `(no cableado)`, `(mock)`—, nunca con una fecha.
 > * Una sola casa por dato: explica aquí lo propio de este doc; lo de otra capa resúmelo en 1-2 líneas y enlaza (`→ ver X.md`). No dupliques fases ni tareas.
-> * Documentos hermanos: hoja de ruta y estado → `roams-roadmap.md`; diseño de pantallas → `diseño-frontend.md`; proceso de trabajo con IA → carpeta `/ai-workspace`.
+> * Documentos hermanos: hoja de ruta y estado → `roams-roadmap.md`; diseño de pantallas → `diseno-frontend.md`; proceso de trabajo con IA → carpeta `/ai-workspace`.
 
 ---
 
@@ -75,7 +75,7 @@ backend/src/
 
 Cada feature agrupa su ruta, su esquema y su acceso a datos: código navegable y sin "archivos masivos". **Los puertos existen solo donde el cambio es seguro** — `TaxProvider` (§6.2), registro de validadores (§7.2), auth (§8), motor en `pricing` — y no en cada frontera: la hexagonal completa (DTOs con mappers, capas estrictas) en una app de once endpoints es sobre-arquitectura, y el recorte es una decisión consciente documentada en `/ai-workspace/02-arquitectura`.
 
-El frontend es espejo: `features/` (login, search, customer, simulator, admin) + `ui/` (componentes del sistema de tokens, → `diseño-frontend.md`) + `lib/` (cliente API, sesión, formato de divisa).
+El frontend es espejo: `features/` (login, search, customer, simulator, admin) + `ui/` (componentes del sistema de tokens, → `diseno-frontend.md`) + `lib/` (cliente API, sesión, formato de divisa).
 
 ---
 
@@ -217,7 +217,7 @@ Por qué "el admin edita con conocimiento de causa" no se sostiene: no es un pro
 |---|---|
 | Crear | Inserta plan, `version = 1`, `active = true` |
 | Editar | **Crea versión nueva** (`version+1`, activa) y archiva la anterior. Los clientes existentes **siguen apuntando al `plan_id` antiguo** |
-| Borrar | **Archiva** (`active = false`). Nunca borrado físico: regla uniforme, cero problemas de integridad referencial |
+| Borrar | **Archiva** (`active = false`) el plan **usado** (con clientes o simulaciones): sus presupuestos y fichas lo siguen necesitando. El plan **jamás usado** se elimina de verdad, con la condición decidida por el servidor (→ ADR 0013) |
 
 **Snapshot vs versionado — complementarios, no alternativos**: el snapshot (→ §11.2) protege el **pasado** (simulaciones ya guardadas); el versionado protege el **contrato presente** (que un cliente dado de alta con una tarifa siga tarificando con **su** tarifa en la próxima simulación).
 
@@ -372,7 +372,7 @@ Alternativas descartadas: preview solo-frontend (violaría el invariante #1: el 
 ### 11.1 Tablas
 
 - **`countries`**: `code` (ISO 3166-1 alfa-2, PK), `name`, `tax_id_scheme` (NULL = sin validación), `display_currency` (solo presentación) — → §6.1
-- **`customers`**: `id`, `company_name`, `fiscal_id` (**UNIQUE**, forma normalizada → §7.4), `fiscal_id_type` (resultado de la validación: DNI/NIE/CIF/NIF-PT/`unvalidated`), `email`, `country` (FK → `countries.code`), `plan_id` (FK), `base_users`/`base_storage_gb`/`base_api_calls` (NULLABLE — valores base de consumo, un preajuste de la simulación parametrizada que **jamás entra en un cálculo del backend** → `features/09-simulacion-parametrizada-y-plan-elegido.md`), `created_at`
+- **`customers`**: `id`, `company_name`, `fiscal_id` (**UNIQUE**, forma normalizada → §7.4), `fiscal_id_type` (resultado de la validación: DNI/NIE/CIF/NIF/`unvalidated` — el NIF portugués comparte el tipo `NIF`, sin inventar un `NIF-PT`), `email`, `country` (FK → `countries.code`), `plan_id` (FK), `base_users`/`base_storage_gb`/`base_api_calls` (NULLABLE — valores base de consumo, un preajuste de la simulación parametrizada que **jamás entra en un cálculo del backend** → `features/09-simulacion-parametrizada-y-plan-elegido.md`), `created_at`
 - **`plans`**: `id`, `name`, `version`, `description`, `pricing_model` (`graduated`), `currency` (ISO, ∈ `Currency`), `active`, `created_at`
 - **`plan_tiers`**: `id`, `plan_id` (FK), `metric` (`users`|`storage_gb`|`api_calls`|...), `up_to` (NULL = ∞), `unit_price_minor`, `sort_order`
 - **`tax_rates`**: PK `(country, vigente_desde)`, `country` (FK → `countries.code`), `rate_bp` — vigente = mayor `vigente_desde` ≤ hoy (§6.2)
@@ -407,7 +407,7 @@ Como los planes son datos editables (con panel admin, editables **en caliente**)
 **Admin**
 - `POST /plans` — Crear plan desde plantilla; valida tramos (§5.4).
 - `PUT /plans/{id}` — "Editar" → crea versión nueva y archiva la anterior (§5.5).
-- `DELETE /plans/{id}` — Archiva (`active=false`), no borra.
+- `DELETE /plans/{id}` — Archiva (`active=false`) el plan usado; el **jamás usado** se elimina de verdad (→ ADR 0013). La respuesta lo declara con `removed`.
 
 El `enum Currency` es estático y vive en el paquete compartido: una sola definición, sin endpoint.
 
@@ -417,7 +417,7 @@ Contrato detallado (esquemas de petición/respuesta, códigos de error) → `/ai
 
 ## 13. Frontend — Dashboard comercial
 
-Perfil no técnico → prioridad a la claridad. Diseño de pantallas → `diseño-frontend.md`.
+Perfil no técnico → prioridad a la claridad. Diseño de pantallas → `diseno-frontend.md`.
 
 - **Login** (§8) + saludo "Hola {nombre}" + paneles admin condicionados por `hasRole('admin')`.
 - **Buscador** por nombre de empresa o identificador fiscal (con *debounce*).
@@ -481,5 +481,5 @@ Herramienta interna sin datos de pago; el modelo de amenazas es acotado y **expl
 ## 16. Documentos hermanos y proceso
 
 - Hoja de ruta, fases y estado → `roams-roadmap.md`.
-- Diseño de pantallas para Claude Design → `diseño-frontend.md`.
-- Proceso de trabajo con IA (specs por feature, directrices de arquitectura, hilos y auditorías) → `/ai-workspace`. El README del repo enlaza aquí y documenta: arranque en local, decisión del proxy (§9), auth mock (§8.3) y preview híbrido (§10).
+- Diseño de pantallas para Claude Design → `diseno-frontend.md`.
+- Proceso de trabajo con IA (specs por feature, directrices de arquitectura, hilos y auditorías) → `/ai-workspace`. El README del repo enlaza aquí y documenta: arranque en local, decisión del proxy (§9), la auth de demostración sobre sesión real (§8.3) y preview híbrido (§10).

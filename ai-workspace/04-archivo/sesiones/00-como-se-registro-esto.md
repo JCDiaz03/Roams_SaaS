@@ -24,15 +24,15 @@ Si solo hay tiempo para mirar tres cosas, que sean las tres auditorías: son los
 
 | Sesión | Commit | Lo que importa |
 |---|---|---|
-| [01 — Los esqueletos de Fase 0](./01-esqueletos-fase-0.md) | `53a10af` | Diez documentos antes de una línea de código. Se rechaza el `REAL` para los tipos impositivos |
-| [02 — Repo público y `.gitignore`](./02-repo-publico.md) | `5747351` | Sin lockfile el CI no arrancaba. Y un token expuesto por mi culpa |
-| [03 — Esquema SQL y seed](./03-esquema-y-seed.md) | `52751d3` | Las ocho defensas del esquema, verificadas ejecutándolas |
-| [04 — El paquete `pricing`](./04-paquete-pricing.md) | `f4d56ce` | 61 tests, validados por mutación. Dos fallos míos en los tests |
-| [05 — Validación fiscal](./05-validacion-fiscal.md) | `4bf3e31` | Un test destapó un error de diseño: K/L/M no son CIF |
-| [06 — Importar el diseño](./06-importar-el-diseno.md) | `e9a75a8` | Del prototipo se porta el aspecto, no la lógica. Ocho pares fallaban AA |
-| [07 — El backend](./07-backend.md) | `49dd58e` | `additionalProperties: false` no daba 400. El invariante 1 no era verificable |
-| [08 — Las cinco pantallas](./08-cinco-pantallas.md) | `e4fe7dd` | El test que protege la costura del auth, no el mock |
-| [09 — Fase 2](./09-fase-2.md) | `5dc4eb8` | Mi propia spec inducía a un bug: «Crear → versión 1» |
+| [01 — Los esqueletos de Fase 0](01-esqueletos-fase-0.md) | `53a10af` | Diez documentos antes de una línea de código. Se rechaza el `REAL` para los tipos impositivos |
+| [02 — Repo público y `.gitignore`](02-repo-publico.md) | `5747351` | Sin lockfile el CI no arrancaba. Y un token expuesto por mi culpa |
+| [03 — Esquema SQL y seed](03-esquema-y-seed.md) | `52751d3` | Las ocho defensas del esquema, verificadas ejecutándolas |
+| [04 — El paquete `pricing`](04-paquete-pricing.md) | `f4d56ce` | 61 tests, validados por mutación. Dos fallos míos en los tests |
+| [05 — Validación fiscal](05-validacion-fiscal.md) | `4bf3e31` | Un test destapó un error de diseño: K/L/M no son CIF |
+| [06 — Importar el diseño](06-importar-el-diseno.md) | `e9a75a8` | Del prototipo se porta el aspecto, no la lógica. Ocho pares fallaban AA |
+| [07 — El backend](07-backend.md) | `49dd58e` | `additionalProperties: false` no daba 400. El invariante 1 no era verificable |
+| [08 — Las cinco pantallas](08-cinco-pantallas.md) | `e4fe7dd` | El test que protege la costura del auth, no el mock |
+| [09 — Fase 2](09-fase-2.md) | `5dc4eb8` | Mi propia spec inducía a un bug: «Crear → versión 1» |
 
 | Auditoría | Categoría | Por qué era silenciosa |
 |---|---|---|

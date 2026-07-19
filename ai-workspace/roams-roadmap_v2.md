@@ -41,7 +41,7 @@ Acordado con el usuario:
 - ✅ `modelo-datos.md` §2.4: 3 columnas NULLABLE con CHECK (topes de simulations) + nota de mini-migración; seed con bases en Nébula y Meridian (§3.3)
 - ✅ ADR 0011 (plan_id opcional) y ADR 0012 (columnas aditivas con ALTER idempotente) en `decisiones.md`
 - ✅ Diferidos «compromiso + excedente» (§2.9) y «flat premium» (§2.10) en `recortes-conscientes.md`, y en `roams-roadmap.md` §7
-- ✅ `diseño-frontend.md` §8: ventana 8 (detalle de plan) y cambios de ventanas 2/3/4
+- ✅ `diseno-frontend.md` §8: ventana 8 (detalle de plan) y cambios de ventanas 2/3/4
 - ✅ `idea-referencia.md`: §11.1 (columnas base), §12 (endpoints nuevos y `plan_id` opcional), §13 (barra de plan y modo parametrizado)
 
 ### Fase 1 — Backend: valores base del cliente ✅
@@ -96,7 +96,7 @@ Acordado con el usuario:
 - ✅ axe pasa por las vistas nuevas dentro de los smokes (ficha con bloques, simulador con barra, dashboard con sección)
 - ✅ **Migración verificada sobre la base real**: el `tsx watch` de dev se reinició durante el desarrollo y migró el `.db` viejo en caliente — columnas añadidas, 5 filas intactas, bases a `NULL` (el seed con bases solo aplica a bases nuevas, como manda ADR 0012)
 - ✅ **Estado final: 61 + 268 + 34 = 363 tests + 3 E2E, typecheck, lint y build limpios**
-- ✅ Sesión [`15-catalogo-de-planes.md`](./03-proceso/sesiones/15-catalogo-de-planes.md) registrada **al cerrar la tanda** (regla 2, cumplida esta vez)
+- ✅ Sesión [`15-catalogo-de-planes.md`](04-archivo/sesiones/15-catalogo-de-planes.md) registrada **al cerrar la tanda** (regla 2, cumplida esta vez)
 
 ## 3bis. Retoques de la revisión del usuario ✅
 
@@ -116,7 +116,7 @@ Acordado con el usuario:
 
 ## 3ter. Auditoría de accesibilidad y Lighthouse ✅
 
-> Petición del usuario: sin letras pequeñas y Lighthouse en todas las vistas. Detalle completo → [sesión 17](./03-proceso/sesiones/17-auditoria-de-accesibilidad.md).
+> Petición del usuario: sin letras pequeñas y Lighthouse en todas las vistas. Detalle completo → [sesión 17](04-archivo/sesiones/17-auditoria-de-accesibilidad.md).
 
 - ✅ **Suelo tipográfico de 12px** en todo el frontend (21 declaraciones de 10,5–11,5px subidas)
 - ✅ **Smoke `e2e/vistas.spec.ts`**: axe sobre ajustes, catálogo y detalle de plan — cazó un contraste real en el summary del catálogo (text-2 sobre fondo de página), corregido. Las 9 pantallas pasan axe en CI
@@ -127,7 +127,7 @@ Acordado con el usuario:
 
 ## 3quater. Segunda revisión del usuario ✅
 
-> Detalle → [sesión 18](./03-proceso/sesiones/18-planes-borrables-y-archivo-de-simulaciones.md).
+> Detalle → [sesión 18](04-archivo/sesiones/18-planes-borrables-y-archivo-de-simulaciones.md).
 
 - ✅ **Borrado físico del plan JAMÁS usado** (→ ADR 0013): `DELETE /plans/{id}` elimina de verdad si cero clientes y cero simulaciones lo referencian; si no, archiva como siempre. La condición la decide el servidor; `removed` en la respuesta; `CLAUDE.md` matizado por escrito («lo rechazable es borrar un plan usado»)
 - ✅ **Archivar simulaciones** (spec 09 §5.5): columna aditiva `archived` + `PATCH /simulations/{id}` acotado; historial por defecto sin archivadas y sección colapsada con recuperar. Guardián: archivar no mueve ni un número sellado
@@ -137,7 +137,7 @@ Acordado con el usuario:
 
 ## 3quinquies. Auditoría pre-publicación ✅
 
-> Detalle → [sesión 19](./03-proceso/sesiones/19-auditoria-pre-publicacion.md).
+> Detalle → [sesión 19](04-archivo/sesiones/19-auditoria-pre-publicacion.md).
 
 - ✅ **Security review** de `ca9c90c..HEAD` (dos agentes, uno por commit): **cero hallazgos HIGH/MEDIUM** — SET dinámico y DDL de migración son listas blancas de compilación; `plan_id` compara contra la BD; el DELETE físico queda tras rol + FK de red
 - ✅ **Code review multi-agente** (22 agentes, 16 verificadores adversariales): **10 hallazgos confirmados, 10 corregidos** — los graves eran caminos de valor-erróneo-sin-error (el input exacto recortando al límite visual, las archivadas expulsando presupuestos vivos del LIMIT 20, el `Number()` que borraba valores base con toast de éxito, el what-if perdido al volver del detalle)

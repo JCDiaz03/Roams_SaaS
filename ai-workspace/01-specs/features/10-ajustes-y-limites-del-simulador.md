@@ -1,6 +1,6 @@
 # Spec — Ajustes: perfil de demostración y límites del simulador
 
-> **Capa SPEC de feature.** El porqué de negocio → `../../roams-roadmap_v2.md` §7. La pantalla → `../diseño-frontend.md` §8 (ventana 9). Sin contrato HTTP: esta feature no toca la API.
+> **Capa SPEC de feature.** El porqué de negocio → `../../roams-roadmap_v2.md` §3bis. La pantalla → `../diseno-frontend.md` §8 (ventana 9). Sin contrato HTTP: esta feature no toca la API.
 
 ---
 
