@@ -198,7 +198,7 @@ Los `maximum` son topes anti-DoS con la misma lógica que `maxLength` (→ refer
   "id": 7,
   "customer_id": 1,
   "plan_id": 1,
-  "plan_name": "Plan A",
+  "plan_name": "Plan Text",
   "plan_version": 1,
   "inputs": { "active_users": 15, "storage_gb": 40, "api_calls": 250000 },
   "currency": "EUR",
@@ -301,7 +301,7 @@ Sin parámetros. Sirve el desplegable del alta y el hint fiscal (→ referencia 
       "fiscal_id": "B12345674",
       "fiscal_id_type": "CIF",
       "country": "ES",
-      "plan": { "id": 1, "name": "Plan A", "version": 1 },
+      "plan": { "id": 1, "name": "Plan Text", "version": 1 },
       "simulation_count": 3
     }
   ],
@@ -337,7 +337,7 @@ Sin resultados → `200` con `customers: []` y `total: 0`. **Vacío no es error*
   "base_api_calls": null,
   "plan": {
     "id": 1,
-    "name": "Plan A",
+    "name": "Plan Text",
     "version": 1,
     "description": "…",
     "currency": "EUR",
@@ -398,7 +398,7 @@ Por defecto solo planes **activos** (alimenta el selector del alta). `?include_a
 {
   "plans": [
     {
-      "id": 1, "name": "Plan A", "version": 1, "description": "…",
+      "id": 1, "name": "Plan Text", "version": 1, "description": "…",
       "currency": "EUR", "pricing_model": "graduated", "active": true,
       "tiers": [ { "metric": "users", "up_to": 10, "unit_price_minor": 1000, "sort_order": 0 } ]
     }
@@ -560,7 +560,7 @@ Mismo cuerpo que `POST /plans`. **No modifica el plan**: crea una versión nueva
 **Respuesta `201`** (no `200`): la respuesta correcta a "se ha creado un recurso nuevo" — y aquí **eso es literalmente lo que ha pasado**. El `id` del cuerpo devuelto **no es el `id` de la URL**, y ese desajuste aparente es la propia semántica de la operación:
 
 ```json
-{ "id": 9, "name": "Plan A", "version": 2, "active": true, "…": "…" }
+{ "id": 9, "name": "Plan Text", "version": 2, "active": true, "…": "…" }
 ```
 
 `Location: /api/plans/9`. El plan `{id}` de la URL queda con `active = 0` y **los clientes existentes siguen apuntando a él**.

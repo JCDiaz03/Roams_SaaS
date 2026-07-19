@@ -79,7 +79,7 @@ Entre las migas y la rejilla: **«Plan activo:»** + chip del plan en uso + bot�
 Bajo el resultado, si algún plan activo **de la misma divisa** sale más barato que el plan en uso para las cantidades actuales: *«Con {plan} saldría {total}»* + botón «Probar» que lo selecciona.
 
 - Se calcula **en local** con el mismo `quote()` sobre los planes ya cargados: cero peticiones por arrastre, cero segunda implementación. Es la misma jugada que el preview (→ ADR 0003).
-- **Solo misma divisa**: comparar un total EUR con uno JPY convertido sería colar un tipo de cambio en una comparación de negocio (invariante 3). Hoy todos los planes son EUR; la restricción es la que hace que mañana no mienta.
+- **Solo misma divisa**: comparar un total EUR con uno JPY convertido sería colar un tipo de cambio en una comparación de negocio (invariante 3). Con planes en USD y JPY en el catálogo la restricción ya no es teórica: a un cliente con plan EUR nunca se le sugieren el Plan Almacenamiento ni el Plan Tokio, salgan al cambio como salgan.
 - Es una sugerencia de pantalla: no se persiste, no se loguea, no aparece en el papel.
 - **Un plan solo se sugiere si factura TODO lo que el cliente está usando**: con 15 usuarios, uno solo-almacenamiento saldría «más barato» porque los ignora, no porque los cobre mejor. La regla por métrica: cantidad > 0 ⇒ el plan la factura. Un plan mono-métrica (solo usuarios) solo aparece con las otras dos cantidades a 0. Además, un plan que cotiza a 0 tampoco se sugiere. El filtro completo es `total > 0 ∧ total < total_actual ∧ ∀métrica (cantidad = 0 ∨ facturada)`, ordenado de menor a mayor total.
 

@@ -87,7 +87,7 @@ Contrato → `../contrato-api.md` §4. Ni edición libre ni borrado físico: es 
 
 ### 4.2 `version` es del nombre, no del `id`
 
-`UNIQUE (name, version)` (→ `../modelo-datos.md` §2.3): el "Plan A v2" es una **fila nueva con `id` nuevo**. De ahí que `PUT /plans/{id}` devuelva `201` con un `id` distinto del de la URL (→ `../contrato-api.md` §4.2) — y ese desajuste aparente **es** la semántica de la operación, no un descuido del contrato.
+`UNIQUE (name, version)` (→ `../modelo-datos.md` §2.3): la "v2" de un plan es una **fila nueva con `id` nuevo**. De ahí que `PUT /plans/{id}` devuelva `201` con un `id` distinto del de la URL (→ `../contrato-api.md` §4.2) — y ese desajuste aparente **es** la semántica de la operación, no un descuido del contrato.
 
 Consecuencia: `PLAN_NAME_TAKEN` (`409`) se comprueba contra planes **activos**. Un nombre cuya única ocurrencia está archivada se puede reutilizar; si no, archivar un plan quemaría su nombre para siempre.
 

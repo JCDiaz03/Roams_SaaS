@@ -92,7 +92,7 @@ Lo que no se hace jamás es servir el número viejo **en silencio**: un dashboar
 - **El importe convertido se marca siempre como referencia**, con el importe de facturación real visible al lado ("Se factura: 169,40 €"). → `../diseño-frontend.md`, ventana 4.
 - **Preselección de divisa**: la sesión guarda `{ currency, source: 'auto' | 'manual' }`. Detalle en `05-auth-mock.md` §4, porque es estado de sesión.
 - **Estados** (→ referencia §13.1): skeleton al cargar; `stale: true` → badge ámbar persistente; `503` → selector deshabilitado o caída a EUR con aviso.
-- **Si hiciera falta una cruzada** (un plan con precio base en USD): la base es EUR, así que `USD→GBP = rates[GBP] / rates[USD]`. Hoy no hace falta —todos los planes son EUR— y por eso no se implementa (→ referencia §4.1).
+- **La cruzada existe y es real**: el catálogo tiene planes facturados en USD y JPY (→ `../modelo-datos.md` §3.2), así que mostrar su total en otra divisa cruza por la base EUR — `USD→GBP = rates[GBP] / rates[USD]`. Vive en el conversor de presentación del frontend (`convertMinor`), nunca en un importe persistido (→ referencia §4.1, invariante 3).
 
 ---
 

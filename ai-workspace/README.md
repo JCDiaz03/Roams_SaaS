@@ -11,7 +11,7 @@ Este directorio es el registro del proceso de ingeniería: qué se especificó a
 | `roams-roadmap_v2.md` | La tanda del catálogo de planes (post-entrega): contexto, decisiones D1–D8 y sus fases. |
 | `01-specs/` | Lo que se decidió antes de escribir código: diseño del sistema, diseño de pantallas, contrato de API, modelo de datos y una spec por feature. |
 | `02-arquitectura/` | Las directrices que se le dieron a la IA y las decisiones de arquitectura (ADR), cada una con su porqué y sus alternativas descartadas. |
-| `03-proceso/` | El vibe coding: **15 sesiones** (con el prompt literal y qué se rechazó), **3 auditorías** de los defectos silenciosos que traía el código generado, y los recortes conscientes. |
+| `03-proceso/` | El vibe coding: **19 sesiones** (con el prompt literal y qué se rechazó), **4 auditorías** de los defectos silenciosos que traía el código generado, y los recortes conscientes. |
 
 ## Por dónde empezar a leer
 
@@ -19,7 +19,7 @@ Este directorio es el registro del proceso de ingeniería: qué se especificó a
 2. `roams-roadmap.md` — en qué punto está y qué queda.
 3. `02-arquitectura/directrices-ia.md` — las reglas bajo las que la IA generó cada línea.
 
-**Si solo hay tiempo para tres ficheros**, que sean las [auditorías](./03-proceso/auditorias/): los tres defectos **silenciosos** que el código generado traía —los que compilan, pasan los tests que existen y están mal—. Ahí es donde el control de calidad demuestra si sirve para algo. El [índice de sesiones](./03-proceso/sesiones/00-como-se-registro-esto.md) las enlaza y explica cómo se registró todo.
+**Si solo hay tiempo para unos pocos ficheros**, que sean las [auditorías](./03-proceso/auditorias/): los cuatro defectos **silenciosos** que el código generado traía —los que compilan, pasan los tests que existen y están mal—. Ahí es donde el control de calidad demuestra si sirve para algo. El [índice de sesiones](./03-proceso/sesiones/00-como-se-registro-esto.md) las enlaza y explica cómo se registró todo.
 
 ## Reglas de mantenimiento
 

@@ -177,7 +177,7 @@ Contrapartida asumida: USD pasa de `"US$"` a `"$"`, ambiguo con otros dólares. 
 
 ### 5.1 El modelo
 
-Varios planes; el comercial da de alta la empresa **con un plan elegido** y ese plan determina la tarificación. Los tramos del enunciado del reto son el **seed** del Plan A, no una constante del código: nº de tramos, cortes, precios y divisa son configurables por el admin y **viven en BD, nunca en código**.
+Varios planes; el comercial da de alta la empresa **con un plan elegido** y ese plan determina la tarificación. Los tramos del enunciado del reto son el **seed** del Plan Text, no una constante del código: nº de tramos, cortes, precios y divisa son configurables por el admin y **viven en BD, nunca en código**.
 
 - **Plan Text v1** (seed, literal del enunciado): tramos por usuario → 10 € (0–10), 8 € (11–50), 5 € (>50).
 - **El resto del catálogo del seed** (Demo, PRO, MAX, Premium en EUR; Almacenamiento en USD; Tokio en JPY) sigue mayoritariamente el patrón freemium inverso —los primeros tramos gratis o baratos y el precio sube al crecer— y varios usan el tramo «hasta 1» caro como cuota de entrada. El versionado visible vive en MAX (v1 archivada + v2 activa). Detalle tramo a tramo → `modelo-datos.md` §3.2.
@@ -192,7 +192,7 @@ Un plan no es "una lista de precios": es **un conjunto de métricas facturables,
 
 ### 5.3 Algoritmo: Graduated (Cumulative) Tiered Pricing
 
-Cada unidad paga según el tramo en el que cae. Ejemplo Plan A con 15 usuarios: `10×10 + 5×8 = 140 €`. **NO es volume pricing** (daría 15×8 = 120 €); el ejemplo del enunciado (140 €) lo confirma.
+Cada unidad paga según el tramo en el que cae. Ejemplo Plan Text con 15 usuarios: `10×10 + 5×8 = 140 €`. **NO es volume pricing** (daría 15×8 = 120 €); el ejemplo del enunciado (140 €) lo confirma.
 
 - Patrón **Strategy** sobre el modelo de tarificación: hoy `graduated`; deja hueco a `volume` o `flat` sin tocar el resto.
 - El **motor de tramos es único y agnóstico a la métrica**: recorre una tabla acumulando; no sabe si cuenta usuarios o gigas. Vive en el paquete compartido `pricing` (→ §10).
@@ -219,7 +219,7 @@ Por qué "el admin edita con conocimiento de causa" no se sostiene: no es un pro
 | Editar | **Crea versión nueva** (`version+1`, activa) y archiva la anterior. Los clientes existentes **siguen apuntando al `plan_id` antiguo** |
 | Borrar | **Archiva** (`active = false`). Nunca borrado físico: regla uniforme, cero problemas de integridad referencial |
 
-**Snapshot vs versionado — complementarios, no alternativos**: el snapshot (→ §11.2) protege el **pasado** (simulaciones ya guardadas); el versionado protege el **contrato presente** (que un cliente dado de alta con el Plan A siga tarificando como su Plan A en la próxima simulación).
+**Snapshot vs versionado — complementarios, no alternativos**: el snapshot (→ §11.2) protege el **pasado** (simulaciones ya guardadas); el versionado protege el **contrato presente** (que un cliente dado de alta con una tarifa siga tarificando con **su** tarifa en la próxima simulación).
 
 **UI para perfil no técnico**: nada de jerga de versionado. El admin ve "Editar plan" y un aviso: *"Los clientes actuales mantendrán la tarifa anterior. Se creará una nueva versión."* Los planes archivados no aparecen al dar de alta clientes nuevos, pero sí en el histórico.
 
@@ -348,7 +348,7 @@ La interfaz consume tipos de cambio de `open.er-api.com/v6/latest/EUR` **a trav�
 - La API expone `time_last_update_unix` / `time_next_update_unix`; los datos son inmutables ~1 día. **TTL = `time_next_update_unix`**: caducar ahí, alineado con su ciclo real, no a 24 h fijas adivinadas.
 - **Fallback**: si la API cae, servir el último tipo conocido **marcado visiblemente como desactualizado**. Un dashboard que enseña un número viejo en silencio es peor que uno que avisa.
 - **Payload**: ~160 divisas, se usan unas pocas → filtrar a las soportadas al recibir y guardar solo esas.
-- Si hiciera falta una cruzada (plan en USD): la API tiene base EUR → `USD→GBP = rates[GBP] / rates[USD]`.
+- La cruzada es real —hay planes facturados en USD y JPY— y la API tiene base EUR: `USD→GBP = rates[GBP] / rates[USD]`. Vive en el conversor de presentación del frontend, jamás en un importe persistido (invariante 3).
 
 ---
 
@@ -391,7 +391,7 @@ Como los planes son datos editables (con panel admin, editables **en caliente**)
 ## 12. API REST
 
 **Requeridos por el enunciado**
-- `POST /customers` — Alta. Valida `fiscal_id` **antes de guardar** si `country == ES` (§7). Acepta los `base_*` opcionales.
+- `POST /customers` — Alta. Valida `fiscal_id` **antes de guardar** según el esquema del país — hoy ES y PT; el resto pasa por `PassThrough` (§7). Acepta los `base_*` opcionales.
 - `POST /simulations` — Registra simulación de coste mensual: calcula tramos + impuesto y persiste con snapshot (§10, §11.2). `plan_id` **opcional**: ausente = el plan del cliente (activo o archivado); presente = ese plan, que debe estar activo salvo que sea el contratado (→ ADR 0011). El impuesto es siempre el del país del cliente.
 
 **Necesarios para el frontend**
@@ -422,7 +422,7 @@ Perfil no técnico → prioridad a la claridad. Diseño de pantallas → `diseñ
 - **Login** (§8) + saludo "Hola {nombre}" + paneles admin condicionados por `hasRole('admin')`.
 - **Buscador** por nombre de empresa o identificador fiscal (con *debounce*).
 - **Cards responsive**: datos del cliente + historial de simulaciones.
-- **Simulador**: slider/controles por métrica con preview en tiempo real (§10) y conversión a la divisa seleccionada. Con **barra de plan** (cotizar con un plan activo distinto del contratado, y volver a él), **sugerencias de planes más baratos** calculadas en local con el mismo `quote()`, y **modo parametrizado** que arranca de los valores base del cliente (→ `features/09-simulacion-parametrizada-y-plan-elegido.md`).
+- **Simulador**: slider/controles por métrica con preview en tiempo real (§10) y conversión a la divisa seleccionada. Con **barra de plan** (cotizar con un plan activo distinto del contratado, y volver a él), **sugerencias de planes más baratos** calculadas en local con el mismo `quote()` (solo planes de la misma divisa que **facturen todo lo que el cliente está usando**, ordenadas de menor a mayor), y **modo parametrizado** que arranca de los valores base del cliente (→ `features/09-simulacion-parametrizada-y-plan-elegido.md`).
 - **Selector de divisa**: consume `GET /rates`; el cambio es **solo visual** (§4.1) y el importe convertido se marca siempre como **referencia**, no divisa de facturación. **Preselección — la elección manual manda**: la sesión guarda `{ currency, source: 'auto' | 'manual' }`; arranca en EUR con `source: 'auto'`; al entrar en la ficha de un cliente se preselecciona su `display_currency` (§6.1) **solo si `source === 'auto'`**; en cuanto el comercial elige una divisa a mano, `source` pasa a `'manual'` y nada la vuelve a cambiar en toda la sesión.
 - **Desglose visible**: mostrar "10 usuarios × 10 € + 5 × 8 €" en vez de un total opaco. Un comercial tiene que poder **explicar el número al cliente por teléfono**.
 

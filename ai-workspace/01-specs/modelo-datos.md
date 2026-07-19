@@ -102,7 +102,7 @@ CREATE INDEX idx_plan_tiers_plan ON plan_tiers(plan_id);
 
 Notas que el DDL no puede expresar y el motor sí necesita:
 
-- **`up_to` es inclusivo**: el tramo 1 del Plan A tiene `up_to = 10` y cubre los usuarios 1–10. El enunciado dice "0 a 10" y "11 a 50"; con límite superior inclusivo esos son `up_to = 10` y `up_to = 50`. Es también como se le pide al admin en pantalla ("hasta cuántos usuarios", → referencia §5.4).
+- **`up_to` es inclusivo**: el tramo 1 del Plan Text tiene `up_to = 10` y cubre los usuarios 1–10. El enunciado dice "0 a 10" y "11 a 50"; con límite superior inclusivo esos son `up_to = 10` y `up_to = 50`. Es también como se le pide al admin en pantalla ("hasta cuántos usuarios", → referencia §5.4).
 - **`CHECK (pricing_model IN ('graduated'))` con un solo valor es deliberado**: el Strategy deja hueco a `volume`/`flat` (→ referencia §5.3), pero mientras no exista la implementación, el `CHECK` impide que una fila declare un modelo que nadie sabe calcular. Añadir el modelo = añadir la estrategia **y** ampliar el `CHECK`, en el mismo commit.
 - **Lo que el DDL NO valida**: que los tramos de una métrica sean crecientes, sin huecos ni solapes, y que el último sea abierto. Eso es la validación de plantilla (→ referencia §5.4) y vive en el servicio, no en SQL — no hay `CHECK` capaz de mirar las filas hermanas. Consecuencia asumida: **la base de datos admite un plan incoherente si alguien inserta saltándose el servicio**; por eso el seed y el endpoint de admin son los dos únicos caminos de escritura, y ambos pasan por el mismo validador.
 
@@ -186,7 +186,7 @@ CREATE INDEX idx_simulations_customer ON simulations(customer_id, created_at DES
 
 ```json
 {
-  "plan": { "id": 1, "name": "Plan A", "version": 1, "currency": "EUR", "pricing_model": "graduated" },
+  "plan": { "id": 1, "name": "Plan Text", "version": 1, "currency": "EUR", "pricing_model": "graduated" },
   "tiers": [
     { "metric": "users", "up_to": 10,   "unit_price_minor": 1000, "sort_order": 0 },
     { "metric": "users", "up_to": 50,   "unit_price_minor": 800,  "sort_order": 1 },

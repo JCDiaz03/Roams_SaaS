@@ -76,7 +76,7 @@ function quote(input: QuoteInput): QuoteResult;
 
 ### 2.2 El algoritmo, con la precisión que el enunciado no da
 
-*Graduated*: cada unidad paga el precio del tramo en el que cae (→ referencia §5.3). **No es volume**: 15 usuarios en el Plan A son 140 €, no 120 €.
+*Graduated*: cada unidad paga el precio del tramo en el que cae (→ referencia §5.3). **No es volume**: 15 usuarios en el Plan Text (los tramos del enunciado) son 140 €, no 120 €.
 
 Por métrica, con los tramos ordenados por `sort_order`:
 
@@ -206,10 +206,10 @@ Al guardar, el backend **recalcula desde cero** e ignora cualquier cosa que el c
 Los del motor y el redondeo se escriben **antes que cualquier endpoint** (→ `roams-roadmap.md` §3.1). Cubren §15 de la referencia.
 
 **Motor — tramos:**
-- Plan A con **15 usuarios → `base_minor = 14000`**. Es el caso literal del enunciado; si falla este, no importa nada más.
+- Plan Text con **15 usuarios → `base_minor = 14000`**. Es el caso literal del enunciado; si falla este, no importa nada más.
 - Bordes: **0** → 0 · **10** → 10000 · **11** → 10800 · **50** → 42000 (`10×1000 + 40×800`) · **51** → 42500.
 - Multi-métrica: Plan C, usuarios + llamadas API, `base` = suma de los dos bloques.
-- Métrica no facturada: Plan A con `storage_gb = 500` → aporta 0, aparece en el `breakdown` con `billed: false`.
+- Métrica no facturada: Plan Text (solo usuarios) con `storage_gb = 500` → aporta 0, aparece en el `breakdown` con `billed: false`.
 - Tramo a precio 0: `api_calls = 50000` en el Plan C → 0.
 - El `breakdown` cuadra: `Σ tiers[].amount_minor == subtotal_minor` y `Σ subtotal_minor == base_minor`. Es la propiedad que detecta un desglose que no explica su propio total.
 
