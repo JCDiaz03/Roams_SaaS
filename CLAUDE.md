@@ -33,6 +33,11 @@
 - El error handler de producción no devuelve stack traces al cliente.
 - Nada de abrir CORS para "arreglar" el cruce de puertos en desarrollo: para eso está el proxy de Vite.
 
+## Al cerrar cada sesión
+
+- La sesión se registra en `ai-workspace/03-proceso/sesiones/` **antes de cerrarla**, no al final del proyecto: prompt de partida, resultado y qué se rechazó, con su porqué. (Regla que se incumplió en la primera entrega precisamente porque no vivía en este fichero → nota de procedencia en `ai-workspace/03-proceso/sesiones/00-como-se-registro-esto.md`.)
+- La suite entera en verde (`npm test`; el smoke E2E si la sesión tocó pantalla) antes de dar la sesión por cerrada.
+
 ## Qué rechazar aunque la IA lo proponga
 
 - Una segunda implementación del cálculo de tramos "para el preview".

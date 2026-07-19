@@ -142,7 +142,7 @@ Acordado con el usuario:
 - ✅ **Security review** de `ca9c90c..HEAD` (dos agentes, uno por commit): **cero hallazgos HIGH/MEDIUM** — SET dinámico y DDL de migración son listas blancas de compilación; `plan_id` compara contra la BD; el DELETE físico queda tras rol + FK de red
 - ✅ **Code review multi-agente** (22 agentes, 16 verificadores adversariales): **10 hallazgos confirmados, 10 corregidos** — los graves eran caminos de valor-erróneo-sin-error (el input exacto recortando al límite visual, las archivadas expulsando presupuestos vivos del LIMIT 20, el `Number()` que borraba valores base con toast de éxito, el what-if perdido al volver del detalle)
 - ✅ README a 373 tests + 4 E2E, `package.json` raíz a `0.3.0`
-- ✅ **373 tests + 4 E2E** en verde tras los arreglos; typecheck, lint y build limpios
+- ✅ **373 tests + 4 E2E** en verde tras los arreglos; typecheck, lint y build limpios *(estado hoy: **375** — los dos tests del emisor `created_by` de las simulaciones llegaron después de este cierre)*
 
 ## 4. Orden y dependencias
 
