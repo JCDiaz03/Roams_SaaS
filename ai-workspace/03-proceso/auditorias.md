@@ -26,6 +26,8 @@ Las seis entradas comparten la gravedad (silencioso) pero no el método. Leídas
 
 Y un patrón común en la corrección: **subir de capa siempre que se pueda** — de "detectable" (alguien lo vio) a "vigilado" (un test lo fija) a "imposible" (la estructura no deja expresarlo). Todas terminan con un guardián en CI que muerde: se verificó que revertir el arreglo tumba tests.
 
+**Y lo que sigue auditando cuando estas seis ya terminaron**: tres vigilancias automáticas viven en el repositorio y corren solas — el `npm audit` del CI (en cada push y por cron semanal: una vulnerabilidad se publica cuando se publica, no cuando hay commits), **CodeQL** sobre nuestro código (push/PR y semanal: una query nueva puede cazar un defecto en código que no cambió) y **Dependabot** sobre el lockfile y las Actions. Las seis maneras de arriba son auditorías de una tarde; estas tres no se acaban. → detalle en el [roadmap, «Después de la entrega»](../roams-roadmap.md).
+
 ---
 
 # Auditoría 01 — `additionalProperties: false` no da 400
