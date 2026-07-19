@@ -1,6 +1,6 @@
 // Barra de plan del simulador: cotizar con otro plan y volver al contratado. Spec: 09, 4.2
 
-import { Link, useLocation } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import type { Plan } from '../../lib/api-client'
 import { Button } from '../../ui/Button'
 import { Chip } from '../../ui/Chip'
@@ -16,6 +16,13 @@ type Props = {
   disabled: boolean
   /** null = volver al contratado. */
   onElegir: (plan: Plan | null) => void
+  /**
+   * El camino de vuelta desde el detalle, con el ESTADO VIVO codificado en la query
+   * (cantidades y plan elegido). Lo construye SimulatorPage, que es quien lo conoce:
+   * location.pathname+search aqui perderia el what-if, que vive en estado React y no
+   * en la URL (lo cazo la code review).
+   */
+  rutaVuelta: string
 }
 
 /**
@@ -23,8 +30,7 @@ type Props = {
  * el contratado — tiene que VERSE, no inferirse. Un <select> nativo, como el de divisa:
  * teclado y lector de pantalla gratis.
  */
-export function PlanSelectorBar({ contratado, enUso, activos, disabled, onElegir }: Props) {
-  const location = useLocation()
+export function PlanSelectorBar({ contratado, enUso, activos, disabled, onElegir, rutaVuelta }: Props) {
   const esContratado = enUso.id === contratado.id
 
   // El contratado siempre es elegible (aunque este archivado: es su tarifa); los demas,
@@ -79,9 +85,9 @@ export function PlanSelectorBar({ contratado, enUso, activos, disabled, onElegir
       <Link
         className={styles.enlace}
         to={`/planes/${enUso.id}`}
-        // Con la query incluida: volver desde el detalle no debe perder ni las
-        // cantidades precargadas ni el plan elegido de la URL.
-        state={{ desde: { path: location.pathname + location.search, label: 'Simulador' } }}
+        // Volver desde el detalle no debe perder ni los arrastres ni el plan elegido:
+        // la ruta de vuelta lleva el estado vivo del simulador en su query (D6).
+        state={{ desde: { path: rutaVuelta, label: 'Simulador' } }}
       >
         Ver detalle
       </Link>

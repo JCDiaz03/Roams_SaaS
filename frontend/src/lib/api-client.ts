@@ -223,10 +223,16 @@ export const api = {
 
   customer: (id: number) => pedir<CustomerDetail>(`/customers/${id}`),
 
-  history: (id: number, includeArchived = false) =>
-    pedir<{ simulations: Simulation[]; total: number }>(
-      `/customers/${id}/simulations${includeArchived ? '?include_archived=true' : ''}`,
-    ).then((r) => r.simulations),
+  history: (id: number, includeArchived = false, limit?: number) => {
+    const params = new URLSearchParams()
+    if (includeArchived) params.set('include_archived', 'true')
+    if (limit !== undefined) params.set('limit', String(limit))
+    const qs = params.toString()
+
+    return pedir<{ simulations: Simulation[]; total: number }>(
+      `/customers/${id}/simulations${qs === '' ? '' : `?${qs}`}`,
+    ).then((r) => r.simulations)
+  },
 
   /** Archiva o recupera una simulacion: lo UNICO mutable de una guardada (spec 09, 5.5). */
   archiveSimulation: (id: number, archived: boolean) =>

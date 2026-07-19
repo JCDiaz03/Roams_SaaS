@@ -38,9 +38,17 @@ type Props = {
 export function CurrencySelect({ value, onChange, disabled = false }: Props) {
   const [abierto, setAbierto] = useState(false)
   const wrapRef = useRef<HTMLDivElement>(null)
+  const menuRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     if (!abierto) return
+
+    // Al abrir, el foco entra en la opcion SELECCIONADA: es lo que el select nativo
+    // hacia solo y el desplegable propio habia perdido (lo cazo la code review).
+    const seleccionada =
+      menuRef.current?.querySelector<HTMLButtonElement>('[aria-current="true"]') ??
+      menuRef.current?.querySelector<HTMLButtonElement>('button')
+    seleccionada?.focus()
 
     const fuera = (e: MouseEvent) => {
       if (wrapRef.current !== null && !wrapRef.current.contains(e.target as Node)) {
@@ -59,13 +67,27 @@ export function CurrencySelect({ value, onChange, disabled = false }: Props) {
     }
   }, [abierto])
 
+  // Las flechas mueven el foco entre opciones, como en el select nativo.
+  const flechas = (e: React.KeyboardEvent) => {
+    if (e.key !== 'ArrowDown' && e.key !== 'ArrowUp') return
+    e.preventDefault()
+
+    const opciones = [...(menuRef.current?.querySelectorAll<HTMLButtonElement>('button') ?? [])]
+    const actual = opciones.indexOf(document.activeElement as HTMLButtonElement)
+    const paso = e.key === 'ArrowDown' ? 1 : -1
+    const destino = opciones[(actual + paso + opciones.length) % opciones.length]
+    destino?.focus()
+  }
+
   return (
     <div className={styles.wrap} ref={wrapRef}>
       <button
         type="button"
         className={styles.boton}
         disabled={disabled}
-        aria-label="Divisa de visualización"
+        // La divisa vigente forma parte del nombre accesible: sin ella, un lector de
+        // pantalla anuncia el control sin decir que hay elegido.
+        aria-label={`Divisa de visualización: ${value}`}
         aria-expanded={abierto}
         title={disabled ? 'Sin tipos de cambio disponibles' : 'Divisa de visualización'}
         onClick={() => setAbierto((v) => !v)}
@@ -83,12 +105,15 @@ export function CurrencySelect({ value, onChange, disabled = false }: Props) {
       </button>
 
       {abierto && (
-        <div className={styles.menu}>
+        <div className={styles.menu} ref={menuRef} onKeyDown={flechas}>
           {HABITUALES.map((c) => (
             <button
               key={c}
               type="button"
               className={`${styles.opcion} ${c === value ? styles.activa : ''}`}
+              // aria-current es lo que ANUNCIA la elegida: el check visual es
+              // aria-hidden y sin esto las cinco opciones sonaban identicas.
+              aria-current={c === value ? 'true' : undefined}
               onClick={() => {
                 onChange(c)
                 setAbierto(false)

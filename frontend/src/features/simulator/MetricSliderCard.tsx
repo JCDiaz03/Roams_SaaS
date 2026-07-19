@@ -1,7 +1,7 @@
 // Slider + input por metrica; atenuada si el plan no la factura. Diseno: 4
 
 import type { Metric } from '@saas/pricing'
-import { LIMITE_POR_DEFECTO } from '../../lib/simulator-limits'
+import { LIMITE_MAXIMO, LIMITE_POR_DEFECTO } from '../../lib/simulator-limits'
 import { Callout } from '../../ui/Callout'
 import { Card } from '../../ui/Card'
 import styles from './MetricSliderCard.module.css'
@@ -85,9 +85,12 @@ export function MetricSliderCard({
   const cambiar = (bruto: string) => {
     const n = Number(bruto)
     if (!Number.isFinite(n)) return
-    // Se acota aqui, no en el motor: el motor confia en sus entradas, y el esquema del
-    // backend rebota lo que se salga. Esto solo evita que el input escriba un absurdo.
-    onChange(Math.max(0, Math.min(max, Math.trunc(n))))
+    // El tope del TECLEO es el del backend (LIMITE_MAXIMO), NO el maximo visual del
+    // slider: /ajustes promete que "los valores exactos se pueden seguir tecleando" y
+    // recortar aqui al limite visual guardaria un presupuesto con una cantidad que el
+    // comercial no escribio (lo cazo la code review). El slider sigue acotado por su
+    // atributo max; esto solo evita que el input escriba un absurdo.
+    onChange(Math.max(0, Math.min(LIMITE_MAXIMO[metric], Math.trunc(n))))
   }
 
   return (

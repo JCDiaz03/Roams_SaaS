@@ -9,6 +9,7 @@ import { METRICS, type Metric } from '@saas/pricing'
 import {
   LIMITE_MAXIMO,
   LIMITE_MINIMO,
+  LIMITE_POR_DEFECTO,
   clampLimite,
   useSimulatorLimits,
 } from '../../lib/simulator-limits'
@@ -40,23 +41,31 @@ export function SettingsPage() {
   })
 
   const guardar = () => {
+    // El valor que QUEDA se calcula una vez y alimenta las dos cosas: el limite vigente
+    // y el texto del input. Antes se calculaban por separado y un `n || limites[m]`
+    // trataba el 0 tecleado como "sin valor" con el closure viejo: el campo mostraba
+    // 200 mientras el limite real pasaba a 70 (lo cazo la code review).
+    const siguiente = { ...borrador }
     for (const m of METRICS) {
-      const n = Number(borrador[m])
+      const texto = borrador[m].trim()
+      const n = Number(texto)
       // Vacio o basura -> se conserva el vigente; un numero -> acotado a [min, max].
-      if (borrador[m].trim() !== '' && Number.isFinite(n)) setLimite(m, n)
+      const valor = texto !== '' && Number.isFinite(n) ? clampLimite(m, n) : limites[m]
+      setLimite(m, valor)
+      siguiente[m] = String(valor)
     }
-    // El borrador se realinea con lo que quedo de verdad (ya acotado).
-    setBorrador({
-      users: String(clampLimite('users', Number(borrador.users) || limites.users)),
-      storage_gb: String(clampLimite('storage_gb', Number(borrador.storage_gb) || limites.storage_gb)),
-      api_calls: String(clampLimite('api_calls', Number(borrador.api_calls) || limites.api_calls)),
-    })
+    setBorrador(siguiente)
     toast.showOk('Límites del simulador guardados')
   }
 
   const aDefecto = () => {
     restaurar()
-    setBorrador({ users: '200', storage_gb: '3000', api_calls: '200000' })
+    // De LIMITE_POR_DEFECTO, no literales sueltos: una copia se queda vieja.
+    setBorrador({
+      users: String(LIMITE_POR_DEFECTO.users),
+      storage_gb: String(LIMITE_POR_DEFECTO.storage_gb),
+      api_calls: String(LIMITE_POR_DEFECTO.api_calls),
+    })
     toast.showOk('Límites restaurados')
   }
 

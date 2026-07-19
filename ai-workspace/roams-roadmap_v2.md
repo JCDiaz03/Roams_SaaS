@@ -135,6 +135,15 @@ Acordado con el usuario:
 - ✅ **372 tests + 4 E2E** en verde
 - ✅ **Higiene del repo**: cero módulos huérfanos en los tres workspaces (barrido de imports); retirados los 4 `.gitkeep` de carpetas ya pobladas y la carpeta `capturas/` jamás usada (el `.gitkeep` de `public/` además se colaba en el build); artefactos regenerables (`test-results/`, `dist/` viejo) purgados. Las 2 imágenes del repo están en uso y en formato adecuado (SVG 7 KB, PNG 3,4 KB)
 
+## 3quinquies. Auditoría pre-publicación ✅
+
+> Detalle → [sesión 19](./03-proceso/sesiones/19-auditoria-pre-publicacion.md).
+
+- ✅ **Security review** de `ca9c90c..HEAD` (dos agentes, uno por commit): **cero hallazgos HIGH/MEDIUM** — SET dinámico y DDL de migración son listas blancas de compilación; `plan_id` compara contra la BD; el DELETE físico queda tras rol + FK de red
+- ✅ **Code review multi-agente** (22 agentes, 16 verificadores adversariales): **10 hallazgos confirmados, 10 corregidos** — los graves eran caminos de valor-erróneo-sin-error (el input exacto recortando al límite visual, las archivadas expulsando presupuestos vivos del LIMIT 20, el `Number()` que borraba valores base con toast de éxito, el what-if perdido al volver del detalle)
+- ✅ README a 373 tests + 4 E2E, `package.json` raíz a `0.3.0`
+- ✅ **373 tests + 4 E2E** en verde tras los arreglos; typecheck, lint y build limpios
+
 ## 4. Orden y dependencias
 
 Fase 0 → 1 → (2 ∥ 3) → 4 → 5 → 6 → 7 → 8 → 9 → 10. Cada fase de backend lleva sus tests en el mismo commit; el guardián de `plan_id` se reescribe en la Fase 3, nunca antes.

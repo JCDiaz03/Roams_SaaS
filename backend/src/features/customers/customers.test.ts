@@ -223,6 +223,23 @@ describe('GET /customers — buscador', () => {
   it('trae el numero de simulaciones, para no hacer N+1 desde el cliente', async () => {
     expect((await buscar('?search=Nébula')).json().customers[0].simulation_count).toBe(0)
   })
+
+  it('el contador cuenta las VIVAS: archivar una simulacion lo reduce', async () => {
+    // Sin el filtro archived = 0, el buscador diria "1 simulacion" y la ficha
+    // "0 presupuestos": dos contadores contandose cosas distintas (spec 09, 5.5).
+    const id = customerId(h.db, 'Nébula Cloud S.L.')
+    const sim = (
+      await h.inject({
+        method: 'POST',
+        url: '/api/simulations',
+        payload: { customer_id: id, active_users: 5, storage_gb: 0, api_calls: 0 },
+      })
+    ).json()
+    expect((await buscar('?search=Nébula')).json().customers[0].simulation_count).toBe(1)
+
+    await h.inject({ method: 'PATCH', url: `/api/simulations/${sim.id}`, payload: { archived: true } })
+    expect((await buscar('?search=Nébula')).json().customers[0].simulation_count).toBe(0)
+  })
 })
 
 describe('valores base — alta y PATCH (spec 09, 3)', () => {

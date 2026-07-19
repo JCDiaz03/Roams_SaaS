@@ -35,10 +35,20 @@ export function PlanDetailPage() {
 
   useEffect(() => {
     let cancelado = false
+
+    // Un id que no es un entero positivo -- p. ej. /planes/nuevo tecleado por una sesion
+    // sin rol admin, que cae en esta ruta comodin -- es "no existe", no un error de red
+    // con un Reintentar que jamas funcionara (lo cazo la code review).
+    const idNum = Number(id)
+    if (!Number.isInteger(idNum) || idNum < 1) {
+      setDatos({ estado: 'no-encontrado' })
+      return
+    }
+
     setDatos({ estado: 'cargando' })
 
     api
-      .plan(Number(id))
+      .plan(idNum)
       .then((plan) => {
         if (!cancelado) setDatos({ estado: 'listo', plan })
       })

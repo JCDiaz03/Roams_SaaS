@@ -7,7 +7,10 @@ import { api, ApiError, type CustomerDetail, type Plan, type Simulation } from '
 import { formatMinor } from '../../lib/currency-format'
 import { useRatesContext } from '../../lib/rates-context'
 import { useSession } from '../../lib/session'
-import { useSimulatorLimits } from '../../lib/simulator-limits'
+// LIMITE_MAXIMO son los topes del esquema del backend: acotan lo que llegue por la URL
+// (un ?users= manipulado no debe producir un 400 al guardar ni un preview absurdo). Se
+// importan de su unica casa en vez de re-declararse aqui (lo cazo la code review).
+import { LIMITE_MAXIMO, useSimulatorLimits } from '../../lib/simulator-limits'
 import { Button } from '../../ui/Button'
 import { Card } from '../../ui/Card'
 import { Skeleton, SkeletonStack } from '../../ui/Skeleton'
@@ -17,16 +20,6 @@ import { PlanSelectorBar } from './PlanSelectorBar'
 import { PrintSheet } from './PrintSheet'
 import { ResultPanel } from './ResultPanel'
 import styles from './SimulatorPage.module.css'
-
-/**
- * Los topes del esquema del backend, para acotar lo que llegue por la URL (spec 09, D6):
- * un ?users= manipulado no debe producir un 400 al guardar ni un preview absurdo.
- */
-const TOPE_URL: Record<Metric, number> = {
-  users: 1_000_000,
-  storage_gb: 10_000_000,
-  api_calls: 1_000_000_000,
-}
 
 const LIBRE: Quantities = { users: 15, storage_gb: 0, api_calls: 0 }
 
@@ -106,7 +99,7 @@ export function SimulatorPage() {
         const inicial = {} as Record<Metric, number>
         for (const m of METRICS) {
           inicial[m] =
-            cantidadDeUrl(params.get(m), TOPE_URL[m]) ??
+            cantidadDeUrl(params.get(m), LIMITE_MAXIMO[m]) ??
             (esModoBase ? (base[m] ?? LIBRE[m]) : LIBRE[m])
         }
 
@@ -329,13 +322,22 @@ export function SimulatorPage() {
         <strong>Nueva simulación</strong>
       </nav>
 
-      {/* La barra de plan (spec 09, 4.2): entre las migas y la rejilla. */}
+      {/* La barra de plan (spec 09, 4.2): entre las migas y la rejilla. La ruta de
+          vuelta codifica el ESTADO VIVO (cantidades, plan elegido, modo base) para que
+          "Ver detalle" y volver no pierda el what-if — el estado vive en React, no en
+          la URL, asi que hay que ponerlo en la URL de vuelta a proposito. */}
       <PlanSelectorBar
         contratado={cliente.plan}
         enUso={planEnUso}
         activos={planes === 'fallo' || planes === null ? null : planes}
         disabled={guardando}
         onElegir={elegirPlan}
+        rutaVuelta={
+          `/clientes/${cliente.id}/simular` +
+          `?users=${cantidades.users}&storage_gb=${cantidades.storage_gb}&api_calls=${cantidades.api_calls}` +
+          (planEnUso.id !== cliente.plan.id ? `&plan=${planEnUso.id}` : '') +
+          (modoBase ? '&base=1' : '')
+        }
       />
 
       <div className={styles.rejilla}>

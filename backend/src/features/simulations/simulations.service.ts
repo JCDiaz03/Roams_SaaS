@@ -151,20 +151,26 @@ export function historialDe(
   // lista vacia (un 200 mintiendo) en vez de un 404.
   obtenerClienteOFallar(db, customerId)
 
-  return listSimulationsByCustomer(db, customerId, limit, includeArchived).map((fila) => {
-    const snapshot = JSON.parse(fila.pricing_snapshot) as PricingSnapshot
+  return listSimulationsByCustomer(db, customerId, limit, includeArchived).map(vistaDesdeFila)
+}
 
-    const resultado = quote({
-      tiers: snapshot.tiers,
-      quantities: cantidades(fila),
-      tax_rate_bp: snapshot.tax.rate_bp,
-      currency: snapshot.plan.currency as CurrencyCode,
-    })
+/**
+ * Una fila persistida -> su SimulationView, reconstruida desde SU snapshot: el desglose,
+ * el nombre y la version salen de la foto, jamas del plan actual (11.2; spec 09, 5.1).
+ * Es LA receta unica: la comparten el historial y el PATCH de archivado — dos copias
+ * divergirian en el proximo campo que se anada a la vista.
+ */
+function vistaDesdeFila(fila: SimulationRow): SimulationView {
+  const snapshot = JSON.parse(fila.pricing_snapshot) as PricingSnapshot
 
-    // El nombre y la version tambien salen del snapshot: versionar el plan por debajo no
-    // cambia lo que una simulacion vieja declara (spec 09, 5.1).
-    return vista(fila, resultado, { name: snapshot.plan.name, version: snapshot.plan.version })
+  const resultado = quote({
+    tiers: snapshot.tiers,
+    quantities: cantidades(fila),
+    tax_rate_bp: snapshot.tax.rate_bp,
+    currency: snapshot.plan.currency as CurrencyCode,
   })
+
+  return vista(fila, resultado, { name: snapshot.plan.name, version: snapshot.plan.version })
 }
 
 /**
@@ -181,18 +187,9 @@ export function archivarSimulacion(db: Db, id: number, archived: boolean): Simul
 
   setSimulationArchived(db, id, archived)
 
-  const actualizada = findSimulationById(db, id)
-  if (actualizada === undefined) throw new Error('La simulacion desaparecio al archivarla.')
-
-  const snapshot = JSON.parse(actualizada.pricing_snapshot) as PricingSnapshot
-  const resultado = quote({
-    tiers: snapshot.tiers,
-    quantities: cantidades(actualizada),
-    tax_rate_bp: snapshot.tax.rate_bp,
-    currency: snapshot.plan.currency as CurrencyCode,
-  })
-
-  return vista(actualizada, resultado, { name: snapshot.plan.name, version: snapshot.plan.version })
+  // La fila ya esta en la mano y el UPDATE solo toca `archived`: se reusa con el flag
+  // nuevo en vez de una segunda lectura que describiria exactamente lo mismo.
+  return vistaDesdeFila({ ...fila, archived: archived ? 1 : 0 })
 }
 
 /**

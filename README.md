@@ -2,7 +2,7 @@
 
 Herramienta interna para el equipo comercial: registrar clientes corporativos, simular su consumo (usuarios, almacenamiento, llamadas API) y obtener presupuestos mensuales de suscripción, visualizables en varias divisas.
 
-> **Estado: completo.** Motor de tarificación, validación fiscal (ES y PT), API, autenticación con sesión de servidor, las pantallas y la administración de planes — más la **tanda del catálogo de planes** ([roadmap v2](./ai-workspace/roams-roadmap_v2.md)): detalle de plan, valores base del cliente, simulación parametrizada, cotizar con otro plan y sugerencias. **363 tests + 3 E2E**, verificado de punta a punta contra la aplicación real. Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
+> **Estado: completo.** Motor de tarificación, validación fiscal (ES y PT), API, autenticación con sesión de servidor, las pantallas y la administración de planes — más la **tanda del catálogo de planes** ([roadmap v2](./ai-workspace/roams-roadmap_v2.md)): detalle de plan, valores base del cliente, simulación parametrizada, cotizar con otro plan y sugerencias. **373 tests + 4 E2E**, verificado de punta a punta contra la aplicación real y con Lighthouse en verde en las 8 vistas (accesibilidad 100). Lo diseñado y deliberadamente no hecho está en [`recortes-conscientes.md`](./ai-workspace/03-proceso/recortes-conscientes.md).
 
 ## Arranque en local
 
@@ -20,7 +20,7 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 | Script (raíz) | Qué hace |
 |---|---|
 | `npm run dev` | Levanta backend (`:3000`) y frontend (`:5173`) a la vez |
-| `npm test` | Los 363 tests de los tres workspaces |
+| `npm test` | Los 373 tests de los tres workspaces |
 | `npm run seed` | Repuebla la base de datos (solo sobre una base vacía) |
 | `npm run test:e2e` | El smoke E2E (Playwright): arranca backend, build con CSP estricta y navegador, y recorre la app como un evaluador. Primera vez: `npx playwright install chromium` |
 | `npm run lint` · `npm run typecheck` | Lo mismo que ejecuta el CI |
@@ -35,6 +35,7 @@ No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y
 5. **Un precio publicado es inmutable**: entra como `ADMIN`, ve a *Administración*, edita el Plan Ágora y cámbiale un precio. Se crea una **versión nueva** y la anterior se archiva; las simulaciones que ya habías guardado siguen diciendo lo mismo, y Nébula sigue con su tarifa.
 6. **Entrégalo en papel**: tras guardar una simulación, *Imprimir presupuesto* (o Ctrl+P) abre el diálogo del navegador con una hoja limpia — desglose, total en la divisa de facturación, el plan con el que se cotizó y quién lo emitió.
 7. **El catálogo y el what-if**: en la ficha de Nébula, pulsa el chip del plan para ver su detalle con los tramos, y *Nueva simulación parametrizada* — arranca con sus valores base (15 usuarios, «base: 15» como referencia). En el simulador, cambia el plan en la barra superior: el número se recalcula al instante, la barra avisa de que no es el contratado, y si otro plan sale más barato con esos datos aparece como sugerencia. Al guardar, la card del historial dice con qué plan se cotizó.
+8. **Ordena el historial y el catálogo**: en una card guardada, *Archivar* la saca de la vista (queda en «archivadas», recuperable — los números sellados no se tocan). En *Ajustes* (menú de usuario), baja el tope de los deslizadores si trabajas con planes pequeños. Y como `ADMIN`, borra un plan recién creado que nadie use: desaparece de verdad; uno con clientes solo se archiva (→ ADR 0013).
 
 ## Estructura
 

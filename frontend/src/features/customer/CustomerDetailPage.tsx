@@ -41,8 +41,12 @@ export function CustomerDetailPage() {
     setDatos({ estado: 'cargando' })
 
     // Las dos en paralelo: el historial no bloquea a la ficha ni al reves. Con las
-    // archivadas incluidas: la ficha las separa en su seccion colapsada (spec 09, 5.5).
-    Promise.all([api.customer(idNum), api.history(idNum, true)])
+    // archivadas incluidas (la ficha las separa en su seccion colapsada, spec 09 5.5) y
+    // el limit al MAXIMO del contrato (100): con el default de 20, veinte archivadas
+    // recientes expulsarian de la pagina a presupuestos vivos mas antiguos (lo cazo la
+    // code review). Por encima de 100 simulaciones el corte reaparece; a esa escala la
+    // respuesta sera paginacion real, no un limit mas alto.
+    Promise.all([api.customer(idNum), api.history(idNum, true, 100)])
       .then(([cliente, historial]) => {
         if (cancelado) return
         setDatos({ estado: 'listo', cliente, historial })

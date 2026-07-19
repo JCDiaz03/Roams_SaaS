@@ -147,9 +147,13 @@ export function searchCustomers(db: Db, termino: string | undefined, limit: numb
   const base = `
     SELECT c.id, c.company_name, c.fiscal_id, c.fiscal_id_type, c.country,
            p.id AS plan_id, p.name AS plan_name, p.version AS plan_version,
-           (SELECT COUNT(*) FROM simulations s WHERE s.customer_id = c.id) AS simulation_count
+           (SELECT COUNT(*) FROM simulations s
+             WHERE s.customer_id = c.id AND s.archived = 0) AS simulation_count
       FROM customers c
       JOIN plans p ON p.id = c.plan_id`
+  // El contador cuenta las VIVAS (archived = 0), igual que el "N presupuestos" de la
+  // ficha: sin el filtro, archivar dejaba dos contadores contandose cosas distintas y
+  // el usuario percibia simulaciones "perdidas" entre pantallas (spec 09, 5.5).
 
   const recortado = termino?.trim() ?? ''
 
