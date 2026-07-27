@@ -49,7 +49,7 @@ jobs:
       - run: npm run test:e2e
       # La traza del fallo (trace: retain-on-failure) se escribe en test-results/: sin
       # subirla, un E2E rojo en CI muere sin artefacto de diagnostico.
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: playwright-trazas
