@@ -1,7 +1,7 @@
 // Ventana 8 - Detalle de plan, solo lectura y para cualquier sesion. Spec: 08 · Diseno: 8
 
 import { useEffect, useState } from 'react'
-import { useLocation, useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router'
 import { api, ApiError, type Plan } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
 import { ETIQUETA_METRICA, metricasDe } from '../../lib/plan-format'

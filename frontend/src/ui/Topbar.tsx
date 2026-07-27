@@ -1,7 +1,7 @@
 // Wordmark, buscador compacto, divisa, tema, menu de usuario. Diseno: 3
 
 import { useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { useSession } from '../lib/session'
 import { useRatesContext } from '../lib/rates-context'
 import { Button } from './Button'

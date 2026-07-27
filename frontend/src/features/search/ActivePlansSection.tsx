@@ -1,7 +1,7 @@
 // Seccion de planes activos del dashboard, colapsable. Spec: 08 · Diseno: 8
 
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import { api, type Plan } from '../../lib/api-client'
 import { ETIQUETA_METRICA, metricasDe } from '../../lib/plan-format'
 import { Button } from '../../ui/Button'

@@ -15,7 +15,7 @@ npm run dev
 
 Y ya está: **http://localhost:5173**. Entra con cualquier usuario y la contraseña `1111`, o con el usuario `ADMIN` para ver la entrada de administración.
 
-No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y lo puebla en el primer arranque si el fichero `.db` no existe. Requiere **Node ≥ 22** (`engines`); `.nvmrc` fija la **24**, que es la que usa el CI. No hace falta Docker ni herramientas de compilación.
+No hay ningún paso manual de base de datos: el backend crea el esquema SQLite y lo puebla en el primer arranque si el fichero `.db` no existe. Requiere **Node ≥ 22.22** (`engines`, el mínimo que pide react-router 8); `.nvmrc` fija la **24**, que es la que usa el CI. No hace falta Docker ni herramientas de compilación.
 
 | Script (raíz) | Qué hace |
 |---|---|

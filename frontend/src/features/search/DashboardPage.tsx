@@ -1,7 +1,7 @@
 // Ventana 2 - Dashboard / buscador con debounce. Diseno: 4
 
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { api, type CustomerListItem } from '../../lib/api-client'
 import { useBusquedaEnUrl } from '../../lib/busqueda-url'
 import { useSession } from '../../lib/session'

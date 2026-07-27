@@ -1,7 +1,7 @@
 // Ventana 5 - Alta: el hint fiscal llega resuelto de GET /countries; nunca comparar el pais. Ref: 7.2
 
 import { useEffect, useMemo, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router'
 import { api, ApiError, type Country, type Plan } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'
 import { Button } from '../../ui/Button'

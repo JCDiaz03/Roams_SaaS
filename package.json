@@ -10,7 +10,7 @@
     "frontend"
   ],
   "engines": {
-    "node": ">=22"
+    "node": ">=22.22.0"
   },
   "scripts": {
     "dev": "concurrently -n backend,frontend -c blue,magenta \"npm run dev -w backend\" \"npm run dev -w frontend\"",
@@ -22,10 +22,10 @@
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.12.1",
-    "@eslint/js": "^9.19.0",
+    "@eslint/js": "^10.0.1",
     "@playwright/test": "^1.61.1",
     "concurrently": "^9.1.2",
-    "eslint": "^9.19.0",
+    "eslint": "^10.8.0",
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.23.0"
   }

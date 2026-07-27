@@ -1,6 +1,6 @@
 // Barra de plan del simulador: cotizar con otro plan y volver al contratado. Spec: 09, 4.2
 
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import type { Plan } from '../../lib/api-client'
 import { Button } from '../../ui/Button'
 import { Chip } from '../../ui/Chip'

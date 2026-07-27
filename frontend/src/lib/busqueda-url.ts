@@ -5,7 +5,7 @@
 // porque yo la escribi" de "cambio desde fuera") no debe existir dos veces.
 
 import { useEffect, useRef, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router'
 
 /** Ni una actualizacion por tecla. 250 ms: por debajo no da tiempo a teclear, por encima se nota. */
 const DEBOUNCE_MS = 250

@@ -1,6 +1,6 @@
 // Tarjeta de resultado (patron Roams). Diseno: 2.4.1
 
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import type { CustomerListItem } from '../../lib/api-client'
 import { colorAvatar, iniciales } from '../../ui/avatar'
 import { ClickableCard } from '../../ui/Card'

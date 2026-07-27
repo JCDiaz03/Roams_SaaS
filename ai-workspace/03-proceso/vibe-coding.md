@@ -76,6 +76,7 @@ Más útil que describir «una sesión típica» es contar cómo cambió el trab
 | 21 | El catálogo definitivo de planes | `99da140` + `d96c551` | Los precios «por bloque» del usuario, traducidos a per-unit con cada ajuste documentado; el caso del enunciado y la tarifa archivada, defendidos sin que se pidiera (→ caso) |
 | 22 | Buscador en /planes y deduplicación transversal | `99da140` | Extraer las dos mitades del buscador, no copiar ninguna; 4 duplicados unificados y 2 rechazados con el mismo criterio que la hexagonal |
 | 23 | La destilación del `/ai-workspace` | `ad8853e` | De 47 ficheros a 23: dossier curado + archivo bruto congelado. Dos fichas nacidas ya destiladas (05, 06) y una pasada que cazó una docena de derivas doc↔doc y doc↔código |
+| 24 | El gate de suministro en rojo | *(pendiente)* | 9 altos → 0 sin tocar el umbral: `audit fix`, eslint 9→10 y react-router-dom→react-router 8. Se rechazó el `overrides` de `brace-expansion` porque la v5 exporta `{ expand }` y `minimatch@3` lo llama como función |
 
 ## Casos representativos
 

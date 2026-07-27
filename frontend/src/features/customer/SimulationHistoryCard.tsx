@@ -1,6 +1,6 @@
 // Historial de simulaciones en cards responsive. Diseno: 4, 8
 
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import type { CurrencyCode } from '@saas/pricing'
 import type { Simulation } from '../../lib/api-client'
 import { importeMostrado } from '../../lib/currency-format'

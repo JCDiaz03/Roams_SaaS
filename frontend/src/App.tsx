@@ -1,6 +1,6 @@
 // Layout + topbar + rutas. Diseno: 01-specs/diseno-frontend.md 3
 
-import { BrowserRouter } from 'react-router-dom'
+import { BrowserRouter } from 'react-router'
 import { SessionProvider } from './lib/session'
 import { SimulatorLimitsProvider } from './lib/simulator-limits'
 import { AppRoutes } from './routes'

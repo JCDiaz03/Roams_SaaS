@@ -1,6 +1,6 @@
 // Las 8 ventanas; admin condicionado por hasRole(admin). Diseno: 3, 8
 
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router'
 import { PlanTemplatePage } from './features/admin/PlanTemplatePage'
 import { PlansAdminPage } from './features/admin/PlansAdminPage'
 import { CustomerDetailPage } from './features/customer/CustomerDetailPage'

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { flushSync } from 'react-dom'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router'
 import { api, ApiError, type CustomerDetail, type Simulation } from '../../lib/api-client'
 import { useRatesContext } from '../../lib/rates-context'
 import { useSession } from '../../lib/session'

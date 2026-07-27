@@ -1,7 +1,7 @@
 // Ventana 6 - Admin de planes: lista con ?include_archived=true. Ref: 12 · Diseno: 4
 
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 import { api, type Plan } from '../../lib/api-client'
 import { contiene, useBusquedaEnUrl } from '../../lib/busqueda-url'
 import { ETIQUETA_METRICA, metricasDe } from '../../lib/plan-format'

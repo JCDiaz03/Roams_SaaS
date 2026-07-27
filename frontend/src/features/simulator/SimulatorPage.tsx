@@ -1,7 +1,7 @@
 // Ventana 4 - Simulador interactivo (la ventana estrella). Diseno: 4, 8
 
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router'
 import { METRICS, quote, type Metric, type Quantities } from '@saas/pricing'
 import { api, ApiError, type CustomerDetail, type Plan, type Simulation } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'

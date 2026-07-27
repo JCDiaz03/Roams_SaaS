@@ -1,7 +1,7 @@
 // Ventana 7 - Crear / editar plan. Diseno: 4
 
 import { useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router'
 import { METRICS, minorUnitOf, quote, type CurrencyCode, type Metric, type Tier } from '@saas/pricing'
 import { ApiError, api, type Plantilla, type PlantillaTier, type Violacion } from '../../lib/api-client'
 import { formatMinor } from '../../lib/currency-format'

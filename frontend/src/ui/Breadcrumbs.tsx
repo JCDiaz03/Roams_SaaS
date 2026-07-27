@@ -4,7 +4,7 @@
 // del mismo <nav> con tres copias del mismo CSS.
 
 import { Fragment } from 'react'
-import { Link } from 'react-router-dom'
+import { Link } from 'react-router'
 import styles from './Breadcrumbs.module.css'
 
 export type Miga = {
